@@ -1,0 +1,5 @@
+#!/bin/sh
+# FIXME: 1) use your hadoop of choice; 2) set the --tempDir to a local dir, I suppose? 3) change input/output path.
+export JAVA_HOME=/usr/lib/jvm/java-6-sun/jre
+hadoop -rmr /user/hdfs/tmp/demo1
+hadoop jar custom-mahout-core-0.4-job.jar org.apache.mahout.cf.taste.hadoop.similarity.item.ItemSimilarityJob --booleanData true --input /user/hdfs/rating-matrix/demo1 --maxCooccurrencesPerItem 500 --maxSimilaritiesPerItem 20 --output /user/hdfs/item-similarity/demo1/step1 --similarityClassname net.tuijianbao.apps.mahout.recommenders.MyDistributedLoglikelihoodVectorSimilarity --tempDir /user/hdfs/tmp/demo1
