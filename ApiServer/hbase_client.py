@@ -8,13 +8,16 @@ import md5
 
 import simplejson as json
 
-transport = TBufferedTransport(TSocket("localhost", 9090))
+import settings
+
+transport = TBufferedTransport(
+        TSocket(settings.hbase_thrift_host, settings.hbase_thrift_port))
 transport.open()
 protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
 client = Hbase.Client(protocol)
 
-ITEM_SIMILARITY_TABLE = "item_similarities"
+ITEM_SIMILARITY_TABLE = "demo1_item_similarities"
 
 def doHash(id):
     return md5.md5(id).hexdigest()
@@ -30,5 +33,11 @@ def recommend_viewed_also_view(customer_id, item_id, amount):
     row = client.getRow(ITEM_SIMILARITY_TABLE, doHash(item_id))
     #item_id1 = row[0].columns["p:item_id1"].value
     #print "ITEM_ID1:", item_id1
-    topn = json.loads(row[0].columns["p:mostSimilarItems"].value)[:amount]
+    if len(row) == 0:
+        return []
+    most_similar_items = json.loads(row[0].columns["p:mostSimilarItems"].value)
+    if len(most_similar_items) > amount:
+        topn = most_similar_items[:amount]
+    else:
+        topn = most_similar_items
     return topn
