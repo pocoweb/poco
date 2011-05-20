@@ -1,0 +1,13 @@
+<html>
+<title>请登录</title>
+<body>
+{% if msg == "login_failed" %}
+<p>登录失败，请检查您输入的用户名和密码是否正确</p>
+{% endif %}
+<form method="POST" action="/login">
+	用户名：<input name="name" type="text" value=""/><br/>
+	密码: <input name="password" type="password" value="" /></br>
+	<input name="submit" type="submit" value="Login" />
+</form>
+</body>
+</html>

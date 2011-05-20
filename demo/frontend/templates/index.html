@@ -1,0 +1,58 @@
+<html>
+<head>
+<title>首页｜图书推荐引擎</title>
+<script src="/static/jquery-1.5.2.min.js"></script>
+</head>
+<body>
+<script>
+    function rate(item_id) {
+        $.getJSON("/api/rate", 
+            {"item_id": item_id},
+            function(data) {
+                window.location.reload()
+            });
+    }
+
+    /*function remove_rate(item_id) {
+        $.getJSON("/api/rate", 
+            {"item_id": item_id, "item_score": "x"},
+            function(data) {
+                window.location.reload()
+            });        
+    }*/
+
+</script>
+<h1>首页｜图书推荐引擎</h1>
+<p><b>当前用户: {{current_user.name}}</b><a href="/logout">退出</a> </p>
+<hr/>
+<form method="GET" action="/search">
+    <input type="text" name="q" size="80" value={{q}}>
+    <input type="submit" name="submit" value="搜索" />
+</form>
+<hr/>
+<!--<p><b>书籍分类列表：</b></p>
+{% for category in top_level_categories %}
+<a href="/category?label={{category}}">{{category}}</a> &nbsp;
+{% endfor %}
+<hr/> -->
+<p><b>根据您的打分情况，我们猜您可能也喜欢如下图书：</b></p>
+<ol>
+{% if recommended_items %}
+{% for item in recommended_items %}
+    <li><a href="/item_details?id={{item.id}}"><img src="{{item.image_url_s}}" />{{item.title}}</a> [<a href="javascript:rate({{item.id}});">收藏</a>]</li>
+{% endfor %}
+{% else %}
+No recommendations currently.
+{% endif %}
+</ol>
+<hr/>
+<p><b>您收藏的图书:</b> <a href="/clean_all_ratings">清空所有收藏</a> </p>
+<div style="padding-left: 20px;">
+<ul>
+{% for pref in current_user.prefs %}
+<li><a href="/item_details?id={{pref.id}}"><img src="{{pref.image_url_s}}" />{{pref.title}}</a> <!-- | <a href="javascript:remove_rate({{pref.id}});">删除</a>--></li>
+{% endfor %}
+</ul>
+</div>
+</body>
+</html>
