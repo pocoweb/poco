@@ -177,6 +177,22 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
         topn = hbase_client.recommend_viewed_also_view(args["customer_id"], args["item_id"], int(args["amount"]))
         return {"code": 0, "topn": topn}
 
+class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("customer_id", True),
+         ("pref_ids", True),
+         ("amount", True),
+         ("callback", False)
+        ))
+
+    @api_method
+    def get(self, args):
+        customer_id = args["customer_id"]
+        pref_ids = json.loads(args["pref_ids"])
+        amount = int(args["amount"])
+        topn = hbase_client.recommend_based_on_browsing_history(customer_id, pref_ids, amount)
+        return {"code": 0, "topn": topn}
+
 
 application = tornado.web.Application([
     (r"/", MainHandler),
@@ -184,7 +200,7 @@ application = tornado.web.Application([
     #(r"/manage/removeItem", RemoveItemHandler),
     (r"/manage/updateItem", UpdateItemHandler),
     (r"/recommend/viewedAlsoView", RecommendViewedAlsoViewHandler),
-    #(r"/recommend/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
+    (r"/recommend/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
 ])
 
 if __name__ == "__main__":
