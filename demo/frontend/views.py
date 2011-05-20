@@ -30,10 +30,6 @@ def fetch_books(item_ids):
     return result
 
 
-def fetch_recommendations(current_user):
-    recommended_items = my_algorithm(current_user)
-    result = fetch_books(recommended_items)
-    return result
 
 
 def sign(float):
@@ -65,6 +61,16 @@ def my_algorithm(current_user):
         rec_tuples.append((key, score_total / count))
     rec_tuples.sort(lambda a,b: sign(b[1] - a[1]))
     return [int(rec_tuple[0]) for rec_tuple in rec_tuples][:8]
+
+
+def fetch_recommendations(current_user):
+    #recommended_items = my_algorithm(current_user)
+    pref_ids = [pref["id"] for pref in current_user["prefs"]]
+    params = {"customer_id": "demo1", "pref_ids": json.dumps(pref_ids), "amount": 8}
+    URL = settings.API_URL_PREFIX + "/recommend/basedOnBrowsingHistory?%s" % urllib.urlencode(params)
+    recommended_items = json.loads(urllib.urlopen(URL).read())["topn"]
+    result = fetch_books(recommended_items)
+    return result
 
 
 def fetch_most_similar_item_ids(item_id):
