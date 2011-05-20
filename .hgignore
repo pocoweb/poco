@@ -4,4 +4,5 @@ syntax: glob
 # A hidden file created by the Mac OS X Finder.
 .DS_Store
 *.pyc
-
+demo/frontend/session_store
+demo/frontend/logs
