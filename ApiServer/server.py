@@ -8,6 +8,8 @@ import os.path
 import settings
 import hbase_client
 
+from utils import doHash
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write('{"version": "Tuijianbao v1.0"}')
@@ -15,7 +17,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 customers = ["demo1", "mbaobao", "suning", "sample"]
 
-# TODO: check customer_id; referer; 
+# TODO: check site_id; referer; 
 
 class LogWriter:
     def __init__(self):
@@ -23,25 +25,28 @@ class LogWriter:
         self.count = 0
         self.last_timestamp = None
 
-    def getFile(self, customer_id):
-        if not self.filesMap.has_key(customer_id):
-            customer_log_dir = os.path.join(settings.log_directory, customer_id)
+    def getFile(self, site_id):
+        if not self.filesMap.has_key(site_id):
+            customer_log_dir = os.path.join(settings.log_directory, site_id)
             if not os.path.isdir(customer_log_dir):
                 os.mkdir(customer_log_dir)
-            self.filesMap[customer_id] = open("%s/current" % customer_log_dir, "a")
-        return self.filesMap[customer_id]
+            self.filesMap[site_id] = open("%s/current" % customer_log_dir, "a")
+        return self.filesMap[site_id]
 
-    def writeEntry(self, customer_id, item_id, user_id, session_id):
-        f = self.getFile(customer_id)
-        timestamp = str(time.time())
+    def writeEntry(self, site_id, item_id, user_id, session_id):
+        f = self.getFile(site_id)
+        timestamp = time.time()
         if timestamp <> self.last_timestamp:
             self.count = 0
         else:
             self.count += 1
         self.last_timestamp = timestamp
-        timestamp_plus_count = "%s+%s" % (timestamp, self.count)
+        timestamp_plus_count = "%r+%s" % (timestamp, self.count)
         f.write("%s,%s,%s,%s\n" % (item_id, user_id, session_id,timestamp_plus_count))
         f.flush()
+        # Also write user action to browsing_history table.
+        hbase_client.insertBrowsingHistory(site_id, session_id, item_id, timestamp)
+        
 
 logWriter = LogWriter()
 
@@ -81,7 +86,7 @@ def api_method(m):
 
 class ViewItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
+        (("site_id", True),
          ("item_id", True),
          ("user_id", True),
          ("session_id", True),
@@ -91,10 +96,10 @@ class ViewItemHandler(tornado.web.RequestHandler):
 
     @api_method
     def get(self, args):
-        if args["customer_id"] not in customers:
+        if args["site_id"] not in customers:
             return {"code": 2}
         else:
-            logWriter.writeEntry(args["customer_id"], args["item_id"], 
+            logWriter.writeEntry(args["site_id"], args["item_id"], 
                             args["user_id"], args["session_id"])
             return {"code": 0}
 
@@ -102,7 +107,7 @@ class ViewItemHandler(tornado.web.RequestHandler):
 
 class UpdateItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
+        (("site_id", True),
          ("item_id", True),
          ("item_link", True),
          ("item_name", True),
@@ -114,36 +119,30 @@ class UpdateItemHandler(tornado.web.RequestHandler):
         )
     )
 
-    def updateItem(self, args):
-        f = open("Item_%s_%s.json", "w")
-        del args["callback"]
-        f.write(json.dumps(args))
-        f.close()
-
     @api_method
     def get(self, args):
-        if args["customer_id"] not in customers:
+        if args["site_id"] not in customers:
             return {"code": 2}
         else:
             del args["callback"]
-            hbase_client.updateItem(args)
+            hbase_client.updateItem(args["site_id"], args)
             return {"code": 0}
 
 
 class RemoveItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
+        (("site_id", True),
          ("item_id", True),
          ("callback", False)
         )
     )
 
     def removeItem(self, args):
-        hbase_client.removeItem(args["customer_id"], args["item_id"])
+        hbase_client.removeItem(args["site_id"], args["item_id"])
 
     @api_method
     def get(self, args):
-        if args["customer_id"] not in customers:
+        if args["site_id"] not in customers:
             return {"code": 2}
         else:
             self.removeItem(args)
@@ -152,7 +151,7 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 
 class ClickRecItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
+        (("site_id", True),
          ("item_id", True),
          ("user_id", True),
          ("session_id", True),
@@ -165,7 +164,7 @@ class ClickRecItemHandler(tornado.web.RequestHandler):
 
 class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
+        (("site_id", True),
          ("item_id", True),
          ("amount", True),
          ("callback", False)
@@ -174,23 +173,23 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
 
     @api_method
     def get(self, args):
-        topn = hbase_client.recommend_viewed_also_view(args["customer_id"], args["item_id"], int(args["amount"]))
+        topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], int(args["amount"]))
         return {"code": 0, "topn": topn}
 
 class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
-        (("customer_id", True),
-         ("pref_ids", True),
+        (("site_id", True),
+         ("session_id", True),
          ("amount", True),
          ("callback", False)
         ))
 
     @api_method
     def get(self, args):
-        customer_id = args["customer_id"]
-        pref_ids = json.loads(args["pref_ids"])
+        site_id = args["site_id"]
+        session_id = args["session_id"]
         amount = int(args["amount"])
-        topn = hbase_client.recommend_based_on_browsing_history(customer_id, pref_ids, amount)
+        topn = hbase_client.recommend_based_on_browsing_history(site_id, session_id, amount)
         return {"code": 0, "topn": topn}
 
 
