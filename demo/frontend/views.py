@@ -63,18 +63,25 @@ def my_algorithm(current_user):
     return [int(rec_tuple[0]) for rec_tuple in rec_tuples][:8]
 
 
-def fetch_recommendations(current_user):
+def api_access(path, params):
+    url = settings.API_URL_PREFIX + "%s?%s" % (path, urllib.urlencode(params))
+    result = json.loads(urllib.urlopen(url).read())
+    return result
+
+def fetch_recommendations(current_user, request):
     #recommended_items = my_algorithm(current_user)
-    pref_ids = [pref["id"] for pref in current_user["prefs"]]
-    params = {"customer_id": "demo1", "pref_ids": json.dumps(pref_ids), "amount": 8}
-    URL = settings.API_URL_PREFIX + "/recommend/basedOnBrowsingHistory?%s" % urllib.urlencode(params)
-    recommended_items = json.loads(urllib.urlopen(URL).read())["topn"]
+    #pref_ids = [pref["id"] for pref in current_user["prefs"]]
+    params = {"site_id": "demo1", 
+              "session_id": request.session.session_key, 
+              "amount": 8}
+    result = api_access("/recommend/basedOnBrowsingHistory", params)
+    recommended_items = result["topn"]
     result = fetch_books(recommended_items)
     return result
 
 
 def fetch_most_similar_item_ids(item_id):
-    params = {"customer_id": "demo1", "item_id": item_id, "amount": 10}
+    params = {"site_id": "demo1", "item_id": item_id, "amount": 10}
     URL = settings.API_URL_PREFIX + "/recommend/viewedAlsoView?%s" % urllib.urlencode(params)
     #print "fetch_most_similar_item_ids:URL:", URL
     recommended_items = json.loads(urllib.urlopen(URL).read())["topn"]
@@ -109,6 +116,9 @@ def item_details(request):
     id = request.GET["id"]
     items = fetch_books([int(id)])
     item = items[0]
+    # report view of items
+    api_access("/action/viewItem", {"site_id": "demo1", "item_id": item["id"], "user_id": "null", "session_id": request.session.session_key})
+    #
     return render_to_response("item_details.html", {"item": item, 
                         "mostSimilarItems": fetch_most_similar_items(item["id"])})
 
@@ -151,7 +161,7 @@ def index(request):
             pref["title"] = pref_items_map[pref["id"]]["title"]
             pref["image_url_s"] = pref_items_map[pref["id"]]["image_url_s"]
     user_id = current_user["id"]
-    recommendations = fetch_recommendations(current_user)
+    recommendations = fetch_recommendations(current_user, request)
     result = {"recommended_items": recommendations, 
               "current_user": current_user,
               }
