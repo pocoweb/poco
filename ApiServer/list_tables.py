@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from thrift.transport.TSocket import TSocket
 from thrift.transport.TTransport import TBufferedTransport
 from thrift.protocol import TBinaryProtocol
