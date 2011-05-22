@@ -86,6 +86,16 @@ def api_method(m):
             self.write(response_text)
     return the_method
 
+
+def check_site_id(m):
+    def the_method(self, args):
+        if args["site_id"] not in customers:
+            return {"code": 2}
+        else:
+            return m(self, args)
+    return the_method
+
+
 class ViewItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -97,6 +107,7 @@ class ViewItemHandler(tornado.web.RequestHandler):
     )
 
     @api_method
+    @check_site_id
     def get(self, args):
         if args["site_id"] not in customers:
             return {"code": 2}
@@ -122,6 +133,7 @@ class UpdateItemHandler(tornado.web.RequestHandler):
     )
 
     @api_method
+    @check_site_id
     def get(self, args):
         if args["site_id"] not in customers:
             return {"code": 2}
@@ -143,6 +155,7 @@ class RemoveItemHandler(tornado.web.RequestHandler):
         hbase_client.removeItem(args["site_id"], args["item_id"])
 
     @api_method
+    @check_site_id
     def get(self, args):
         if args["site_id"] not in customers:
             return {"code": 2}
@@ -174,6 +187,7 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
     )
 
     @api_method
+    @check_site_id
     def get(self, args):
         topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], int(args["amount"]))
         return {"code": 0, "topn": topn}
@@ -187,6 +201,7 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
         ))
 
     @api_method
+    @check_site_id
     def get(self, args):
         site_id = args["site_id"]
         session_id = args["session_id"]
@@ -198,7 +213,7 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
 application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/action/viewItem", ViewItemHandler),
-    #(r"/manage/removeItem", RemoveItemHandler),
+    (r"/manage/removeItem", RemoveItemHandler),
     (r"/manage/updateItem", UpdateItemHandler),
     (r"/recommend/viewedAlsoView", RecommendViewedAlsoViewHandler),
     (r"/recommend/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)

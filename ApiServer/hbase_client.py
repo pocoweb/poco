@@ -18,11 +18,22 @@ protocol = TBinaryProtocol.TBinaryProtocol(transport)
 client = Hbase.Client(protocol)
 
 
+def _calcItemId(site_id, item_id):
+    return md5.md5(site_id + ":" + item_id).hexdigest()
+
 def updateItem(site_id, item):
     tableName = _getItemsTable(site_id)
-    the_id = md5.md5(item["site_id"] + ":" + item["item_id"]).hexdigest()
+    the_id = _calcItemId(site_id, item["item_id"])
     item_json = json.dumps(item)
-    client.mutateRow(tableName, the_id, [Mutation(column="p:content", value=item_json)])
+    client.mutateRow(tableName, the_id, 
+         [Mutation(column="p:content", value=item_json),
+          Mutation(column="p:available", value="true")])
+
+def removeItem(site_id, item_id):
+    tableName = _getItemsTable(site_id)
+    the_id = _calcItemId(site_id, item_id)
+    client.mutateRow(tableName, the_id,
+        [Mutation(column="p:available", value="false")])
 
 def _getItemsTable(site_id):
     return "%s_items" % site_id
