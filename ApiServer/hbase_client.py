@@ -89,6 +89,13 @@ def sign(float):
         return -1
 
 
+cache = {}
+def getCachedVAV(site_id, history_item):
+    global cache
+    if not cache.has_key((site_id, history_item)):
+        cache[(site_id, history_item)] = recommend_viewed_also_view(site_id, str(history_item), 15)
+    return cache[(site_id, history_item)]
+
 def calc_weighted_top_list_method1(site_id, browsing_history):
     if len(browsing_history) > 10:
         recent_history = browsing_history[-10:]
@@ -99,6 +106,7 @@ def calc_weighted_top_list_method1(site_id, browsing_history):
     rec_map = {}
     for history_item in recent_history:
         recommended_items = recommend_viewed_also_view(site_id, str(history_item), 15)
+        #recommended_items = getCachedVAV(site_id, str(history_item))
         for rec_item, score in recommended_items:
             if rec_item not in browsing_history:
                 rec_map.setdefault(rec_item, [0,0])

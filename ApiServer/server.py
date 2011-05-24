@@ -36,7 +36,7 @@ class LogWriter:
         return self.filesMap[site_id]
 
     def writeViewAction(self, action, site_id, item_id, user_id, session_id):
-        line = "%s,%s,%s,%s,%s\n" % (action, item_id, user_id, session_id)
+        line = "%s,%s,%s,%s\n" % (action, item_id, user_id, session_id)
         self.writeEntry(site_id, line)
 
     def writeEntry(self, site_id, line):
@@ -116,7 +116,7 @@ class ViewItemHandler(tornado.web.RequestHandler):
         if args["site_id"] not in customers:
             return {"code": 2}
         else:
-            logWriter.writeEntry("V", args["site_id"], args["item_id"], 
+            logWriter.writeViewAction("V", args["site_id"], args["item_id"], 
                             args["user_id"], args["session_id"])
             return {"code": 0}
 
@@ -267,7 +267,10 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     def get(self, args):
         site_id = args["site_id"]
         browsing_history = args["browsing_history"].split(",")
-        amount = int(args["amount"])
+        try:
+            amount = int(args["amount"])
+        except ValueError:
+            return {"code": 1}
         topn = hbase_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
         return {"code": 0, "topn": topn}
 
