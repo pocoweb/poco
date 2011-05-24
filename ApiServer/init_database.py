@@ -50,7 +50,7 @@ initTable(site_id, "items")
 # User Action Table
 # row-key: hash(<session-id>)-timestamp
 # p:content
-initTable(site_id, "browsing_history")
+#initTable(site_id, "browsing_history")
 
 # Item-Item Similarity Table
 initTable(site_id, "item_similarities")

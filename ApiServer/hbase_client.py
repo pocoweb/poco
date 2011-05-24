@@ -89,19 +89,18 @@ def sign(float):
         return -1
 
 
-def calc_weighted_top_list_method1(site_id, session_id):
-    #if len(pref_ids) > 10:
-    #    recent_pref_ids = pref_ids[-10:]
-    #else:
-    #    recent_pref_ids = pref_ids
-    pref_ids = [history_entry["item_id"] for history_entry in fetchRecentNBrowsingHistory(site_id, session_id)]
+def calc_weighted_top_list_method1(site_id, browsing_history):
+    if len(browsing_history) > 10:
+        recent_history = browsing_history[-10:]
+    else:
+        recent_history = browsing_history
 
     # calculate weighted top list from recent browsing history
     rec_map = {}
-    for pref_id in pref_ids:
-        recommended_items = recommend_viewed_also_view(site_id, str(pref_id), 15)
+    for history_item in recent_history:
+        recommended_items = recommend_viewed_also_view(site_id, str(history_item), 15)
         for rec_item, score in recommended_items:
-            if rec_item not in pref_ids:
+            if rec_item not in browsing_history:
                 rec_map.setdefault(rec_item, [0,0])
                 rec_map[rec_item][0] += float(score)
                 rec_map[rec_item][1] += 1
@@ -139,8 +138,8 @@ def calc_weighted_top_list_method2(site_id, pref_ids):
     return [ranking[1] for ranking in rankings]    
 
 
-def recommend_based_on_browsing_history(site_id, session_id, amount):
-    topn = calc_weighted_top_list_method1(site_id, session_id) 
+def recommend_based_on_browsing_history(site_id, browsing_history, amount):
+    topn = calc_weighted_top_list_method1(site_id, browsing_history) 
     if len(topn) > amount:
         topn = topn[:amount]
     return topn

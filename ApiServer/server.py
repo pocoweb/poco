@@ -35,7 +35,11 @@ class LogWriter:
             self.filesMap[site_id] = open("%s/current" % customer_log_dir, "a")
         return self.filesMap[site_id]
 
-    def writeEntry(self, site_id, item_id, user_id, session_id):
+    def writeViewAction(self, action, site_id, item_id, user_id, session_id):
+        line = "%s,%s,%s,%s,%s\n" % (action, item_id, user_id, session_id)
+        self.writeEntry(site_id, line)
+
+    def writeEntry(self, site_id, line):
         f = self.getFile(site_id)
         timestamp = time.time()
         if timestamp <> self.last_timestamp:
@@ -44,10 +48,10 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        f.write("%s,%s,%s,%s\n" % (item_id, user_id, session_id,timestamp_plus_count))
+        f.write("%s,%s" % (timestamp_plus_count, line))
         f.flush()
         # Also write user action to browsing_history table.
-        hbase_client.insertBrowsingHistory(site_id, session_id, item_id, timestamp)
+        #hbase_client.insertBrowsingHistory(site_id, session_id, item_id, timestamp)
         
 
 logWriter = LogWriter()
@@ -112,10 +116,66 @@ class ViewItemHandler(tornado.web.RequestHandler):
         if args["site_id"] not in customers:
             return {"code": 2}
         else:
-            logWriter.writeEntry(args["site_id"], args["item_id"], 
+            logWriter.writeEntry("V", args["site_id"], args["item_id"], 
                             args["user_id"], args["session_id"])
             return {"code": 0}
 
+
+class AddFavoriteHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("item_id", True),
+         ("user_id", True),
+         ("session_id", True),
+         ("callback", False)
+        )
+    )
+
+
+class RemoveFavoriteHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("item_id", True),
+         ("user_id", True),
+         ("session_id", True),
+         ("callback", False)
+        )
+    )
+
+
+class RateItemHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("item_id", True),
+         ("score", True),
+         ("user_id", True),
+         ("session_id", True),
+         ("callback", False)
+        )
+    )
+
+
+# FIXME
+class updateShopCartHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("item_id", True),
+         ("user_id", True),
+         ("session_id", True),
+         ("callback", False)
+        )
+    )
+
+
+class PlaceOrderHandler(tornado.web.RequestHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("item_ids", True), # use comma to separate items
+         ("user_id", True),
+         ("session_id", True),
+         ("callback", False)
+        )
+    )
 
 
 class UpdateItemHandler(tornado.web.RequestHandler):
@@ -192,10 +252,12 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
         topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], int(args["amount"]))
         return {"code": 0, "topn": topn}
 
+
 class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
-         ("session_id", True),
+         ("user_id", False),
+         ("browsing_history", True),
          ("amount", True),
          ("callback", False)
         ))
@@ -204,9 +266,9 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         site_id = args["site_id"]
-        session_id = args["session_id"]
+        browsing_history = args["browsing_history"].split(",")
         amount = int(args["amount"])
-        topn = hbase_client.recommend_based_on_browsing_history(site_id, session_id, amount)
+        topn = hbase_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
         return {"code": 0, "topn": topn}
 
 
