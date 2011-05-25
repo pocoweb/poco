@@ -46,6 +46,9 @@ def initTable(site_id, tableType):
                 [ColumnDescriptor(name="p")]
         )
 
+# Sites Table
+# rowkey: site_id; properties: p:site_name p:site_id items:1 items:2 
+initTable(None, "sites")
 
 # Items Table
 initTable(site_id, "items")
@@ -58,6 +61,4 @@ initTable(site_id, "items")
 # Item-Item Similarity Table
 initTable(site_id, "item_similarities")
 
-# Sites Table
-# rowkey: site_id; properties: p:name p:site_id items:1 items:2 
-initTable(None, "sites")
+
