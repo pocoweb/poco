@@ -104,7 +104,7 @@ class ViewItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("item_id", True),
-         ("user_id", True),
+         ("user_id", True), # if no user_id, pass "null"
          ("session_id", True),
          ("callback", False)
         )
