@@ -32,16 +32,19 @@ protocol = TBinaryProtocol.TBinaryProtocol(transport)
 client = Hbase.Client(protocol)
 
 def initTable(site_id, tableType):
-	tableName = "%s_%s" % (site_id, tableType)
-        if tableName in client.getTableNames():
-            if deleteOld:
-                client.disableTable(tableName)
-                client.deleteTable(tableName)
-                client.createTable(tableName, [ColumnDescriptor(name="p")])
-        else:
-            client.createTable(tableName,
-	        [ColumnDescriptor(name="p")]
-            )
+    if site_id is not None:
+        tableName = "%s_%s" % (site_id, tableType)
+    else:
+        tableName = tableType
+    if tableName in client.getTableNames():
+        if deleteOld:
+            client.disableTable(tableName)
+            client.deleteTable(tableName)
+            client.createTable(tableName, [ColumnDescriptor(name="p")])
+    else:
+        client.createTable(tableName,
+                [ColumnDescriptor(name="p")]
+        )
 
 
 # Items Table
@@ -55,3 +58,6 @@ initTable(site_id, "items")
 # Item-Item Similarity Table
 initTable(site_id, "item_similarities")
 
+# Sites Table
+# rowkey: site_id; properties: p:name p:site_id items:1 items:2 
+initTable(None, "sites")
