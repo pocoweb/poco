@@ -67,6 +67,36 @@ def fetchRecentNBrowsingHistory(site_id, session_id, n=10):
     return rows
 
 
+SITE_IDS = None
+def reloadSiteIds():
+    global SITE_IDS
+    site_ids = []
+    tableName = "sites"
+    scanner_id = client.scannerOpen(tableName, "", ["p:site_id"])
+    while True:
+        row = client.scannerGet(scanner_id)
+        if len(row) == 0:
+            break
+        else:
+            site_ids.append(row[0].columns["p:site_id"].value)
+    client.scannerClose(scanner_id)
+    SITE_IDS = set(site_ids)
+
+
+def getSiteIds():
+    global SITE_IDS
+    if SITE_IDS is None:
+        reloadSiteIds()
+    return SITE_IDS
+
+
+def updateSite(site_id, site_name):
+    client.mutateRow(tableName, rowkey,
+                [Mutation(column="p:site_id", value=site_id), 
+                 Mutation(column="p:site_name", value=site_name)])
+
+
+
 def recommend_viewed_also_view(site_id, item_id, amount):
     tableName = _getItemSimilaritiesTable(site_id)
     row = client.getRow(tableName, doHash(item_id))
