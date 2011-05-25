@@ -2,6 +2,7 @@ from thrift.transport.TSocket import TSocket
 from thrift.transport.TTransport import TBufferedTransport
 from thrift.protocol import TBinaryProtocol
 from hbase.ttypes import Mutation
+from hbase.ttypes import ColumnDescriptor
 from hbase import Hbase
 
 from utils import doHash
@@ -91,6 +92,8 @@ def getSiteIds():
 
 
 def updateSite(site_id, site_name):
+    tableName = "sites"
+    rowkey = site_id
     client.mutateRow(tableName, rowkey,
                 [Mutation(column="p:site_id", value=site_id), 
                  Mutation(column="p:site_name", value=site_name)])
@@ -181,4 +184,16 @@ def recommend_based_on_browsing_history(site_id, browsing_history, amount):
     if len(topn) > amount:
         topn = topn[:amount]
     return topn
+
+
+def initTable(tableName, deleteOld=False):
+    if tableName in client.getTableNames():
+        if deleteOld:
+            client.disableTable(tableName)
+            client.deleteTable(tableName)
+            client.createTable(tableName, [ColumnDescriptor(name="p")])
+    else:
+        client.createTable(tableName,
+                [ColumnDescriptor(name="p")]
+        )
 

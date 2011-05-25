@@ -10,7 +10,11 @@ from hbase import Hbase
 import md5
 import sys
 
+import utils
 import settings
+
+import hbase_client
+
 
 if len(sys.argv) == 2:
     site_id = sys.argv[1]
@@ -31,27 +35,13 @@ protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
 client = Hbase.Client(protocol)
 
-def initTable(site_id, tableType):
-    if site_id is not None:
-        tableName = "%s_%s" % (site_id, tableType)
-    else:
-        tableName = tableType
-    if tableName in client.getTableNames():
-        if deleteOld:
-            client.disableTable(tableName)
-            client.deleteTable(tableName)
-            client.createTable(tableName, [ColumnDescriptor(name="p")])
-    else:
-        client.createTable(tableName,
-                [ColumnDescriptor(name="p")]
-        )
+def initSiteTable(site_id, tableType):
+    tableName = utils.getSiteTableName(site_id, tableType)
+    hbase_client.initTable(tableName)
 
-# Sites Table
-# rowkey: site_id; properties: p:site_name p:site_id items:1 items:2 
-initTable(None, "sites")
 
 # Items Table
-initTable(site_id, "items")
+initSiteTable(site_id, "items")
 
 # User Action Table
 # row-key: hash(<session-id>)-timestamp
@@ -59,6 +49,6 @@ initTable(site_id, "items")
 #initTable(site_id, "browsing_history")
 
 # Item-Item Similarity Table
-initTable(site_id, "item_similarities")
+initSiteTable(site_id, "item_similarities")
 
 

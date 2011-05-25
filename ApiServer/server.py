@@ -42,8 +42,8 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        line = ",".join([action] + args)
-        f.write("%s,%s" % (timestamp_plus_count, line))
+        line = ",".join((action,) + args)
+        f.write("%s,%s\n" % (timestamp_plus_count, line))
         f.flush()
         
 
@@ -85,9 +85,10 @@ def api_method(m):
 
 
 def check_site_id(m):
-    hbase_client.getSiteIds()
+    site_ids = hbase_client.getSiteIds()
     def the_method(self, args):
-        if args["site_id"] not in customers:
+        if args["site_id"] not in site_ids:
+            print args["site_id"], site_ids
             return {"code": 2}
         else:
             return m(self, args)
@@ -107,12 +108,9 @@ class ViewItemHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("V", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"])
-            return {"code": 0}
+        logWriter.writeEntry("V", args["site_id"],
+                        args["user_id"], args["session_id"], args["item_id"])
+        return {"code": 0}
 
 
 class AddFavoriteHandler(tornado.web.RequestHandler):
@@ -128,12 +126,10 @@ class AddFavoriteHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("AF", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"])
-            return {"code": 0}
+        logWriter.writeEntry("AF", args["site_id"], 
+                        args["user_id"], args["session_id"], 
+                        args["item_id"])
+        return {"code": 0}
 
 
 class RemoveFavoriteHandler(tornado.web.RequestHandler):
@@ -149,12 +145,9 @@ class RemoveFavoriteHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("RF", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"])
-            return {"code": 0}
+        logWriter.writeEntry("RF", args["site_id"], 
+                        args["user_id"], args["session_id"], args["item_id"])
+        return {"code": 0}
 
 
 class RateItemHandler(tornado.web.RequestHandler):
@@ -171,15 +164,13 @@ class RateItemHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("RI", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"],
-                            args["score"])
-            return {"code": 0}
+        logWriter.writeEntry("RI", args["site_id"], 
+                        args["user_id"], args["session_id"],args["item_id"],
+                        args["score"])
+        return {"code": 0}
 
 
+# FIXME: update/remove item should be called in a secure way.
 class UpdateItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -197,12 +188,9 @@ class UpdateItemHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            del args["callback"]
-            hbase_client.updateItem(args["site_id"], args)
-            return {"code": 0}
+        del args["callback"]
+        hbase_client.updateItem(args["site_id"], args)
+        return {"code": 0}
 
 
 class RemoveItemHandler(tornado.web.RequestHandler):
@@ -219,24 +207,21 @@ class RemoveItemHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            self.removeItem(args)
-            return {"code": 0}
+        self.removeItem(args)
+        return {"code": 0}
 
 
-class ClickRecItemHandler(tornado.web.RequestHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
-         ("user_id", True),
-         ("session_id", True),
-         ("rec_id", True),
-         ("rec_page", False),
-         ("callback", False)
-        )
-    )
+#class ClickRecItemHandler(tornado.web.RequestHandler):
+#    ae = ArgumentExtractor(
+#        (("site_id", True),
+#         ("item_id", True),
+#         ("user_id", True),
+#         ("session_id", True),
+#         ("rec_id", True),
+#         ("rec_page", False),
+#         ("callback", False)
+#        )
+#    )
 
 
 class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
@@ -251,7 +236,8 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], int(args["amount"]))
+        topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
+                        int(args["amount"]))
         return {"code": 0, "topn": topn}
 
 
@@ -281,6 +267,8 @@ application = tornado.web.Application([
     (r"/", MainHandler),
     (r"/action/viewItem", ViewItemHandler),
     (r"/action/addFavorite", AddFavoriteHandler),
+    (r"/action/removeFavorite", RemoveFavoriteHandler),
+    (r"/action/rateItem", RateItemHandler),
     (r"/manage/removeItem", RemoveItemHandler),
     (r"/manage/updateItem", UpdateItemHandler),
     (r"/recommend/viewedAlsoView", RecommendViewedAlsoViewHandler),
