@@ -20,52 +20,12 @@ class MainHandler(tornado.web.RequestHandler):
         self.write('{"version": "Tuijianbao v1.0"}')
 
 
-# TODO: check site_id; referer; 
+# TODO: referer; 
 
 class LogWriter:
     def __init__(self):
-        self.filesMap = {}
-        self.count = 0
         self.last_timestamp = None
-        self.prepareLogDirAndFiles()
-        #self.startRotationLoop()
-
-    def startRotationLoop(self):
-        self.doRotateFiles()
-        tornado.ioloop.IOLoop.instance().add_timeout(
-                time.time() + settings.rotation_interval, 
-                self.doRotateCheck)
-
-    def doRotateFiles(self):
-        for site_id in hbase_client.getSiteIds():
-            current_file_path = self.getLogFilePath(site_id, "current")
-            ts = time.time()
-            while True:
-                dest_file_name = repr(ts)
-                dest_file_path = self.getLogFilePath(site_id, dest_file_name)
-                if not os.path.exists(dest_file_path):
-                    break
-                ts += 0.001
-            os.rename(current_file_path, dest_file_path)
-            self.filesMap[site_id].close()
-            self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
-
-    def getFileObj(self, site_id):
-        return self.filesMap[site_id]
-
-    def getLogDirPath(self, site_id):
-        return os.path.join(settings.log_directory, site_id)
-
-    def getLogFilePath(self, site_id, file_name):
-        return os.path.join(self.getLogDirPath(site_id), file_name)
-
-    def prepareLogDirAndFiles(self):
-        for site_id in hbase_client.getSiteIds():
-            if not self.filesMap.has_key(site_id):
-                site_log_dir = self.getLogDirPath(site_id)
-                if not os.path.isdir(site_log_dir):
-                    os.mkdir(site_log_dir)
-                self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
+        self.count = 0
 
     def writeToFlume(self, line):
         import socket
@@ -75,7 +35,6 @@ class LogWriter:
         s.close()
 
     def writeEntry(self, action, site_id, *args):
-        f = self.getFileObj(site_id)
         timestamp = time.time()
         if timestamp <> self.last_timestamp:
             self.count = 0
@@ -83,17 +42,11 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        line = ",".join((action,) + args)
+        line = ",".join((action, site_id) + args)
         self.writeToFlume(line)
 
 
-
 logWriter = LogWriter()
-
-#def handler(sig, frame):
-#    logWriter.closeFiles()
-
-#signal.signal(signal.SIGHUP, handler)
 
 
 class ArgumentExtractor:
