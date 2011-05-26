@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+sys.path.append("../pylib")
 import tornado.ioloop
 import tornado.web
 import simplejson as json
@@ -265,14 +267,14 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
 
 application = tornado.web.Application([
     (r"/", MainHandler),
-    (r"/action/viewItem", ViewItemHandler),
-    (r"/action/addFavorite", AddFavoriteHandler),
-    (r"/action/removeFavorite", RemoveFavoriteHandler),
-    (r"/action/rateItem", RateItemHandler),
-    (r"/manage/removeItem", RemoveItemHandler),
-    (r"/manage/updateItem", UpdateItemHandler),
-    (r"/recommend/viewedAlsoView", RecommendViewedAlsoViewHandler),
-    (r"/recommend/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
+    (r"/tui/viewItem", ViewItemHandler),
+    (r"/tui/addFavorite", AddFavoriteHandler),
+    (r"/tui/removeFavorite", RemoveFavoriteHandler),
+    (r"/tui/rateItem", RateItemHandler),
+    (r"/tui/removeItem", RemoveItemHandler),
+    (r"/tui/updateItem", UpdateItemHandler),
+    (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
+    (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
 ])
 
 if __name__ == "__main__":
