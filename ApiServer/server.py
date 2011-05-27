@@ -7,36 +7,36 @@ import tornado.web
 import simplejson as json
 import re
 import time
+import os
 import os.path
+import signal
 
 import settings
 import hbase_client
 
 from utils import doHash
 
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write('{"version": "Tuijianbao v1.0"}')
 
 
-# TODO: check site_id; referer; 
+# TODO: referer; 
 
 class LogWriter:
     def __init__(self):
-        self.filesMap = {}
-        self.count = 0
         self.last_timestamp = None
+        self.count = 0
 
-    def getFile(self, site_id):
-        if not self.filesMap.has_key(site_id):
-            customer_log_dir = os.path.join(settings.log_directory, site_id)
-            if not os.path.isdir(customer_log_dir):
-                os.mkdir(customer_log_dir)
-            self.filesMap[site_id] = open("%s/current" % customer_log_dir, "a")
-        return self.filesMap[site_id]
+    def writeToFlume(self, line):
+        import socket
+        s = socket.socket()
+        s.connect(("localhost", 5140))
+        s.send("<37>" + line)
+        s.close()
 
     def writeEntry(self, action, site_id, *args):
-        f = self.getFile(site_id)
         timestamp = time.time()
         if timestamp <> self.last_timestamp:
             self.count = 0
@@ -44,12 +44,12 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        line = ",".join((action,) + args)
-        f.write("%s,%s\n" % (timestamp_plus_count, line))
-        f.flush()
-        
+        line = ",".join((action, site_id) + args)
+        self.writeToFlume(line)
+
 
 logWriter = LogWriter()
+
 
 class ArgumentExtractor:
     def __init__(self, definitions):
