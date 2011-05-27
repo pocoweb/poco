@@ -45,7 +45,10 @@ class LogWriter:
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
         line = ",".join((action, site_id) + args)
-        self.writeToFlume(line)
+        if settings.print_raw_log:
+            print "RAW LOG:", line
+        else:
+            self.writeToFlume(line)
 
 
 logWriter = LogWriter()
