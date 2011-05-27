@@ -130,8 +130,8 @@ def getCachedVAV(site_id, history_item):
     return cache[(site_id, history_item)]
 
 def calc_weighted_top_list_method1(site_id, browsing_history):
-    if len(browsing_history) > 10:
-        recent_history = browsing_history[-10:]
+    if len(browsing_history) > 15:
+        recent_history = browsing_history[:15]
     else:
         recent_history = browsing_history
 

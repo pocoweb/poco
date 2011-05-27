@@ -34,7 +34,7 @@
 <hr/>
 <ol>
 {% for item in result.response.docs %}
-    <li style="margin-bottom: 10px;"><a href="/item_details?id={{item.id}}">{{item.title}}</a> 作者：{{item.author}}&nbsp;[<a href="javascript:rate({{item.id}});">收藏</a>] </li>
+    <li style="margin-bottom: 10px;"><a href="/item_details?id={{item.id}}">{{item.title}}</a> 作者：{{item.author}}</li>
 {% endfor %}
 </ol>
 </body>

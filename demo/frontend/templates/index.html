@@ -35,7 +35,7 @@
 <a href="/category?label={{category}}">{{category}}</a> &nbsp;
 {% endfor %}
 <hr/> -->
-<p><b>根据您的打分情况，我们猜您可能也喜欢如下图书：</b></p>
+<p><b>根据您的最近浏览历史，我们猜您可能也喜欢如下图书：</b></p>
 <ol>
 {% if recommended_items %}
 {% for item in recommended_items %}
@@ -46,10 +46,10 @@ No recommendations currently.
 {% endif %}
 </ol>
 <hr/>
-<p><b>您收藏的图书:</b> <a href="/clean_all_ratings">清空所有收藏</a> </p>
+<p><b>您的最近浏览历史:</b> <a href="/clean_all_ratings">清空所有收藏</a> </p>
 <div style="padding-left: 20px;">
 <ul>
-{% for pref in current_user.prefs %}
+{% for pref in pref_items %}
 <li><a href="/item_details?id={{pref.id}}"><img src="{{pref.image_url_s}}" />{{pref.title}}</a> <!-- | <a href="javascript:remove_rate({{pref.id}});">删除</a>--></li>
 {% endfor %}
 </ul>

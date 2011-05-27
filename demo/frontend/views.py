@@ -65,16 +65,17 @@ def my_algorithm(current_user):
 
 def api_access(path, params):
     url = settings.API_URL_PREFIX + "%s?%s" % (path, urllib.urlencode(params))
+    print "API_ACCESS:", url
     result = json.loads(urllib.urlopen(url).read())
     return result
 
 def fetch_recommendations(current_user, request):
-    #recommended_items = my_algorithm(current_user)
-    #pref_ids = [pref["id"] for pref in current_user["prefs"]]
+    pref_ids = [pref["id"] for pref in current_user["prefs"]]
+    browsing_history = ",".join(pref_ids)
     params = {"site_id": "demo1", 
-              "session_id": request.session.session_key, 
+              "browsing_history": browsing_history,
               "amount": 8}
-    result = api_access("/recommend/basedOnBrowsingHistory", params)
+    result = api_access("/tui/basedOnBrowsingHistory", params)
     recommended_items = result["topn"]
     result = fetch_books(recommended_items)
     return result
@@ -82,9 +83,8 @@ def fetch_recommendations(current_user, request):
 
 def fetch_most_similar_item_ids(item_id):
     params = {"site_id": "demo1", "item_id": item_id, "amount": 10}
-    URL = settings.API_URL_PREFIX + "/recommend/viewedAlsoView?%s" % urllib.urlencode(params)
-    #print "fetch_most_similar_item_ids:URL:", URL
-    recommended_items = json.loads(urllib.urlopen(URL).read())["topn"]
+    result = api_access("/tui/viewedAlsoView", params)
+    recommended_items = result["topn"]
     return recommended_items
 
 
@@ -94,14 +94,20 @@ def fetch_most_similar_items(item_id):
     return result
 
 
-def rate_item(current_user, user_id, item_id):
-    updated = False
+def rate_item(current_user, item_id):
+    new_prefs = []
     for pref in current_user["prefs"]:
-        if pref["id"] == item_id:
-            updated = True
-            break
-    if not updated:
-        current_user["prefs"].append({"id": item_id})
+        if pref["id"] <> item_id:
+            new_prefs.append(pref)
+    new_prefs.insert(0, {"id": item_id})
+    if len(new_prefs) > 30:
+        new_prefs = new_prefs[:30]
+
+    conn = getConnection()
+    cur = conn.cursor()
+    cur.execute("UPDATE userdb SET prefs_json=? WHERE name=?",
+        (json.dumps(new_prefs), current_user["name"]))
+    conn.commit()
 
 
 import re
@@ -113,13 +119,20 @@ def google_it(request):
 def item_details(request):
     if not request.session.has_key("user_name"):
         return redirect("/login")
+    current_user = _getCurrentUser(request)
     id = request.GET["id"]
     items = fetch_books([int(id)])
     item = items[0]
+
     # report view of items
-    api_access("/action/viewItem", {"site_id": "demo1", "item_id": item["id"], "user_id": "null", "session_id": request.session.session_key})
+    api_access("/tui/viewItem", {"site_id": "demo1", "item_id": item["id"], "user_id": "null", "session_id": request.session.session_key})
+    rate_item(current_user, item["id"])
+    current_user = _getCurrentUser(request)
+    recommendations = fetch_recommendations(current_user, request)
     #
-    return render_to_response("item_details.html", {"item": item, 
+    return render_to_response("item_details.html", 
+                        {"item": item, 
+                        "recommended_items": recommendations,
                         "mostSimilarItems": fetch_most_similar_items(item["id"])})
 
 
@@ -138,7 +151,7 @@ def api_rate(request):
     current_user = _getCurrentUser(request)
     user_id = current_user["id"]
     item_id = int(request.GET["item_id"])
-    rate_item(current_user, user_id, item_id)
+    rate_item(current_user, item_id)
     conn = getConnection()
     cur = conn.cursor()
     cur.execute("UPDATE userdb SET prefs_json=? WHERE name=?",
@@ -151,19 +164,13 @@ def api_rate(request):
 def index(request):
     if not request.session.has_key("user_name"):
         return redirect("/login")
-    current_user = copy.deepcopy(_getCurrentUser(request))
+    current_user = _getCurrentUser(request)
     pref_items = fetch_books([pref["id"] for pref in current_user["prefs"]])
-    pref_items_map = {}
-    for pref_item in pref_items:
-        pref_items_map[int(pref_item["id"])] = pref_item
-    for pref in current_user["prefs"]:
-        if pref_items_map.has_key(pref["id"]):
-            pref["title"] = pref_items_map[pref["id"]]["title"]
-            pref["image_url_s"] = pref_items_map[pref["id"]]["image_url_s"]
     user_id = current_user["id"]
     recommendations = fetch_recommendations(current_user, request)
     result = {"recommended_items": recommendations, 
               "current_user": current_user,
+              "pref_items": pref_items,
               }
     return render_to_response('index.html', result)
 
@@ -228,6 +235,7 @@ def search(request):
         result = []
     else:
         result = solr_query(q, defType="edismax", start=page)
+
     return render_to_response("search.html", 
             {"q": q, 
              "result": result,
@@ -245,4 +253,4 @@ def _getCurrentUser(request):
           [request.session["user_name"]])
     row = cur.fetchone()
     user = {"id": row[0], "name": row[1], "prefs": json.loads(row[2])}
-    return user
+    return copy.deepcopy(user)

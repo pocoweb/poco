@@ -250,7 +250,7 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("user_id", False),
-         ("browsing_history", True),
+         ("browsing_history", False),
          ("amount", True),
          ("callback", False)
         ))
@@ -259,7 +259,11 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         site_id = args["site_id"]
-        browsing_history = args["browsing_history"].split(",")
+        browsing_history = args["browsing_history"]
+        if browsing_history == None:
+            browsing_history = []
+        else:
+            browsing_history = browsing_history.split(",")
         try:
             amount = int(args["amount"])
         except ValueError:

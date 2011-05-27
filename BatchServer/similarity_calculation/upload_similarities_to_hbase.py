@@ -1,5 +1,6 @@
 import simplejson as json
 import os
+import sys
 
 from thrift.transport.TSocket import TSocket
 from thrift.transport.TTransport import TBufferedTransport
@@ -8,14 +9,24 @@ from hbase.ttypes import Mutation
 from hbase.ttypes import ColumnDescriptor
 from hbase import Hbase
 
-transport = TBufferedTransport(TSocket("cube1", 9090))
+import settings
+
+if len(sys.argv) <> 2:
+    print "Usage: %s <site_id>" % sys.argv[0]
+    sys.exit(1)
+else:
+    site_id = sys.argv[1]
+
+
+transport = TBufferedTransport(
+            TSocket(settings.hbase_thrift_host, settings.hbase_thrift_port))
 transport.open()
 protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
 client = Hbase.Client(protocol)
 
 # FIXME: should use another table instead of the working table.
-TABLE_NAME = "demo1_item_similarities"
+TABLE_NAME = "%s_item_similarities" % site_id
 
 print "About to Create the Table ..."
 if TABLE_NAME in client.getTableNames():
@@ -44,7 +55,13 @@ def insertSimOneRow():
 
 
 print "Download data from HDFS"
-os.system("hadoop dfs -copyToLocal /user/hdfs/item-similarity/demo1/item-similarities item-similarities")
+hdfs_item_similarities_file_path = settings.hdfs_item_similarity_root_path + "/%s/item-similarities" % site_id
+local_item_similarities_file_path = "%s/item-similarities" % settings.tmp_dir
+
+dfs_copy_command = "%s dfs -copyToLocal %s %s" \
+        % (settings.hadoop_command, hdfs_item_similarities_file_path, local_item_similarities_file_path)
+print dfs_copy_command
+os.system(dfs_copy_command)
 
 
 print "Load data to HBase..."
@@ -54,7 +71,7 @@ last_rows = []
 count = 0
 import time
 t0 = time.time()
-for line in open("item-similarities", "r"):
+for line in open(local_item_similarities_file_path, "r"):
     count += 1
     if count % 40000 == 0:
         finished_ratio = count / float(2788821)
