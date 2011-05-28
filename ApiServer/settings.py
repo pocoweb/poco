@@ -7,9 +7,13 @@ print_raw_log = False
 log_directory = None
 node_name=None
 rotation_interval = None
+hdfs_raw_log_dir = None
+hadoop_command = None
 
 from local_settings import *
 
 assert node_name is not None
 assert log_directory is not None
 assert rotation_interval is not None
+assert hdfs_raw_log_dir is not None
+assert hadoop_command is not None

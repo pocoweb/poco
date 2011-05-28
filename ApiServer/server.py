@@ -15,6 +15,7 @@ import settings
 import hbase_client
 
 from utils import doHash
+import utils
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -42,7 +43,7 @@ class LogWriter:
         ts = time.time()
         while True:
             dest_file_name = repr(ts)
-            dest_file_path = self.getLogFilePath(site_id, dest_file_name)
+            dest_file_path = utils.getLogFilePath(site_id, dest_file_name)
             if not os.path.exists(dest_file_path):
                 break
             ts += 0.001
@@ -51,7 +52,7 @@ class LogWriter:
     def doRotateFiles(self):
         # TODO: need a more scalable solution
         for site_id in hbase_client.getSiteIds():
-            current_file_path = self.getLogFilePath(site_id, "current")
+            current_file_path = utils.getLogFilePath(site_id, "current")
             # Do not rotate a 0 size "current" file.
             last_rotation_ts = self.loadLastRotationTS(site_id)
             if os.stat(current_file_path).st_size <> 0 \
@@ -65,11 +66,11 @@ class LogWriter:
                 #   in which both oldpath and newpath refer to the file being renamed."
                 # see http://www.linuxmanpages.com/man2/rename.2.php
                 # create a "MOVING" flag file
-                moving_flag_path = self.getLogFilePath(site_id, "MOVING")
+                moving_flag_path = utils.getLogFilePath(site_id, "MOVING")
                 open(moving_flag_path, 'w').close()
                 os.rename(current_file_path, dest_file_path)
                 os.remove(moving_flag_path)
-                self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
+                self.filesMap[site_id] = open(utils.getLogFilePath(site_id, "current"), "a")
                 # update the last rotation flag
                 self.touchLastRotationFile(site_id, create_only=False)
 
@@ -78,14 +79,8 @@ class LogWriter:
         f.write("%s\n" % line)
         f.flush()
 
-    def getLogDirPath(self, site_id):
-        return os.path.join(settings.log_directory, site_id)
-
-    def getLogFilePath(self, site_id, file_name):
-        return os.path.join(self.getLogDirPath(site_id), file_name)
-
     def loadLastRotationTS(self, site_id):
-        last_rotation_file = self.getLogFilePath(site_id, "LAST_ROTATION")
+        last_rotation_file = utils.getLogFilePath(site_id, "LAST_ROTATION")
         f = open(last_rotation_file, "r")
         timestamp = float(f.read())
         f.close()
@@ -93,7 +88,7 @@ class LogWriter:
 
     def touchLastRotationFile(self, site_id, create_only=False):
         # generate last rotation file
-        last_rotation_file = self.getLogFilePath(site_id, "LAST_ROTATION")
+        last_rotation_file = utils.getLogFilePath(site_id, "LAST_ROTATION")
         timestamp_str = repr(time.time())
         if (create_only and not os.path.exists(last_rotation_file)) or (not create_only):
             f = open(last_rotation_file, "w")
@@ -103,11 +98,10 @@ class LogWriter:
     def prepareLogDirAndFiles(self):
         for site_id in hbase_client.getSiteIds():
             if not self.filesMap.has_key(site_id):
-                site_log_dir = self.getLogDirPath(site_id)
+                site_log_dir = utils.getLogDirPath(site_id)
                 if not os.path.isdir(site_log_dir):
                     os.mkdir(site_log_dir)
-                current = self.getLogFilePath(site_id, "current")
-                print current
+                current = utils.getLogFilePath(site_id, "current")
                 self.filesMap[site_id] = open(current, "a")
                 self.touchLastRotationFile(site_id, create_only=True)
 
