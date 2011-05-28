@@ -47,7 +47,6 @@ for site_id in hbase_client.getSiteIds():
             ensureDFSDirectoryExistence(hdfs_site_daily_raw_log_dir)
             dest_file_name_on_dfs = "%s_%s" % (settings.node_name, file_name)
             full_dest_path = os.path.join(hdfs_site_daily_raw_log_dir, dest_file_name_on_dfs)
-            #command = "%s dfs -copyFromLocal %s %s" % (settings.hadoop_command, file_name, full_dest_path)
             code = dfsExecCommand("copyFromLocal", "%s %s" % (file_name, full_dest_path))
             # only delete the local file when the file was copied to remote server successfully.
             if code == 0:
