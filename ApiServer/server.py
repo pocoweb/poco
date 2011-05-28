@@ -30,12 +30,12 @@ class LogWriter:
         self.count = 0
         self.last_timestamp = None
         self.prepareLogDirAndFiles()
-        #self.startRotationLoop()
+        self.startRotationLoop()
 
     def startRotationLoop(self):
         self.doRotateFiles()
         tornado.ioloop.IOLoop.instance().add_timeout(
-                time.time() + settings.rotation_interval, 
+                time.time() + settings.rotation_interval / 2, 
                 self.startRotationLoop)
 
     def _generateDestFilePath(self, site_id):
@@ -52,19 +52,26 @@ class LogWriter:
         # TODO: need a more scalable solution
         for site_id in hbase_client.getSiteIds():
             current_file_path = self.getLogFilePath(site_id, "current")
-            dest_file_path = self._generateDestFilePath(site_id)
-            # this marks that we are 
-            # not sure if "mv" is atomic, if the new_path does not exist.
-            # according to "However, when overwriting there will probably be a window 
-            #   in which both oldpath and newpath refer to the file being renamed."
-            # see http://www.linuxmanpages.com/man2/rename.2.php
-            # create a "MOVING" flag file
-            moving_flag_path = self.getLogFilePath(site_id, "MOVING")
-            open(moving_flag_path, 'w').close()
-            os.rename(current_file_path, dest_file_path)
-            os.remove(moving_flag_path)
-            self.filesMap[site_id].close()
-            self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
+            # Do not rotate a 0 size "current" file.
+            last_rotation_ts = self.loadLastRotationTS(site_id)
+            if os.stat(current_file_path).st_size <> 0 \
+                and (time.time() - last_rotation_ts > settings.rotation_interval):
+                print "Start to Rotate ... "
+                self.filesMap[site_id].close()
+                dest_file_path = self._generateDestFilePath(site_id)
+                # this marks that we are 
+                # not sure if "mv" is atomic, if the new_path does not exist.
+                # according to "However, when overwriting there will probably be a window 
+                #   in which both oldpath and newpath refer to the file being renamed."
+                # see http://www.linuxmanpages.com/man2/rename.2.php
+                # create a "MOVING" flag file
+                moving_flag_path = self.getLogFilePath(site_id, "MOVING")
+                open(moving_flag_path, 'w').close()
+                os.rename(current_file_path, dest_file_path)
+                os.remove(moving_flag_path)
+                self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
+                # update the last rotation flag
+                self.touchLastRotationFile(site_id, create_only=False)
 
     def writeToLogFile(self, site_id, line):
         f = self.filesMap[site_id]
@@ -77,6 +84,22 @@ class LogWriter:
     def getLogFilePath(self, site_id, file_name):
         return os.path.join(self.getLogDirPath(site_id), file_name)
 
+    def loadLastRotationTS(self, site_id):
+        last_rotation_file = self.getLogFilePath(site_id, "LAST_ROTATION")
+        f = open(last_rotation_file, "r")
+        timestamp = float(f.read())
+        f.close()
+        return timestamp
+
+    def touchLastRotationFile(self, site_id, create_only=False):
+        # generate last rotation file
+        last_rotation_file = self.getLogFilePath(site_id, "LAST_ROTATION")
+        timestamp_str = repr(time.time())
+        if (create_only and not os.path.exists(last_rotation_file)) or (not create_only):
+            f = open(last_rotation_file, "w")
+            f.write(timestamp_str)
+            f.close()
+
     def prepareLogDirAndFiles(self):
         for site_id in hbase_client.getSiteIds():
             if not self.filesMap.has_key(site_id):
@@ -84,7 +107,9 @@ class LogWriter:
                 if not os.path.isdir(site_log_dir):
                     os.mkdir(site_log_dir)
                 current = self.getLogFilePath(site_id, "current")
+                print current
                 self.filesMap[site_id] = open(current, "a")
+                self.touchLastRotationFile(site_id, create_only=True)
 
     def writeEntry(self, action, site_id, *args):
         timestamp = time.time()
