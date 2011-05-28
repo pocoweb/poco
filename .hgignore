@@ -6,3 +6,6 @@ syntax: glob
 *.pyc
 demo/frontend/session_store
 demo/frontend/logs
+ApiServer/local_settings.py
+BatchServer/similarity_calculation/local_settings.py
+demo/frontend/local_settings.py

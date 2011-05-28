@@ -26,15 +26,65 @@ class MainHandler(tornado.web.RequestHandler):
 
 class LogWriter:
     def __init__(self):
-        self.last_timestamp = None
+        self.filesMap = {}
         self.count = 0
+        self.last_timestamp = None
+        self.prepareLogDirAndFiles()
+        #self.startRotationLoop()
 
-    def writeToFlume(self, line):
-        import socket
-        s = socket.socket()
-        s.connect(("localhost", 5140))
-        s.send("<37>" + line)
-        s.close()
+    def startRotationLoop(self):
+        self.doRotateFiles()
+        tornado.ioloop.IOLoop.instance().add_timeout(
+                time.time() + settings.rotation_interval, 
+                self.startRotationLoop)
+
+    def _generateDestFilePath(self, site_id):
+        ts = time.time()
+        while True:
+            dest_file_name = repr(ts)
+            dest_file_path = self.getLogFilePath(site_id, dest_file_name)
+            if not os.path.exists(dest_file_path):
+                break
+            ts += 0.001
+        return dest_file_path
+
+    def doRotateFiles(self):
+        # TODO: need a more scalable solution
+        for site_id in hbase_client.getSiteIds():
+            current_file_path = self.getLogFilePath(site_id, "current")
+            dest_file_path = self._generateDestFilePath(site_id)
+            # this marks that we are 
+            # not sure if "mv" is atomic, if the new_path does not exist.
+            # according to "However, when overwriting there will probably be a window 
+            #   in which both oldpath and newpath refer to the file being renamed."
+            # see http://www.linuxmanpages.com/man2/rename.2.php
+            # create a "MOVING" flag file
+            moving_flag_path = self.getLogFilePath(site_id, "MOVING")
+            open(moving_flag_path, 'w').close()
+            os.rename(current_file_path, dest_file_path)
+            os.remove(moving_flag_path)
+            self.filesMap[site_id].close()
+            self.filesMap[site_id] = open(self.getLogFilePath(site_id, "current"), "a")
+
+    def writeToLogFile(self, site_id, line):
+        f = self.filesMap[site_id]
+        f.write("%s\n" % line)
+        f.flush()
+
+    def getLogDirPath(self, site_id):
+        return os.path.join(settings.log_directory, site_id)
+
+    def getLogFilePath(self, site_id, file_name):
+        return os.path.join(self.getLogDirPath(site_id), file_name)
+
+    def prepareLogDirAndFiles(self):
+        for site_id in hbase_client.getSiteIds():
+            if not self.filesMap.has_key(site_id):
+                site_log_dir = self.getLogDirPath(site_id)
+                if not os.path.isdir(site_log_dir):
+                    os.mkdir(site_log_dir)
+                current = self.getLogFilePath(site_id, "current")
+                self.filesMap[site_id] = open(current, "a")
 
     def writeEntry(self, action, site_id, *args):
         timestamp = time.time()
@@ -44,11 +94,10 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        line = ",".join((action, site_id) + args)
+        line = ",".join((timestamp_plus_count, action) + args)
         if settings.print_raw_log:
             print "RAW LOG:", line
-        else:
-            self.writeToFlume(line)
+        self.writeToLogFile(site_id, line)
 
 
 logWriter = LogWriter()
@@ -243,6 +292,8 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
     def get(self, args):
         topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
                         int(args["amount"]))
+        #topn = hbase_client.getCachedVAV(args["site_id"], args["item_id"]) 
+                        #,int(args["amount"]))
         return {"code": 0, "topn": topn}
 
 

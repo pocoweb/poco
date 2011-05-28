@@ -1,0 +1,5 @@
+hbase_thrift_host = "localhost"
+hbase_thrift_port = 9090
+hdfs_item_similarity_root_path = "/user/hdfs/item-similarity"
+hadoop_command = "/usr/bin/hadoop"
+tmp_dir = "/tmp"
