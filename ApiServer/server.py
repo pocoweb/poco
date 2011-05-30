@@ -192,7 +192,6 @@ class ViewItemHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        print self.tuijianbaoid
         logWriter.writeEntry("V", args["site_id"],
                         args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
