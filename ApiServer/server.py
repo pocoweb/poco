@@ -304,14 +304,24 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 #    )
 
 
-class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
+def getReqId():
+    return str(uuid.uuid4())
+
+class RecommendViewedAlsoViewHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
+         ("user_id", True),
          ("item_id", True),
          ("amount", True),
          ("callback", False)
         )
     )
+
+    def logRecommendationRequest(self, args, req_id):
+        logWriter.writeEntry("RecVAV", args["site_id"],
+                        req_id,
+                        args["user_id"], self.tuijianbaoid, args["item_id"],
+                        args["amount"])
 
     @api_method
     @check_site_id
@@ -319,18 +329,26 @@ class RecommendViewedAlsoViewHandler(tornado.web.RequestHandler):
         topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
                         int(args["amount"]))
         #topn = hbase_client.getCachedVAV(args["site_id"], args["item_id"]) 
-                        #,int(args["amount"]))
-        return {"code": 0, "topn": topn}
+        #                #,int(args["amount"]))
+        req_id = getReqId()
+        self.logRecommendationRequest(args, req_id)
+        return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
+class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
-         ("user_id", False),
+         ("user_id", True),
          ("browsing_history", False),
          ("amount", True),
          ("callback", False)
         ))
+
+    def logRecommendationRequest(self, args, req_id):
+        logWriter.writeEntry("RecBOBH", args["site_id"], 
+                        req_id,
+                        args["user_id"], self.tuijianbaoid, args["amount"],
+                        args["browsing_history"])
 
     @api_method
     @check_site_id
@@ -346,7 +364,9 @@ class RecommendBasedOnBrowsingHistoryHandler(tornado.web.RequestHandler):
         except ValueError:
             return {"code": 1}
         topn = hbase_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
-        return {"code": 0, "topn": topn}
+        req_id = getReqId()
+        self.logRecommendationRequest(args, req_id)
+        return {"code": 0, "topn": topn, "req_id": req_id}
 
 
 application = tornado.web.Application([
