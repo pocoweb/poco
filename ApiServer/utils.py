@@ -13,4 +13,4 @@ def getLogDirPath(site_id):
     return os.path.join(settings.log_directory, site_id)
 
 def getLogFilePath(site_id, file_name):
-    return os.path.join(self.getLogDirPath(site_id), file_name)
+    return os.path.join(getLogDirPath(site_id), file_name)

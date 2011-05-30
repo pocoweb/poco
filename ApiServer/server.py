@@ -10,6 +10,7 @@ import time
 import os
 import os.path
 import signal
+import uuid
 
 import settings
 import hbase_client
@@ -168,12 +169,22 @@ def check_site_id(m):
     return the_method
 
 
-class ViewItemHandler(tornado.web.RequestHandler):
+
+# TODO: how to update cookie expires
+class APIHandler(tornado.web.RequestHandler):
+    def prepare(self):
+        tornado.web.RequestHandler.prepare(self)
+        self.tuijianbaoid = self.get_cookie("tuijianbaoid")
+        if not self.tuijianbaoid:
+            self.tuijianbaoid = str(uuid.uuid4())
+            self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=30)
+
+
+class ViewItemHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("item_id", True),
          ("user_id", True), # if no user_id, pass in "null"
-         ("session_id", True),
          ("callback", False)
         )
     )
@@ -181,17 +192,17 @@ class ViewItemHandler(tornado.web.RequestHandler):
     @api_method
     @check_site_id
     def get(self, args):
+        print self.tuijianbaoid
         logWriter.writeEntry("V", args["site_id"],
-                        args["user_id"], args["session_id"], args["item_id"])
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 
-class AddFavoriteHandler(tornado.web.RequestHandler):
+class AddFavoriteHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("item_id", True),
          ("user_id", True),
-         ("session_id", True),
          ("callback", False)
         )
     )
@@ -200,17 +211,16 @@ class AddFavoriteHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         logWriter.writeEntry("AF", args["site_id"], 
-                        args["user_id"], args["session_id"], 
+                        args["user_id"], self.tuijianbaoid, 
                         args["item_id"])
         return {"code": 0}
 
 
-class RemoveFavoriteHandler(tornado.web.RequestHandler):
+class RemoveFavoriteHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("item_id", True),
          ("user_id", True),
-         ("session_id", True),
          ("callback", False)
         )
     )
@@ -219,17 +229,16 @@ class RemoveFavoriteHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         logWriter.writeEntry("RF", args["site_id"], 
-                        args["user_id"], args["session_id"], args["item_id"])
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 
-class RateItemHandler(tornado.web.RequestHandler):
+class RateItemHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("item_id", True),
          ("score", True),
          ("user_id", True),
-         ("session_id", True),
          ("callback", False)
         )
     )
@@ -238,7 +247,7 @@ class RateItemHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         logWriter.writeEntry("RI", args["site_id"], 
-                        args["user_id"], args["session_id"],args["item_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"],
                         args["score"])
         return {"code": 0}
 
@@ -289,7 +298,6 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 #        (("site_id", True),
 #         ("item_id", True),
 #         ("user_id", True),
-#         ("session_id", True),
 #         ("rec_id", True),
 #         ("rec_page", False),
 #         ("callback", False)
