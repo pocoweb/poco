@@ -13,7 +13,7 @@ import signal
 import uuid
 
 import settings
-import hbase_client
+import mongo_client
 
 from utils import doHash
 import utils
@@ -52,7 +52,7 @@ class LogWriter:
 
     def doRotateFiles(self):
         # TODO: need a more scalable solution
-        for site_id in hbase_client.getSiteIds():
+        for site_id in mongo_client.getSiteIds():
             current_file_path = utils.getLogFilePath(site_id, "current")
             # Do not rotate a 0 size "current" file.
             last_rotation_ts = self.loadLastRotationTS(site_id)
@@ -97,7 +97,7 @@ class LogWriter:
             f.close()
 
     def prepareLogDirAndFiles(self):
-        for site_id in hbase_client.getSiteIds():
+        for site_id in mongo_client.getSiteIds():
             if not self.filesMap.has_key(site_id):
                 site_log_dir = utils.getLogDirPath(site_id)
                 if not os.path.isdir(site_log_dir):
@@ -159,7 +159,7 @@ def api_method(m):
 
 
 def check_site_id(m):
-    site_ids = hbase_client.getSiteIds()
+    site_ids = mongo_client.getSiteIds()
     def the_method(self, args):
         if args["site_id"] not in site_ids:
             print args["site_id"], site_ids
@@ -270,7 +270,7 @@ class UpdateItemHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         del args["callback"]
-        hbase_client.updateItem(args["site_id"], args)
+        mongo_client.updateItem(args["site_id"], args)
         return {"code": 0}
 
 
@@ -283,7 +283,7 @@ class RemoveItemHandler(tornado.web.RequestHandler):
     )
 
     def removeItem(self, args):
-        hbase_client.removeItem(args["site_id"], args["item_id"])
+        mongo_client.removeItem(args["site_id"], args["item_id"])
 
     @api_method
     @check_site_id
@@ -326,9 +326,9 @@ class RecommendViewedAlsoViewHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        topn = hbase_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
+        topn = mongo_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
                         int(args["amount"]))
-        #topn = hbase_client.getCachedVAV(args["site_id"], args["item_id"]) 
+        #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
         #                #,int(args["amount"]))
         req_id = getReqId()
         self.logRecommendationRequest(args, req_id)
@@ -363,7 +363,7 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
             amount = int(args["amount"])
         except ValueError:
             return {"code": 1}
-        topn = hbase_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
+        topn = mongo_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
         req_id = getReqId()
         self.logRecommendationRequest(args, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}

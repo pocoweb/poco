@@ -1,0 +1,27 @@
+curl 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
+
+ab -n 10000 -c 5 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
+
+ab -n 10000 -c 5 'http://127.0.0.1:5588/tui/basedOnBrowsingHistory?site_id=demo1&user_id=blah&browsing_history=1006682,1012973,1084404,1121003&amount=8'
+
+1006490
+1006682
+1007340
+1012973
+1019071
+1031040
+1032396
+1046661
+1047785
+1055538
+1064226
+1070107
+1083627
+1084403
+1084404
+1084426
+1109650
+1121001
+1121002
+1121003
+
