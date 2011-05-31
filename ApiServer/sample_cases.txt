@@ -1,6 +1,6 @@
 curl 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
 
-ab -n 10000 -c 5 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
+ab -n 10000 -c 5 -C 'tuijianbaoid=9ca7fd21-9f5a-4d47-8a03-c697d126e0f5' 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
 
 ab -n 10000 -c 5 'http://127.0.0.1:5588/tui/basedOnBrowsingHistory?site_id=demo1&user_id=blah&browsing_history=1006682,1012973,1084404,1121003&amount=8'
 

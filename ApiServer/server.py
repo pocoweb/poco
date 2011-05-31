@@ -345,6 +345,7 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         ))
 
     def logRecommendationRequest(self, args, req_id):
+        browsing_history = "|".join(args["browsing_history"].split(","))
         logWriter.writeEntry("RecBOBH", args["site_id"], 
                         req_id,
                         args["user_id"], self.tuijianbaoid, args["amount"],
