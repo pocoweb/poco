@@ -74,6 +74,11 @@ def removeItem(site_id, item_id):
         items.save(item_in_db)
 
 
+def getItem(site_id, item_id):
+    items = connection["tjb_%s" % site_id]["items"]
+    return items.find_one({"item_id": item_id})
+
+
 def sign(float):
     if float > 0:
         return 1

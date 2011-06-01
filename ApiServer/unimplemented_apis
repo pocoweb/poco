@@ -1,44 +1,6 @@
-# FIXME
-class addShopCartHandler(tornado.web.RequestHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
-         ("user_id", True),
-         ("session_id", True),
-         ("callback", False)
-        )
-    )
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("ASC", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"])
-            return {"code": 0}
 
 
-class PlaceOrderHandler(tornado.web.RequestHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_ids", True), # use comma to separate items
-         ("user_id", True),
-         ("session_id", True),
-         ("callback", False)
-        )
-    )
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        if args["site_id"] not in customers:
-            return {"code": 2}
-        else:
-            logWriter.writeEntry("PO", args["site_id"], args["item_id"], 
-                            args["user_id"], args["session_id"])
-            return {"code": 0}
 
 
 

@@ -6,7 +6,7 @@ hbase_thrift_port = 9090
 print_raw_log = False
 log_directory = None
 node_name=None
-rotation_interval = None
+rotation_interval = None # if rotation_interval == -1, the server won't rotate it's log.
 hdfs_raw_log_dir = None
 hadoop_command = None
 

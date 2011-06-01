@@ -11,8 +11,9 @@ import os
 import os.path
 import signal
 import uuid
-
 import settings
+
+
 import mongo_client
 
 from utils import doHash
@@ -32,7 +33,8 @@ class LogWriter:
         self.count = 0
         self.last_timestamp = None
         self.prepareLogDirAndFiles()
-        self.startRotationLoop()
+        if settings.rotation_interval != -1:
+            self.startRotationLoop()
 
     def startRotationLoop(self):
         self.doRotateFiles()
@@ -120,7 +122,7 @@ class LogWriter:
         self.writeToLogFile(site_id, line)
 
 
-logWriter = LogWriter()
+
 
 
 class ArgumentExtractor:
@@ -162,7 +164,6 @@ def check_site_id(m):
     site_ids = mongo_client.getSiteIds()
     def the_method(self, args):
         if args["site_id"] not in site_ids:
-            print args["site_id"], site_ids
             return {"code": 2}
         else:
             return m(self, args)
@@ -251,6 +252,61 @@ class RateItemHandler(APIHandler):
         return {"code": 0}
 
 
+# FIXME: check user_id, the user_id can't be null.
+class addShopCartHandler(APIHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("user_id", True),
+         ("item_id", True),
+         ("callback", False)
+        )
+    )
+
+    @api_method
+    @check_site_id
+    def get(self, args):
+        logWriter.writeEntry("ASC", args["site_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
+        return {"code": 0}
+
+
+class removeShopCartHandler(APIHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("user_id", True),
+         ("item_id", True),
+         ("callback", False)
+        )
+    )
+
+    @api_method
+    @check_site_id
+    def get(self, args):
+        logWriter.writeEntry("RSC", args["site_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
+        return {"code": 0}
+
+
+class PlaceOrderHandler(APIHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("user_id", True),
+         ("order_content", True), # use comma to separate items
+         ("callback", False)
+        )
+    )
+
+    @api_method
+    @check_site_id
+    def get(self, args):
+        if args["site_id"] not in customers:
+            return {"code": 2}
+        else:
+            logWriter.writeEntry("PO", args["site_id"],  
+                            args["user_id"], args["item_id"])
+            return {"code": 0}
+
+
 # FIXME: update/remove item should be called in a secure way.
 class UpdateItemHandler(tornado.web.RequestHandler):
     ae = ArgumentExtractor(
@@ -270,7 +326,9 @@ class UpdateItemHandler(tornado.web.RequestHandler):
     @check_site_id
     def get(self, args):
         del args["callback"]
-        mongo_client.updateItem(args["site_id"], args)
+        site_id = args["site_id"]
+        del args["site_id"]
+        mongo_client.updateItem(site_id, args)
         return {"code": 0}
 
 
@@ -283,7 +341,9 @@ class RemoveItemHandler(tornado.web.RequestHandler):
     )
 
     def removeItem(self, args):
-        mongo_client.removeItem(args["site_id"], args["item_id"])
+        site_id = args["site_id"]
+        del args["site_id"]
+        mongo_client.removeItem(site_id, args["item_id"])
 
     @api_method
     @check_site_id
@@ -297,8 +357,8 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 #        (("site_id", True),
 #         ("item_id", True),
 #         ("user_id", True),
-#         ("rec_id", True),
-#         ("rec_page", False),
+#         ("req_id", True),
+#         ("req_page", False),
 #         ("callback", False)
 #        )
 #    )
@@ -370,7 +430,8 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-application = tornado.web.Application([
+
+handlers = [
     (r"/", MainHandler),
     (r"/tui/viewItem", ViewItemHandler),
     (r"/tui/addFavorite", AddFavoriteHandler),
@@ -380,9 +441,16 @@ application = tornado.web.Application([
     (r"/tui/updateItem", UpdateItemHandler),
     (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
     (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
-])
+    ]
 
-if __name__ == "__main__":
+def main():
+    global logWriter
+    logWriter = LogWriter()
+    application = tornado.web.Application(handlers)
     application.listen(settings.server_port, settings.server_name)
+    print "Listen at %s:%s" % (settings.server_name, settings.server_port)
     tornado.ioloop.IOLoop.instance().start()
 
+
+if __name__ == "__main__":
+    main()
