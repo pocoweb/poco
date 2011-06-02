@@ -124,7 +124,7 @@ def calc_weighted_top_list_method1(site_id, browsing_history):
         score_total, count = rec_map[key][0], rec_map[key][1]
         rec_tuples.append((key, score_total / count))
     rec_tuples.sort(lambda a,b: sign(b[1] - a[1]))
-    return [int(rec_tuple[0]) for rec_tuple in rec_tuples]
+    return [rec_tuple for rec_tuple in rec_tuples]
 
 
 def recommend_based_on_browsing_history(site_id, browsing_history, amount):

@@ -9,6 +9,8 @@ import simplejson as json
 import hashlib
 import time
 
+import items_for_test
+
 
 SERVER_NAME = "127.0.0.1"
 SERVER_PORT = 15588
@@ -65,6 +67,9 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         api_access("/rotateLogs", {})
     
+    def updateItem(self, item_id):
+        result = api_access("/tui/updateItem", items_for_test.items[item_id])
+        self.assertEquals(result, {"code": 0})
 
 class ViewItemTest(BaseTestCase):
     def test_viewItem1(self):
@@ -271,26 +276,12 @@ class RemoveItemTest(BaseTestCase):
 class RecommendViewedAlsoViewItemTest(BaseTestCase):
     def setUp(self):
         BaseTestCase.setUp(self)
-        result = api_access("/tui/updateItem",
-            {"site_id": SITE_ID, "item_id": "3", 
-             "item_link": "http://example.com/item?id=3",
-             "item_name": "Harry Potter I"})
-        self.assertEquals(result, {"code": 0})
-        result = api_access("/tui/updateItem",
-            {"site_id": SITE_ID, "item_id": "2", 
-             "item_link": "http://example.com/item?id=2",
-             "item_name": "Lord of Ring I"})
-        self.assertEquals(result, {"code": 0})
-        result = api_access("/tui/updateItem",
-            {"site_id": SITE_ID, "item_id": "8", 
-             "item_link": "http://example.com/item?id=8",
-             "item_name": "Best Books"})
-        self.assertEquals(result, {"code": 0})
-        result = api_access("/tui/updateItem",
-            {"site_id": SITE_ID, "item_id": "11", 
-             "item_link": "http://example.com/item?id=11",
-             "item_name": "Meditation"})
-        self.assertEquals(result, {"code": 0})
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+
     def test_recommendViewedAlsoView(self):
         result = api_access("/tui/viewedAlsoView", 
                 {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "4",
@@ -308,6 +299,42 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
         self.assertEquals(rec_splitted[3], "ha")
         self.assertEquals(rec_splitted[5], "1")
         self.assertEquals(rec_splitted[6], "4")
+
+    def test_IncludeItemInfoDefaultToYes(self):
+        result = api_access("/tui/viewedAlsoView", 
+                {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "3"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"], 
+                [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
+                {'item_name': 'Lord of Ring I', 'item_id': '2', 'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
+                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}
+                ])
+        req_id = result["req_id"]
+        rec_splitted = getLastLineSplitted(SITE_ID)
+        self.assertEquals(rec_splitted[1], "RecVAV")
+        self.assertEquals(rec_splitted[2], req_id)
+        self.assertEquals(rec_splitted[3], "ha")
+        self.assertEquals(rec_splitted[5], "1")
+        self.assertEquals(rec_splitted[6], "3") 
+
+    def test_amount_param(self):
+        result = api_access("/tui/viewedAlsoView", 
+                {"site_id": "tester", "user_id": "hah", "item_id": "1", "amount": "5"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"], 
+                [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
+                {'item_name': 'Lord of Ring I', 'item_id': '2', 'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
+                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'},
+                {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
+                {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
+                ])
+        req_id = result["req_id"]
+        rec_splitted = getLastLineSplitted(SITE_ID)
+        self.assertEquals(rec_splitted[1], "RecVAV")
+        self.assertEquals(rec_splitted[2], req_id)
+        self.assertEquals(rec_splitted[3], "hah")
+        self.assertEquals(rec_splitted[5], "1")
+        self.assertEquals(rec_splitted[6], "5")
 
     def test_IncludeItemInfoYes(self):
         result = api_access("/tui/viewedAlsoView", 
@@ -328,8 +355,32 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
         self.assertEquals(rec_splitted[6], "4")        
 
 
-def test_RecommendBasedOnBrowsingHistory():
-    print "TODO: RecommendBasedOnBrowsingHistory"
+class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+
+    def test_RecommendBasedOnBrowsingHistory(self):
+        result = api_access("/tui/basedOnBrowsingHistory", 
+                {"site_id": "tester", "user_id": "ha",
+                 "browsing_history": "1,2",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"], 
+                [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
+                 {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
+                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'}])
+        req_id = result["req_id"]
+        rec_splitted = getLastLineSplitted(SITE_ID)
+        self.assertEquals(rec_splitted[1], "RecBOBH")
+        self.assertEquals(rec_splitted[2], req_id)
+        self.assertEquals(rec_splitted[3], "ha")
+        self.assertEquals(rec_splitted[5], "3")
+        self.assertEquals(rec_splitted[6], "1|2") 
 
 
 if __name__ == "__main__":

@@ -411,6 +411,7 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         (("site_id", True),
          ("user_id", True),
          ("browsing_history", False),
+         ("include_item_info", False), # no, not include; yes, include
          ("amount", True),
          ("callback", False)
         ))
@@ -420,7 +421,7 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         logWriter.writeEntry("RecBOBH", args["site_id"], 
                         req_id,
                         args["user_id"], self.tuijianbaoid, args["amount"],
-                        args["browsing_history"])
+                        browsing_history)
 
     @api_method
     @check_site_id
@@ -435,7 +436,9 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
             amount = int(args["amount"])
         except ValueError:
             return {"code": 1}
+        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         topn = mongo_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
+        topn = mongo_client.convertTopNFormat(args["site_id"], topn, include_item_info)
         req_id = generateReqId()
         self.logRecommendationRequest(args, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
