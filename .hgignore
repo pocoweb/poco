@@ -9,3 +9,5 @@ demo/frontend/logs
 ApiServer/local_settings.py
 BatchServer/similarity_calculation/local_settings.py
 demo/frontend/local_settings.py
+ApiServer/test_directory/tester
+demo/frontend/UserDb.sqlite3

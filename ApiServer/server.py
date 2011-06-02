@@ -328,6 +328,14 @@ class UpdateItemHandler(tornado.web.RequestHandler):
         del args["callback"]
         site_id = args["site_id"]
         del args["site_id"]
+        if args["description"] is None:
+            del args["description"]
+        if args["image_link"] is None:
+            del args["image_link"]
+        if args["price"] is None:
+            del args["price"]
+        if args["categories"] is None:
+            del args["categories"]
         mongo_client.updateItem(site_id, args)
         return {"code": 0}
 
@@ -364,7 +372,7 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 #    )
 
 
-def getReqId():
+def generateReqId():
     return str(uuid.uuid4())
 
 class RecommendViewedAlsoViewHandler(APIHandler):
@@ -372,6 +380,7 @@ class RecommendViewedAlsoViewHandler(APIHandler):
         (("site_id", True),
          ("user_id", True),
          ("item_id", True),
+         ("include_item_info", False), # no, not include; yes, include
          ("amount", True),
          ("callback", False)
         )
@@ -388,9 +397,11 @@ class RecommendViewedAlsoViewHandler(APIHandler):
     def get(self, args):
         topn = mongo_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
                         int(args["amount"]))
+        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
+        topn = mongo_client.convertTopNFormat(args["site_id"], topn, include_item_info)
         #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
         #                #,int(args["amount"]))
-        req_id = getReqId()
+        req_id = generateReqId()
         self.logRecommendationRequest(args, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
@@ -425,7 +436,7 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         except ValueError:
             return {"code": 1}
         topn = mongo_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
-        req_id = getReqId()
+        req_id = generateReqId()
         self.logRecommendationRequest(args, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 

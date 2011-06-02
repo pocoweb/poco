@@ -61,6 +61,8 @@ def updateItem(site_id, item):
     item_in_db = items.find_one({"item_id": item["item_id"]})
     if item_in_db is None:
         item_in_db = {}
+    else:
+        item_in_db = {"_id": item_in_db["_id"]}
     item_in_db.update(item)
     item_in_db["available"] = True
     items.save(item_in_db)
@@ -78,6 +80,21 @@ def getItem(site_id, item_id):
     items = connection["tjb_%s" % site_id]["items"]
     return items.find_one({"item_id": item_id})
 
+def convertTopNFormat(site_id, topn, include_item_info=True):
+    items_collection = connection["tjb_%s" % site_id]["items"]
+    result = []
+    for topn_row in topn:
+        if include_item_info:
+            item_in_db = items_collection.find_one({"item_id": topn_row[0]})
+            if item_in_db is None or item_in_db["available"] == False:
+                continue
+            del item_in_db["_id"]
+            del item_in_db["available"]
+            item_in_db["score"] = topn_row[1]
+            result.append(item_in_db)
+        else:
+            result.append({"item_id": topn_row[0], "score": topn_row[1]})
+    return result
 
 def sign(float):
     if float > 0:
@@ -96,9 +113,6 @@ def calc_weighted_top_list_method1(site_id, browsing_history):
 
     # calculate weighted top list from recent browsing history
     rec_map = {}
-    #for history_item in recent_history:
-    #    #recommended_items = recommend_viewed_also_view(site_id, str(history_item), 15)
-    #    recommended_items = getCachedVAV(site_id, str(history_item))
     for recommended_items in getSimilaritiesForItems(site_id, recent_history):
         for rec_item, score in recommended_items:
             if rec_item not in browsing_history:

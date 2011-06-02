@@ -6,11 +6,16 @@ import pymongo
 import settings
 
 
-if len(sys.argv) <> 2:
-    print "Usage: %s <site_id>" % sys.argv[0]
-    sys.exit(1)
-else:
+readlocal = False
+if len(sys.argv) == 2:
     site_id = sys.argv[1]
+elif len(sys.argv) == 4 and (sys.argv[2] == "readlocal"):
+    site_id = sys.argv[1]
+    readlocal = True
+    local_file = sys.argv[3]
+else:
+    print "Usage: %s <site_id> [readlocal filename]" % sys.argv[0]
+    sys.exit(1)
 
 
 # FIXME: should use another table instead of the working table.
@@ -30,22 +35,26 @@ def doHash(id):
 
 def insertSimOneRow():
     global last_item1, last_rows
-    #client.mutateRow(TABLE_NAME, doHash(last_item1),
-    #            [Mutation(column="p:item_id1", value=last_item1),
-    #            Mutation(column="p:mostSimilarItems", value=json.dumps(last_rows))])
-    item_similarities.save({"item_id": last_item1, "mostSimilarItems": last_rows})
+    item_in_db = item_similarities.find_one({"item_id": last_item1})
+    if item_in_db is None:
+        item_in_db = {}
+    item_in_db.update({"item_id": last_item1, "mostSimilarItems": last_rows})
+    item_similarities.save(item_in_db)
     last_item1 = item_id1
     last_rows = []
 
 
-print "Download data from HDFS"
-hdfs_item_similarities_file_path = settings.hdfs_item_similarity_root_path + "/%s/item-similarities" % site_id
-local_item_similarities_file_path = "%s/item-similarities" % settings.tmp_dir
+if not readlocal:
+    print "Download data from HDFS"
+    hdfs_item_similarities_file_path = settings.hdfs_item_similarity_root_path + "/%s/item-similarities" % site_id
+    local_item_similarities_file_path = "%s/item-similarities" % settings.tmp_dir
 
-dfs_copy_command = "%s dfs -copyToLocal %s %s" \
-        % (settings.hadoop_command, hdfs_item_similarities_file_path, local_item_similarities_file_path)
-print dfs_copy_command
-os.system(dfs_copy_command)
+    dfs_copy_command = "%s dfs -copyToLocal %s %s" \
+            % (settings.hadoop_command, hdfs_item_similarities_file_path, local_item_similarities_file_path)
+    print dfs_copy_command
+    os.system(dfs_copy_command)
+else:
+    local_item_similarities_file_path = local_file
 
 
 print "Load data to Mongo ..."
@@ -59,7 +68,7 @@ for line in open(local_item_similarities_file_path, "r"):
     count += 1
     if count % 40000 == 0:
         finished_ratio = count / float(2788821)
-        estimated = (time.time() - t0) * ( 1 / finished_ratio - 1) / 60
+        estimated = (time.time() - t0) * (1 / finished_ratio - 1) / 60
         print "%s percentage, %s minutes remain" % ((finished_ratio * 100), estimated)
 
     item_id1, item_id2, similarity = line.split(",")
