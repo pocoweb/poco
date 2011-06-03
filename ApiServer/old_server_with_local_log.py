@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+sys.path.append("../pylib")
 import tornado.ioloop
 import tornado.web
 import simplejson as json
@@ -15,15 +16,99 @@ import settings
 
 import mongo_client
 
+from utils import doHash
+import utils
+
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write('{"version": "Tuijianbao v1.0"}')
+
 
 # TODO: referer; 
 
 class LogWriter:
     def __init__(self):
+        self.filesMap = {}
         self.count = 0
         self.last_timestamp = None
+        self.prepareLogDirAndFiles()
+        if settings.rotation_interval != -1:
+            self.startRotationLoop()
 
-    def writeEntry(self, site_id, content):
+    def startRotationLoop(self):
+        self.doRotateFiles()
+        tornado.ioloop.IOLoop.instance().add_timeout(
+                time.time() + settings.rotation_interval / 2, 
+                self.startRotationLoop)
+
+    def _generateDestFilePath(self, site_id):
+        ts = time.time()
+        while True:
+            dest_file_name = repr(ts)
+            dest_file_path = utils.getLogFilePath(site_id, dest_file_name)
+            if not os.path.exists(dest_file_path):
+                break
+            ts += 0.001
+        return dest_file_path
+
+    def doRotateFiles(self):
+        # TODO: need a more scalable solution
+        for site_id in mongo_client.getSiteIds():
+            current_file_path = utils.getLogFilePath(site_id, "current")
+            # Do not rotate a 0 size "current" file.
+            last_rotation_ts = self.loadLastRotationTS(site_id)
+            if os.stat(current_file_path).st_size <> 0 \
+                and (time.time() - last_rotation_ts > settings.rotation_interval):
+                print "Start to Rotate ... "
+                self.filesMap[site_id].close()
+                dest_file_path = self._generateDestFilePath(site_id)
+                # this marks that we are 
+                # not sure if "mv" is atomic, if the new_path does not exist.
+                # according to "However, when overwriting there will probably be a window 
+                #   in which both oldpath and newpath refer to the file being renamed."
+                # see http://www.linuxmanpages.com/man2/rename.2.php
+                # create a "MOVING" flag file
+                moving_flag_path = utils.getLogFilePath(site_id, "MOVING")
+                open(moving_flag_path, 'w').close()
+                os.rename(current_file_path, dest_file_path)
+                os.remove(moving_flag_path)
+                self.filesMap[site_id] = open(utils.getLogFilePath(site_id, "current"), "a")
+                # update the last rotation flag
+                self.touchLastRotationFile(site_id, create_only=False)
+
+    def writeToLogFile(self, site_id, line):
+        f = self.filesMap[site_id]
+        f.write("%s\n" % line)
+        f.flush()
+
+    def loadLastRotationTS(self, site_id):
+        last_rotation_file = utils.getLogFilePath(site_id, "LAST_ROTATION")
+        f = open(last_rotation_file, "r")
+        timestamp = float(f.read())
+        f.close()
+        return timestamp
+
+    def touchLastRotationFile(self, site_id, create_only=False):
+        # generate last rotation file
+        last_rotation_file = utils.getLogFilePath(site_id, "LAST_ROTATION")
+        timestamp_str = repr(time.time())
+        if (create_only and not os.path.exists(last_rotation_file)) or (not create_only):
+            f = open(last_rotation_file, "w")
+            f.write(timestamp_str)
+            f.close()
+
+    def prepareLogDirAndFiles(self):
+        for site_id in mongo_client.getSiteIds():
+            if not self.filesMap.has_key(site_id):
+                site_log_dir = utils.getLogDirPath(site_id)
+                if not os.path.isdir(site_log_dir):
+                    os.mkdir(site_log_dir)
+                current = utils.getLogFilePath(site_id, "current")
+                self.filesMap[site_id] = open(current, "a")
+                self.touchLastRotationFile(site_id, create_only=True)
+
+    def writeEntry(self, action, site_id, *args):
         timestamp = time.time()
         if timestamp <> self.last_timestamp:
             self.count = 0
@@ -31,10 +116,13 @@ class LogWriter:
             self.count += 1
         self.last_timestamp = timestamp
         timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        content["timestamp"] = timestamp_plus_count
+        line = ",".join((timestamp_plus_count, action) + args)
         if settings.print_raw_log:
-            print "RAW LOG: site_id: %s, %s" % (site_id, content)
-        mongo_client.writeLogToMongo(site_id, content)
+            print "RAW LOG:", line
+        self.writeToLogFile(site_id, line)
+
+
+
 
 
 class ArgumentExtractor:
@@ -106,11 +194,8 @@ class ViewItemHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                {"behavior": "V",
-                 "user_id": args["user_id"],
-                 "tjbid": self.tuijianbaoid,
-                 "item_id": args["item_id"]})
+        logWriter.writeEntry("V", args["site_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 # addFavorite LogFormat: timestamp,AF,user_id,tuijianbaoid,item_id
@@ -126,11 +211,9 @@ class AddFavoriteHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "AF",
-                         "user_id": ["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"]})
+        logWriter.writeEntry("AF", args["site_id"], 
+                        args["user_id"], self.tuijianbaoid, 
+                        args["item_id"])
         return {"code": 0}
 
 
@@ -147,11 +230,8 @@ class RemoveFavoriteHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"], 
-                        {"behavior": "RF",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"]})
+        logWriter.writeEntry("RF", args["site_id"], 
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 
@@ -169,12 +249,9 @@ class RateItemHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"], 
-                        {"behavior": "RI",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"],
-                         "score": args["score"]})
+        logWriter.writeEntry("RI", args["site_id"], 
+                        args["user_id"], self.tuijianbaoid, args["item_id"],
+                        args["score"])
         return {"code": 0}
 
 
@@ -191,11 +268,8 @@ class addShopCartHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "ASC",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"]})
+        logWriter.writeEntry("ASC", args["site_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 
@@ -211,32 +285,29 @@ class removeShopCartHandler(APIHandler):
     @api_method
     @check_site_id
     def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RSC",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"]})
+        logWriter.writeEntry("RSC", args["site_id"],
+                        args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
 
-#class PlaceOrderHandler(APIHandler):
-#    ae = ArgumentExtractor(
-#        (("site_id", True),
-#         ("user_id", True),
-#         ("order_content", True), # use comma to separate items
-#         ("callback", False)
-#        )
-#    )
+class PlaceOrderHandler(APIHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("user_id", True),
+         ("order_content", True), # use comma to separate items
+         ("callback", False)
+        )
+    )
 
-#    @api_method
-#    @check_site_id
-#    def get(self, args):
-#        if args["site_id"] not in customers:
-#            return {"code": 2}
-#        else:
-#            logWriter.writeEntry("PO", args["site_id"],  
-#                            args["user_id"], args["item_id"])
-#            return {"code": 0}
+    @api_method
+    @check_site_id
+    def get(self, args):
+        if args["site_id"] not in customers:
+            return {"code": 2}
+        else:
+            logWriter.writeEntry("PO", args["site_id"],  
+                            args["user_id"], args["item_id"])
+            return {"code": 0}
 
 
 # FIXME: update/remove item should be called in a secure way.
@@ -321,13 +392,10 @@ class RecommendViewedAlsoViewHandler(APIHandler):
     )
 
     def logRecommendationRequest(self, args, req_id):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RecVAV",
-                         "req_id": req_id,
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"],
-                         "amount": args["amount"]})
+        logWriter.writeEntry("RecVAV", args["site_id"],
+                        req_id,
+                        args["user_id"], self.tuijianbaoid, args["item_id"],
+                        args["amount"])
 
     @api_method
     @check_site_id
@@ -355,14 +423,11 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         ))
 
     def logRecommendationRequest(self, args, req_id):
-        browsing_history = args["browsing_history"].split(",")
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RecBOBH",
-                         "req_id": req_id,
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "amount": args["amount"],
-                         "browsing_history": browsing_history})
+        browsing_history = "|".join(args["browsing_history"].split(","))
+        logWriter.writeEntry("RecBOBH", args["site_id"], 
+                        req_id,
+                        args["user_id"], self.tuijianbaoid, args["amount"],
+                        browsing_history)
 
     @api_method
     @check_site_id
@@ -384,10 +449,6 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         self.logRecommendationRequest(args, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write('{"version": "Tuijianbao v1.0"}')
 
 
 handlers = [

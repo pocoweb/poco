@@ -12,9 +12,14 @@ def getCachedVAV(site_id, history_item):
         cache[(site_id, history_item)] = recommend_viewed_also_view(site_id, str(history_item), 15)
     return cache[(site_id, history_item)]
 
+def getSiteDBName(site_id):
+    return "tjbsite_%s" % site_id
+
+def getSiteDBCollection(site_id, collection_name):
+    return connection[getSiteDBName(site_id)][collection_name]
 
 def recommend_viewed_also_view(site_id, item_id, amount):
-    item_similarities = connection["tjb_%s" % site_id]["item_similarities"]
+    item_similarities = getSiteDBCollection(site_id, "item_similarities")
     result = item_similarities.find_one({"item_id": item_id})
     most_similar_items = result["mostSimilarItems"]
     if len(most_similar_items) > amount:
@@ -25,7 +30,7 @@ def recommend_viewed_also_view(site_id, item_id, amount):
 
 
 def getSimilaritiesForItems(site_id, item_ids):
-    item_similarities = connection["tjb_%s" % site_id]["item_similarities"]
+    item_similarities = getSiteDBCollection(site_id, "item_similarities")
     result = []
     for row in item_similarities.find({"item_id": {"$in": item_ids}}):
         most_similar_items = row["mostSimilarItems"]
@@ -57,7 +62,7 @@ def updateSite(site_id, site_name):
 
 
 def updateItem(site_id, item):
-    items = connection["tjb_%s" % site_id]["items"]
+    items = getSiteDBCollection(site_id, "items")
     item_in_db = items.find_one({"item_id": item["item_id"]})
     if item_in_db is None:
         item_in_db = {}
@@ -69,7 +74,7 @@ def updateItem(site_id, item):
 
 
 def removeItem(site_id, item_id):
-    items = connection["tjb_%s" % site_id]["items"]
+    items = getSiteDBCollection(site_id, "items")
     item_in_db = items.find_one({"item_id": item_id})
     if item_in_db is not None:
         item_in_db["available"] = False
@@ -77,11 +82,11 @@ def removeItem(site_id, item_id):
 
 
 def getItem(site_id, item_id):
-    items = connection["tjb_%s" % site_id]["items"]
+    items = getSiteDBCollection(site_id, "items")
     return items.find_one({"item_id": item_id})
 
 def convertTopNFormat(site_id, topn, include_item_info=True):
-    items_collection = connection["tjb_%s" % site_id]["items"]
+    items_collection = getSiteDBCollection(site_id, "items")
     result = []
     for topn_row in topn:
         if include_item_info:
@@ -132,3 +137,10 @@ def recommend_based_on_browsing_history(site_id, browsing_history, amount):
     if len(topn) > amount:
         topn = topn[:amount]
     return topn
+
+
+# Logging Part
+def writeLogToMongo(site_id, content):
+    raw_logs = getSiteDBCollection(site_id, "raw_logs")
+    raw_logs.insert(content)
+

@@ -45,12 +45,6 @@ def getCurrentFilePath(site_id):
     return os.path.join(LOG_DIRECTORY, site_id, "current")
 
 
-#def resetCurrentFile(site_id):
-#    file_path = os.path.join(settings.log_directory, site_id, "current")
-#    if os.path.isfile(file_path):
-#        os.remove(file_path)
-
-
 def readCurrentFileLines(site_id):
     return open(getCurrentFilePath(site_id), "r").readlines()
 
