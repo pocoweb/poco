@@ -181,6 +181,7 @@ class APIHandler(tornado.web.RequestHandler):
             self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=30)
 
 
+# viewItem LogFormat: timestamp,V,user_id,tuijianbaoid,item_id
 class ViewItemHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -197,7 +198,7 @@ class ViewItemHandler(APIHandler):
                         args["user_id"], self.tuijianbaoid, args["item_id"])
         return {"code": 0}
 
-
+# addFavorite LogFormat: timestamp,AF,user_id,tuijianbaoid,item_id
 class AddFavoriteHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -216,6 +217,7 @@ class AddFavoriteHandler(APIHandler):
         return {"code": 0}
 
 
+# removeFavorite LogFormat: timestamp,RF,user_id,tuijianbaoid,item_id
 class RemoveFavoriteHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -233,6 +235,7 @@ class RemoveFavoriteHandler(APIHandler):
         return {"code": 0}
 
 
+#rateItem LogFormat: timestamp,RI,user_id,tuijianbaoid,item_id,score
 class RateItemHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -375,6 +378,8 @@ class RemoveItemHandler(tornado.web.RequestHandler):
 def generateReqId():
     return str(uuid.uuid4())
 
+
+# recommendViewedAlsoView LogFormat: timestamp,RecVAV,user_id,tuijianbaoid,item_id,amount
 class RecommendViewedAlsoViewHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
@@ -406,6 +411,7 @@ class RecommendViewedAlsoViewHandler(APIHandler):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
+# basedOnBrowsingHistory LogFormat: timestamp,RecBOBH,user_id,tuijianbaoid,amount,browsing_history
 class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
