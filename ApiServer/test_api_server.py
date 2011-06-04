@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, "../")
+
 import unittest
 import urllib
 import urllib2
@@ -11,16 +14,14 @@ import time
 
 import items_for_test
 
+import pymongo
+
+from common.utils import getSiteDBCollection
+
 
 SERVER_NAME = "127.0.0.1"
 SERVER_PORT = 15588
 
-
-#def reset_opener():
-#    cookie = cookielib.CookieJar()
-#    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookie))
-#    urllib2.install_opener(opener)
-    
 
 def api_access(path, params, tuijianbaoid=None, as_json=True):
     url = "http://%s:%s%s?%s" % (SERVER_NAME, SERVER_PORT, path, 
@@ -39,124 +40,129 @@ def api_access(path, params, tuijianbaoid=None, as_json=True):
 def generate_uid():
     return hashlib.md5(repr(time.time())).hexdigest()
 
-LOG_DIRECTORY = "test_directory"
-
-def getCurrentFilePath(site_id):
-    return os.path.join(LOG_DIRECTORY, site_id, "current")
-
-
-def readCurrentFileLines(site_id):
-    return open(getCurrentFilePath(site_id), "r").readlines()
-
-
-def getLastLineSplitted(site_id):
-    lines = readCurrentFileLines(site_id)
-    return lines[-1].strip().split(",")
-
 
 SITE_ID = "tester"
 
 
 class BaseTestCase(unittest.TestCase):
     def setUp(self):
-        api_access("/rotateLogs", {})
-    
+        self.connection = pymongo.Connection()
+        self.cleanUpRawLogs()
+
     def updateItem(self, item_id):
         result = api_access("/tui/updateItem", items_for_test.items[item_id])
         self.assertEquals(result, {"code": 0})
 
+    def cleanUpRawLogs(self):
+        getSiteDBCollection(self.connection, SITE_ID, "raw_logs").drop()
+        raw_logs = getSiteDBCollection(self.connection, SITE_ID, "raw_logs")
+        for doc in raw_logs.find():
+            raw_logs.remove(doc)
+        pass
+
+    def readCurrentLines(self):
+        return [line for line in getSiteDBCollection(self.connection, SITE_ID, "raw_logs").find()]
+
+    def readLastLine(self):
+        lines = self.readCurrentLines()
+        if len(lines) > 0:
+            return lines[-1]
+        else:
+            return None
+
+    def assertCurrentLinesCount(self, count):
+        self.assertEquals(len(self.readCurrentLines()), count)
+
+    def assertSomeKeys(self, theDict, keyValuesToCheck):
+        for key in keyValuesToCheck.keys():
+            self.assertEquals(theDict[key], keyValuesToCheck[key])
+
+
 class ViewItemTest(BaseTestCase):
     def test_viewItem1(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id})
         self.assertEquals(result, {"code": 0})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 1)
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "V") 
-        self.assertEquals(rec_splitted[2], user_id)
-        tuijianbaoid = rec_splitted[3]
-        self.assertEquals(rec_splitted[4], item_id)
+        self.assertCurrentLinesCount(1)
+        last_line = self.readLastLine()
+        tjbid = last_line["tjbid"]
+        self.assertSomeKeys(last_line, 
+                {"behavior": "V", "user_id": user_id,
+                 "item_id": item_id})
         
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id},
-            tuijianbaoid=tuijianbaoid)
+            tuijianbaoid=tjbid)
         self.assertEquals(result, {"code": 0})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 2)
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "V") 
-        self.assertEquals(rec_splitted[2], user_id)
-        self.assertEquals(rec_splitted[3], tuijianbaoid)
-        self.assertEquals(rec_splitted[4], item_id)
+        self.assertCurrentLinesCount(2)
+        last_line = self.readLastLine()
+        self.assertSomeKeys(last_line,
+            {"behavior": "V", "user_id": user_id,
+             "tjbid": tjbid, "item_id": item_id})
 
     def test_wrongArguments(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "item_id": item_id})
         self.assertEquals(result, {"code": 1})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
 
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "user_id": user_id})
         self.assertEquals(result, {"code": 1})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
 
     def test_viewItemWithCallback(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id, "callback": "blah"},
              as_json=False)
         self.assertEquals(result, "blah({\"code\": 0})")
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 1)
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "V") 
-        self.assertEquals(rec_splitted[2], user_id)
-        self.assertEquals(rec_splitted[4], item_id)
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "V", "user_id": user_id, "item_id": item_id})
 
     def test_viewItemSiteIdNotExists(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": "THESITEWHICHNOTEXISTS", "item_id": item_id, "user_id": user_id, 
              "callback": "blah"},
              as_json=False)
         self.assertEquals(result, "blah({\"code\": 2})")
-        # TODO: should assert no record appended.
-        self.assertEquals(readCurrentFileLines(SITE_ID), [])
+        self.assertCurrentLinesCount(0)
+
+
 
 
 class FavoriteItemTest(BaseTestCase):
     def test_addFavorite(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/addFavorite",
             {"site_id": SITE_ID, "user_id": user_id,
              "item_id": item_id})
         self.assertEquals(result,{"code": 0})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 1)
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "AF") 
-        self.assertEquals(rec_splitted[2], user_id)
-        self.assertEquals(rec_splitted[4], item_id)
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "AF", "user_id": user_id, "item_id": item_id})
 
     def test_removeFavorite(self):
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 0)
+        self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/removeFavorite",
             {"site_id": SITE_ID, "user_id": user_id,
              "item_id": item_id})
-        self.assertEquals(len(readCurrentFileLines(SITE_ID)), 1)
+        self.assertCurrentLinesCount(1)
         self.assertEquals(result,{"code": 0})
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RF") 
-        self.assertEquals(rec_splitted[2], user_id)
-        self.assertEquals(rec_splitted[4], item_id)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RF", "user_id": user_id, "item_id": item_id})
 
 
 class RateItemTest(BaseTestCase):
@@ -166,12 +172,9 @@ class RateItemTest(BaseTestCase):
             {"site_id": SITE_ID, "user_id": user_id,
              "item_id": item_id, "score": "5"})
         self.assertEquals(result,{"code": 0})
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RI") 
-        self.assertEquals(rec_splitted[2], user_id)
-        self.assertEquals(rec_splitted[4], item_id)
-        self.assertEquals(rec_splitted[5], "5")
-
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RI", "user_id": user_id, "item_id": item_id,
+             "score": "5"})
 
 import mongo_client
 
@@ -280,36 +283,39 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
         result = api_access("/tui/viewedAlsoView", 
                 {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "4",
                  "include_item_info": "no"})
-        self.assertEquals(result["code"], 0)
-        self.assertEquals(result["topn"], 
-                [{'item_id': '3', 'score': 0.99880000000000002}, 
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_id': '3', 'score': 0.99880000000000002}, 
                  {'item_id': '2', 'score': 0.99329999999999996}, 
                  {'item_id': '8', 'score': 0.99209999999999998}, 
-                 {'item_id': '11', 'score': 0.98880000000000001}])
+                 {'item_id': '11', 'score': 0.98880000000000001}]})
         req_id = result["req_id"]
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RecVAV")
-        self.assertEquals(rec_splitted[2], req_id)
-        self.assertEquals(rec_splitted[3], "ha")
-        self.assertEquals(rec_splitted[5], "1")
-        self.assertEquals(rec_splitted[6], "4")
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "1",
+             "amount": "4"})
 
     def test_IncludeItemInfoDefaultToYes(self):
         result = api_access("/tui/viewedAlsoView", 
                 {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "3"})
-        self.assertEquals(result["code"], 0)
-        self.assertEquals(result["topn"], 
-                [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
-                {'item_name': 'Lord of Ring I', 'item_id': '2', 'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
-                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}
-                ])
+        self.assertSomeKeys(result,
+                {"code": 0,
+                 "topn": [{'item_name': 'Harry Potter I', 'item_id': '3', 
+                        'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
+                {'item_name': 'Lord of Ring I', 'item_id': '2', 
+                        'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
+                {'item_name': 'Best Books', 'item_id': '8', 
+                        'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}
+                ]})
         req_id = result["req_id"]
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RecVAV")
-        self.assertEquals(rec_splitted[2], req_id)
-        self.assertEquals(rec_splitted[3], "ha")
-        self.assertEquals(rec_splitted[5], "1")
-        self.assertEquals(rec_splitted[6], "3") 
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "1",
+             "amount": "3"})
 
     def test_amount_param(self):
         result = api_access("/tui/viewedAlsoView", 
@@ -323,12 +329,27 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
                 {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
                 ])
         req_id = result["req_id"]
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RecVAV")
-        self.assertEquals(rec_splitted[2], req_id)
-        self.assertEquals(rec_splitted[3], "hah")
-        self.assertEquals(rec_splitted[5], "1")
-        self.assertEquals(rec_splitted[6], "5")
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "hah",
+             "item_id": "1",
+             "amount": "5"})
+
+    def test_ItemNotExists(self):
+        result = api_access("/tui/viewedAlsoView", 
+                {"site_id": "tester", "user_id": "haha", "item_id": "NOTEXISTS", "amount": "4"})
+        self.assertSomeKeys(result,
+                {"code": 0,
+                 "topn": []})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "haha",
+             "item_id": "NOTEXISTS",
+             "amount": "4"})
+
 
     def test_IncludeItemInfoYes(self):
         result = api_access("/tui/viewedAlsoView", 
@@ -341,12 +362,12 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
                 {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'}])
         req_id = result["req_id"]
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RecVAV")
-        self.assertEquals(rec_splitted[2], req_id)
-        self.assertEquals(rec_splitted[3], "ha")
-        self.assertEquals(rec_splitted[5], "1")
-        self.assertEquals(rec_splitted[6], "4")        
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "1",
+             "amount": "4"})
 
 
 class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
@@ -369,14 +390,15 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
                  {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
                  {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'}])
         req_id = result["req_id"]
-        rec_splitted = getLastLineSplitted(SITE_ID)
-        self.assertEquals(rec_splitted[1], "RecBOBH")
-        self.assertEquals(rec_splitted[2], req_id)
-        self.assertEquals(rec_splitted[3], "ha")
-        self.assertEquals(rec_splitted[5], "3")
-        self.assertEquals(rec_splitted[6], "1|2") 
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecBOBH",
+             "req_id": req_id,
+             "user_id": "ha",
+             "browsing_history": ["1", "2"],
+             "amount": "3"})
 
 
 if __name__ == "__main__":
     unittest.main()
+    sys.exit(0)
 

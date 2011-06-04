@@ -128,7 +128,7 @@ class AddFavoriteHandler(APIHandler):
     def get(self, args):
         logWriter.writeEntry(args["site_id"],
                         {"behavior": "AF",
-                         "user_id": ["user_id"], 
+                         "user_id": args["user_id"], 
                          "tjbid": self.tuijianbaoid, 
                          "item_id": args["item_id"]})
         return {"code": 0}

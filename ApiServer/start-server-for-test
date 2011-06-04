@@ -1,3 +1,2 @@
 #!/bin/sh
-python ../BatchServer/similarity_calculation/upload_similarities_to_mongo.py tester readlocal item_similarities_for_test
 python server_for_test.py
