@@ -180,7 +180,7 @@ class RateItemHandler(APIHandler):
 
 
 # FIXME: check user_id, the user_id can't be null.
-class addShopCartHandler(APIHandler):
+class AddShopCartHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("user_id", True),
@@ -200,7 +200,7 @@ class addShopCartHandler(APIHandler):
         return {"code": 0}
 
 
-class removeShopCartHandler(APIHandler):
+class RemoveShopCartHandler(APIHandler):
     ae = ArgumentExtractor(
         (("site_id", True),
          ("user_id", True),
@@ -220,24 +220,32 @@ class removeShopCartHandler(APIHandler):
         return {"code": 0}
 
 
-#class PlaceOrderHandler(APIHandler):
-#    ae = ArgumentExtractor(
-#        (("site_id", True),
-#         ("user_id", True),
-#         ("order_content", True), # use comma to separate items
-#         ("callback", False)
-#        )
-#    )
+class PlaceOrderHandler(APIHandler):
+    ae = ArgumentExtractor(
+        (("site_id", True),
+         ("user_id", True),
+         # order_content Format: item_id,price,amount|item_id,price,amount
+         ("order_content", True), 
+         ("callback", False)
+        )
+    )
 
-#    @api_method
-#    @check_site_id
-#    def get(self, args):
-#        if args["site_id"] not in customers:
-#            return {"code": 2}
-#        else:
-#            logWriter.writeEntry("PO", args["site_id"],  
-#                            args["user_id"], args["item_id"])
-#            return {"code": 0}
+    def _convertOrderContent(self, order_content):
+        result = []
+        for row in order_content.split("|"):
+            item_id, price, amount = row.split(",")
+            result.append({"item_id": item_id, "price": price,
+                           "amount": amount})
+        return result
+
+    @api_method
+    @check_site_id
+    def get(self, args):
+        logWriter.writeEntry(args["site_id"],
+                       {"behavior": "PLO",
+                        "user_id": args["user_id"], 
+                        "order_content": self._convertOrderContent(args["order_content"])})
+        return {"code": 0}
 
 
 # FIXME: update/remove item should be called in a secure way.
@@ -399,6 +407,9 @@ handlers = [
     (r"/tui/rateItem", RateItemHandler),
     (r"/tui/removeItem", RemoveItemHandler),
     (r"/tui/updateItem", UpdateItemHandler),
+    (r"/tui/addShopCart", AddShopCartHandler),
+    (r"/tui/removeShopCart", RemoveShopCartHandler),
+    (r"/tui/placeOrder", PlaceOrderHandler),
     (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
     (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
     ]

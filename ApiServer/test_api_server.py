@@ -398,7 +398,46 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
              "amount": "3"})
 
 
+class AddShopCartTest(BaseTestCase):
+    def test_RecommendBasedOnBrowsingHistory(self):
+        result = api_access("/tui/addShopCart", 
+                {"site_id": "tester", "user_id": "ha",
+                 "item_id": "5"})
+        self.assertEquals(result, {"code": 0})
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "ASC",
+             "user_id": "ha",
+             "item_id": "5",
+             "user_id": "ha"})
+
+
+class RemoveShopCartTest(BaseTestCase):
+    def test_RecommendBasedOnBrowsingHistory(self):
+        result = api_access("/tui/removeShopCart", 
+                {"site_id": "tester", "user_id": "guagua",
+                 "item_id": "50"})
+        self.assertEquals(result, {"code": 0})
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RSC",
+             "user_id": "guagua",
+             "item_id": "50"})
+
+
+class PlaceOrderTest(BaseTestCase):
+    def test_RecommendPlaceOrder(self):
+        result = api_access("/tui/placeOrder", 
+                {"site_id": "tester", "user_id": "guagua",
+                 "order_content": "3,2.5,1|5,1.3,2"})
+        self.assertEquals(result, {"code": 0})
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "PLO",
+             "user_id": "guagua",
+             "order_content": [{"item_id": "3", "price": "2.5", "amount": "1"},
+                               {"item_id": "5", "price": "1.3", "amount": "2"}
+                               ]
+            })
+
+
 if __name__ == "__main__":
     unittest.main()
-    sys.exit(0)
 
