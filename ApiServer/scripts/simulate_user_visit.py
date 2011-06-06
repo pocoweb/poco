@@ -4,7 +4,8 @@ import urllib
 import simplejson as json
 
 
-max_count = int(sys.argv[1])
+file_name = sys.argv[1]
+max_count = int(sys.argv[2])
 
 
 SERVER_NAME = "127.0.0.1"
@@ -25,7 +26,7 @@ def api_access(path, params, tuijianbaoid=None, as_json=True):
         return result
 
 count = 0
-for line in open("BookCrossing_Visits", "r"):
+for line in open(file_name, "r"):
     count += 1
     if count % 5000 == 0:
         print count / float(max_count) * 100
