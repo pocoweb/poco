@@ -4,6 +4,9 @@ def getSiteDBName(site_id):
 def getSiteDBCollection(connection, site_id, collection_name):
     return connection[getSiteDBName(site_id)][collection_name]
 
+def getSiteDB(connection, site_id):
+    return connection[getSiteDBName(site_id)]
+
 class UploadItemSimilarities:
     def __init__(self, connection, site_id):
         self.connection = connection
