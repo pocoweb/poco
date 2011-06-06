@@ -20,13 +20,14 @@ site_id, site_name = options.site_id, options.site_name
 assert site_id is not None
 assert site_name is not None
 
+
+connection = pymongo.Connection()
 if options.reset_db == "yes":
-    connection = pymongo.Connection()
     getSiteDBCollection(connection, site_id, "item_similarities").drop()
     getSiteDBCollection(connection, site_id, "raw_logs").drop()
     getSiteDB(connection, site_id).create_collection("raw_logs", {})
-    getSiteDBCollection(connection, site_id, "raw_logs").ensure_index([("timestamp", -1)])
-    #getSiteDB(connection, site_id).create_collection("raw_logs", {"capped": True, "size": 200 * 1048576})
+
+getSiteDBCollection(connection, site_id, "raw_logs").ensure_index([("timestamp", -1)])
 
 mongo_client.updateSite(site_id, site_name)
 
