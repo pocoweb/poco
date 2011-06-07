@@ -9,7 +9,7 @@ import mongo_client
 site_id = sys.argv[1]
 csv_file = sys.argv[2]
 
-f = open("goods_list.csv", "r")
+f = open(csv_file, "r")
 
 reader = csv.reader(f)
 fields = reader.next()
