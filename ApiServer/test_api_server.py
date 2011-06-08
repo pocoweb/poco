@@ -23,19 +23,37 @@ from common.utils import getSiteDBCollection
 SERVER_NAME = "127.0.0.1"
 SERVER_PORT = 15588
 
-
-def api_access(path, params, tuijianbaoid=None, as_json=True):
-    url = "http://%s:%s%s?%s" % (SERVER_NAME, SERVER_PORT, path, 
-                    urllib.urlencode(params))
-    req = urllib2.Request(url)
+import re
+def api_access(path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoid=False, 
+            assert_returns_tuijianbaoid=True):
+    params_str = urllib.urlencode(params)
+    headers = {}
     if tuijianbaoid <> None:
-        req.add_header("Cookie", "tuijianbaoid=%s" % tuijianbaoid)
-    result = urllib2.urlopen(req).read()
+        headers["Cookie"] = "tuijianbaoid=%s" % tuijianbaoid
+    conn = httplib.HTTPConnection("%s:%s" % (SERVER_NAME, SERVER_PORT))
+    #print "GET", path, params_str, headers
+    #if tuijianbaoid <> None:
+    #    conn.putheader("Cookie", "tuijianbaoid=%s" % tuijianbaoid)
+    conn.request("GET", path + "?" + params_str, headers=headers)
+    response = conn.getresponse()
+    result = response.read()
+    response_cookie = response.getheader("set-cookie")
+    if response_cookie is not None:
+        response_tuijianbaoid = re.match(r"tuijianbaoid=([a-z0-9\-]+);", response_cookie).groups()[0]
+    else:
+        response_tuijianbaoid = None
+    if assert_returns_tuijianbaoid and tuijianbaoid is None:
+        assert response_tuijianbaoid is not None
     if as_json:
         result_obj = json.loads(result)
-        return result_obj
+        body = result_obj
     else:
-        return result
+        body = result
+
+    if return_tuijianbaoid:
+        return body, response_tuijianbaoid
+    else:
+        return body
 
 
 def generate_uid():
@@ -51,7 +69,8 @@ class BaseTestCase(unittest.TestCase):
         self.cleanUpRawLogs()
 
     def updateItem(self, item_id):
-        result = api_access("/tui/updateItem", items_for_test.items[item_id])
+        result = api_access("/tui/updateItem", items_for_test.items[item_id],
+                    assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
 
     def cleanUpRawLogs(self):
@@ -83,12 +102,14 @@ class ViewItemTest(BaseTestCase):
     def test_viewItem1(self):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
-        result = api_access("/tui/viewItem",
-            {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id})
+        result, response_tuijianbaoid = api_access("/tui/viewItem",
+            {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id},
+            return_tuijianbaoid=True)
         self.assertEquals(result, {"code": 0})
         self.assertCurrentLinesCount(1)
         last_line = self.readLastLine()
         tjbid = last_line["tjbid"]
+        self.assertEquals(tjbid, response_tuijianbaoid)
         self.assertSomeKeys(last_line, 
                 {"behavior": "V", "user_id": user_id,
                  "item_id": item_id})
@@ -186,7 +207,8 @@ class UpdateItemTest(BaseTestCase):
         result = api_access("/tui/updateItem",
             {"site_id": SITE_ID, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
-             "item_name": "Harry Potter I"})
+             "item_name": "Harry Potter I"},
+             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -201,7 +223,8 @@ class UpdateItemTest(BaseTestCase):
             {"site_id": SITE_ID, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter II",
-             "price": "25.0"})
+             "price": "25.0"},
+             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -216,7 +239,8 @@ class UpdateItemTest(BaseTestCase):
         result = api_access("/tui/updateItem",
             {"site_id": SITE_ID, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
-             "item_name": "Harry Potter II"})
+             "item_name": "Harry Potter II"},
+             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -232,7 +256,8 @@ class UpdateItemTest(BaseTestCase):
             {"site_id": SITE_ID, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter I",
-             "price": "15.0"})
+             "price": "15.0"},
+             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -250,7 +275,8 @@ class RemoveItemTest(BaseTestCase):
         result = api_access("/tui/updateItem",
             {"site_id": SITE_ID, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
-             "item_name": "Harry Potter I"})
+             "item_name": "Harry Potter I"},
+             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -262,7 +288,8 @@ class RemoveItemTest(BaseTestCase):
 
         # remove the existed item
         result = api_access("/tui/removeItem",
-            {"site_id": SITE_ID, "item_id": item_id})
+            {"site_id": SITE_ID, "item_id": item_id},
+            assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
@@ -448,11 +475,11 @@ class PackedRequestTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
                     {"action": "V", "user_id": "guaye", "item_id": "35"}]
-        result = api_access("/tui/packedRequest", 
+        result, response_tuijianbaoid = api_access("/tui/packedRequest", 
                 {"site_id": "tester",
                  "requests": json.dumps(requests),
                  "callback": "callback"},
-                 as_json=False)
+                 as_json=False, return_tuijianbaoid=True)
         self.assertEquals(result,
                 'callback({"code": 0, "request_responses": {"V": {"code": 0}, "RSC": {"code": 0}}})')
         self.assertCurrentLinesCount(2)
@@ -465,6 +492,8 @@ class PackedRequestTest(BaseTestCase):
         # TODO: check tuijianbaoid
         self.assertEquals(curr_lines[0]["tjbid"],
                           curr_lines[1]["tjbid"])
+        self.assertEquals(response_tuijianbaoid,
+                    curr_lines[0]["tjbid"])
 
     def testWithoutCallbackWithTjbidGiven(self):
         self.assertCurrentLinesCount(0)
