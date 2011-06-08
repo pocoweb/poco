@@ -4,6 +4,7 @@ sys.path.insert(0, "../")
 import unittest
 import urllib
 import urllib2
+import httplib
 import cookielib
 import os
 import os.path
@@ -108,13 +109,13 @@ class ViewItemTest(BaseTestCase):
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "item_id": item_id})
-        self.assertEquals(result, {"code": 1})
+        self.assertSomeKeys(result, {"code": 1})
         self.assertCurrentLinesCount(0)
 
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/tui/viewItem",
             {"site_id": SITE_ID, "user_id": user_id})
-        self.assertEquals(result, {"code": 1})
+        self.assertSomeKeys(result, {"code": 1})
         self.assertCurrentLinesCount(0)
 
     def test_viewItemWithCallback(self):
@@ -139,8 +140,6 @@ class ViewItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
 
 
-
-
 class FavoriteItemTest(BaseTestCase):
     def test_addFavorite(self):
         self.assertCurrentLinesCount(0)
@@ -148,7 +147,7 @@ class FavoriteItemTest(BaseTestCase):
         result = api_access("/tui/addFavorite",
             {"site_id": SITE_ID, "user_id": user_id,
              "item_id": item_id})
-        self.assertEquals(result,{"code": 0})
+        self.assertSomeKeys(result,{"code": 0})
         self.assertCurrentLinesCount(1)
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "AF", "user_id": user_id, "item_id": item_id})
@@ -165,6 +164,7 @@ class FavoriteItemTest(BaseTestCase):
             {"behavior": "RF", "user_id": user_id, "item_id": item_id})
 
 
+
 class RateItemTest(BaseTestCase):
     def test_rateItem(self):
         item_id, user_id = generate_uid(), generate_uid()
@@ -175,6 +175,8 @@ class RateItemTest(BaseTestCase):
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "RI", "user_id": user_id, "item_id": item_id,
              "score": "5"})
+
+
 
 import mongo_client
 
@@ -240,6 +242,7 @@ class UpdateItemTest(BaseTestCase):
                  "item_link": "http://example.com/item?id=%s" % item_id,
                  "item_name": "Harry Potter I",
                  "price": "15.0"})
+
 
 class RemoveItemTest(BaseTestCase):
     def test_removeItem(self):
@@ -370,6 +373,8 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "amount": "4"})
 
 
+
+
 class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
     def setUp(self):
         BaseTestCase.setUp(self)
@@ -436,6 +441,106 @@ class PlaceOrderTest(BaseTestCase):
                                {"item_id": "5", "price": "1.3", "amount": "2"}
                                ]
             })
+
+
+class PackedRequestTest(BaseTestCase):
+    def testWithCallback(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
+                    {"action": "V", "user_id": "guaye", "item_id": "35"}]
+        result = api_access("/tui/packedRequest", 
+                {"site_id": "tester",
+                 "requests": json.dumps(requests),
+                 "callback": "callback"},
+                 as_json=False)
+        self.assertEquals(result,
+                'callback({"code": 0, "request_responses": {"V": {"code": 0}, "RSC": {"code": 0}}})')
+        self.assertCurrentLinesCount(2)
+        curr_lines = self.readCurrentLines()
+        # TODO: check logs, also "action"
+        self.assertSomeKeys(curr_lines[0],
+                {'user_id': 'guagua', 'behavior': 'RSC', 'item_id': '25'})
+        self.assertSomeKeys(curr_lines[1],
+                {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35'})
+        # TODO: check tuijianbaoid
+        self.assertEquals(curr_lines[0]["tjbid"],
+                          curr_lines[1]["tjbid"])
+
+    def testWithoutCallbackWithTjbidGiven(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
+                    {"action": "V", "user_id": "guaye", "item_id": "35"}]
+        result = api_access("/tui/packedRequest", 
+                {"site_id": "tester",
+                 "requests": json.dumps(requests)},
+                 tuijianbaoid="blahblah")
+        self.assertEquals(result,
+                    {"code": 0,
+                     "request_responses": 
+                        {"V": {"code": 0},
+                         "RSC": {"code": 0}}
+                    })
+        self.assertCurrentLinesCount(2)
+        curr_lines = self.readCurrentLines()
+        # TODO: check logs, also "action"
+        self.assertSomeKeys(curr_lines[0],
+                {'user_id': 'guagua', 'behavior': 'RSC', 'item_id': '25'})
+        self.assertSomeKeys(curr_lines[1],
+                {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35'})
+        # TODO: check tuijianbaoid
+        self.assertEquals(curr_lines[0]["tjbid"],
+                          curr_lines[1]["tjbid"])
+        self.assertEquals(curr_lines[0]["tjbid"],
+                          "blahblah")
+
+    def testWithoutCallbackArgumentSiteIdError(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
+                    {"action": "V", "user_id": "guaye", "item_id": "35"}]
+        result = api_access("/tui/packedRequest", 
+                {"site_id": "SITENOTEXIST",
+                 "requests": json.dumps(requests)})
+        self.assertEquals(result,
+                    {"code": 2})
+
+    def testWithoutCallbackArgumentMissing(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
+                    {"action": "V", "user_id": "guaye"}]
+        result = api_access("/tui/packedRequest", 
+                {"site_id": "tester",
+                 "requests": json.dumps(requests)})
+        self.assertEquals(result,
+                    {"code": 0,
+                     "request_responses":
+                      {"V": {"code": 1, 'err_msg': 'item_id is required.'},
+                       "RSC": {"code": 0}}
+                      })
+
+    def testWithoutCallbackWithoutTjbidGiven(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},
+                    {"action": "V", "user_id": "guaye", "item_id": "35"}]
+        result = api_access("/tui/packedRequest", 
+                {"site_id": "tester",
+                 "requests": json.dumps(requests)})
+        self.assertEquals(result,
+                    {"code": 0,
+                     "request_responses": 
+                        {"V": {"code": 0},
+                         "RSC": {"code": 0}}
+                    })
+        self.assertCurrentLinesCount(2)
+        curr_lines = self.readCurrentLines()
+        # TODO: check logs, also "action"
+        self.assertSomeKeys(curr_lines[0],
+                {'user_id': 'guagua', 'behavior': 'RSC', 'item_id': '25'})
+        self.assertSomeKeys(curr_lines[1],
+                {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35'})
+        # TODO: check tuijianbaoid
+        self.assertEquals(curr_lines[0]["tjbid"],
+                          curr_lines[1]["tjbid"])
+
 
 
 if __name__ == "__main__":
