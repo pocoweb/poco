@@ -12,6 +12,7 @@ import os.path
 import signal
 import uuid
 import settings
+import getopt
 
 
 import mongo_client
@@ -415,11 +416,19 @@ handlers = [
     ]
 
 def main():
+    opts, _ = getopt.getopt(sys.argv[1:], 'p:', ['port='])
+    port = settings.server_port
+    for o, p in opts:
+        if o in ['-p', '--port']:
+	    try:
+	        port = int(p)
+	    except ValueError:
+                print "port should be integer"
     global logWriter
     logWriter = LogWriter()
     application = tornado.web.Application(handlers)
-    application.listen(settings.server_port, settings.server_name)
-    print "Listen at %s:%s" % (settings.server_name, settings.server_port)
+    application.listen(port, settings.server_name)
+    print "Listen at %s:%s" % (settings.server_name, port)
     tornado.ioloop.IOLoop.instance().start()
 
 
