@@ -8,14 +8,14 @@ def getSiteDB(connection, site_id):
     return connection[getSiteDBName(site_id)]
 
 class UploadItemSimilarities:
-    def __init__(self, connection, site_id):
+    def __init__(self, connection, site_id, behavior_code="V"):
         self.connection = connection
         self.last_item1 = None
         self.last_rows = []
         self.item_similarities = getSiteDBCollection(self.connection, site_id, 
-                        "item_similarities")
+                        "item_similarities_%s" % behavior_code)
 
-    def insertSimOneRow(self):
+    def updateSimOneRow(self):
         item_in_db = self.item_similarities.find_one({"item_id": self.last_item1})
         if item_in_db is None:
             item_in_db = {}
@@ -32,8 +32,8 @@ class UploadItemSimilarities:
                 self.last_item1 = self.item_id1
                 last_rows = []
             elif self.last_item1 != self.item_id1:
-                self.insertSimOneRow()
+                self.updateSimOneRow()
             self.last_rows.append((item_id2, similarity))
 
         if len(self.last_rows) != 0:
-            self.insertSimOneRow()
+            self.updateSimOneRow()

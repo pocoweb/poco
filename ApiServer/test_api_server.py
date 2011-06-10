@@ -457,13 +457,15 @@ class RemoveShopCartTest(BaseTestCase):
 
 class PlaceOrderTest(BaseTestCase):
     def test_RecommendPlaceOrder(self):
-        result = api_access("/tui/placeOrder", 
+        result, response_tuijianbaoid = api_access("/tui/placeOrder", 
                 {"site_id": "tester", "user_id": "guagua",
-                 "order_content": "3,2.5,1|5,1.3,2"})
+                 "order_content": "3,2.5,1|5,1.3,2"},
+                 return_tuijianbaoid=True)
         self.assertEquals(result, {"code": 0})
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "PLO",
              "user_id": "guagua",
+             "tjbid": response_tuijianbaoid,
              "order_content": [{"item_id": "3", "price": "2.5", "amount": "1"},
                                {"item_id": "5", "price": "1.3", "amount": "2"}
                                ]

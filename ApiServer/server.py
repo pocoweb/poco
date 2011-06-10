@@ -157,8 +157,10 @@ class PackedRequestHandler(TjbIdEnabledHandler):
 
 class ActionProcessor:
     action_name = None
-    def logAction(self, site_id, action_content):
+    def logAction(self, site_id, action_content, tjb_id_required=True):
         assert self.action_name != None
+        if tjb_id_required:
+            assert action_content.has_key("tjbid")
         action_content["behavior"] = self.action_name
         logWriter.writeEntry(site_id,
             action_content)
@@ -315,6 +317,7 @@ class PlaceOrderProcessor(ActionProcessor):
     def process(self, site_id, args):
         self.logAction(site_id,
                        {"user_id": args["user_id"], 
+                        "tjbid": args["tuijianbaoid"],
                         "order_content": self._convertOrderContent(args["order_content"])})
         return {"code": 0}
 

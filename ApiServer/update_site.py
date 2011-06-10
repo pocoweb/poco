@@ -21,10 +21,12 @@ assert site_id is not None
 assert site_name is not None
 
 
+# TODO: use dropDatabase?
 connection = pymongo.Connection()
 if options.reset_db == "yes":
     getSiteDBCollection(connection, site_id, "item_similarities").drop()
     getSiteDBCollection(connection, site_id, "raw_logs").drop()
+    getSiteDBCollection(connection, site_id, "items").drop()
     getSiteDB(connection, site_id).create_collection("raw_logs", {})
 
 getSiteDBCollection(connection, site_id, "raw_logs").ensure_index([("timestamp", -1)])
