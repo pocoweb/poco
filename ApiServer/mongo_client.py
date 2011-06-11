@@ -3,6 +3,7 @@ import md5
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
+from common.utils import sign
 
 
 connection = pymongo.Connection()
@@ -56,11 +57,16 @@ def getSiteIds():
     return SITE_IDS
 
 
-def updateSite(site_id, site_name):
+def loadSites():
+    return [site for site in sites.find()]
+
+
+def updateSite(site_id, site_name, calc_interval):
     site = sites.find_one({"site_id": site_id})
     if site is None:
-        site = {"site_id": site_id}
+        site = {"site_id": site_id, "last_update_ts": None}
     site["site_name"] = site_name
+    site["calc_interval"] = calc_interval
     sites.save(site)
 
 
@@ -103,14 +109,6 @@ def convertTopNFormat(site_id, topn, include_item_info=True):
         else:
             result.append({"item_id": topn_row[0], "score": topn_row[1]})
     return result
-
-def sign(float):
-    if float > 0:
-        return 1
-    elif float == 0:
-        return 0
-    else:
-        return -1
 
 
 def calc_weighted_top_list_method1(site_id, browsing_history):

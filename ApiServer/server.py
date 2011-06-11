@@ -23,6 +23,7 @@ import mongo_client
 # http://www.tsangpo.net/2010/04/24/unserialize-param-in-python.html
 
 # TODO: referer; 
+# TODO: when to reload site ids.
 
 class LogWriter:
     def __init__(self):

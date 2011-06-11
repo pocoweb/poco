@@ -1,8 +1,12 @@
 import logging
 import sys
+sys.path.append("../")
+import time
 import os
 import os.path
 import settings
+from ApiServer import mongo_client
+
 
 # TODO: use hamake?
 
@@ -13,15 +17,6 @@ logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
                     datefmt="%Y-%m-%d %I:%M:%S")
 
 logger = logging.getLogger("Batch Server")
-
-if len(sys.argv) == 2:
-    SITE_ID = sys.argv[1]
-else:
-    print "Usage: batch_server.py <site_id>"
-    logger.critical("batch_server.py is called in the wrong way, sys.argv=%s" % (sys.argv, ))
-    sys.exit(1)
-
-
 
 
 class ShellExecutionError(Exception):
@@ -86,14 +81,11 @@ class PreprocessingFlow(BaseFlow):
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
 
 
-
-
-
 class BaseSimilarityCalcFlow(BaseFlow):
-    def __init__(self, behavior_code):
-        BaseFlow.__init__(self, "similarities-calc:%s" % behavior_code)
-        self.behavior_code = behavior_code
-        self.work_dir = os.path.join(settings.work_dir, "item_similarities_%s" % behavior_code)
+    def __init__(self, type):
+        BaseFlow.__init__(self, "similarities-calc:%s" % type)
+        self.type = type
+        self.work_dir = os.path.join(settings.work_dir, "item_similarities_%s" % type)
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
         self.jobs += self.getExtractUserItemMatrixJobs() + [self.do_sort_user_item_matrix,
@@ -165,7 +157,7 @@ class BaseSimilarityCalcFlow(BaseFlow):
         import pymongo
         input_path = os.path.join(self.work_dir, "item_similarities_top_n")
         connection = pymongo.Connection()
-        uis = UploadItemSimilarities(connection, SITE_ID, self.behavior_code)
+        uis = UploadItemSimilarities(connection, SITE_ID, self.type)
         uis(input_path)
 
 
@@ -189,7 +181,7 @@ class VSimiliarityCalcFlow(BaseSimilarityCalcFlow):
         self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
 
 
-class PLOSimiliarityCalcFlow(BaseSimilarityCalcFlow):
+class PLOSimilarityCalcFlow(BaseSimilarityCalcFlow):
     def __init__(self):
         BaseSimilarityCalcFlow.__init__(self, "PLO")
 
@@ -208,6 +200,73 @@ class PLOSimiliarityCalcFlow(BaseSimilarityCalcFlow):
         output_path = os.path.join(self.work_dir, "user_item_matrix")
         self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
 
+
+class BuyTogetherSimilarityFlow(BaseSimilarityCalcFlow):
+    def __init__(self):
+        BaseSimilarityCalcFlow.__init__(self, "BuyTogether")
+
+    def getExtractUserItemMatrixJobs(self):
+        return [self.do_extract_user_item_matrix,
+                self.do_de_duplicate_user_item_matrix]
+
+    def do_extract_user_item_matrix(self):
+        from preprocessing.extract_user_item_matrix import buytogether_extract_user_item_matrix
+        input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        output_path = os.path.join(self.work_dir, "user_item_matrix_maybe_dup")
+        buytogether_extract_user_item_matrix(input_path, output_path)
+
+    def do_de_duplicate_user_item_matrix(self):
+        input_path  = os.path.join(self.work_dir, "user_item_matrix_maybe_dup")
+        output_path = os.path.join(self.work_dir, "user_item_matrix")
+        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+
+
+class ViewedUltimatelyBuyFlow(BaseFlow):
+    def __init__(self):
+        BaseFlow.__init__(self, "preprocessing")
+        self.work_dir = os.path.join(settings.work_dir, "viewed_ultimately_buy")
+        if not os.path.isdir(self.work_dir):
+            os.mkdir(self.work_dir)
+        self.jobs += [self.do_extract_user_view_buy_logs,
+                      self.do_sort_user_view_buy_logs,
+                      self.do_pair_view_buy,
+                      self.count_pairs,
+                      self.count_item_view,
+                      self.upload_viewed_ultimately_buy]
+
+    def do_extract_user_view_buy_logs(self):
+        from viewed_ultimately_buy.extract_user_view_buy_logs import extract_user_view_buy_logs
+        input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        output_path = os.path.join(self.work_dir, "user_view_buy_logs")
+        extract_user_view_buy_logs(input_path, output_path)
+
+    def do_sort_user_view_buy_logs(self):
+        input_path  = os.path.join(self.work_dir, "user_view_buy_logs")
+        output_path = os.path.join(self.work_dir, "user_view_buy_logs_sorted")
+        self._exec_shell("sort <%s >%s" % (input_path, output_path))
+
+    def do_pair_view_buy(self):
+        from viewed_ultimately_buy.pair_view_buy import pair_view_buy
+        input_path  = os.path.join(self.work_dir, "user_view_buy_logs_sorted")
+        output_path = os.path.join(self.work_dir, "view_buy_pairs")
+        pair_view_buy(input_path, output_path)
+
+    def count_pairs(self):
+        input_path  = os.path.join(self.work_dir, "view_buy_pairs")
+        output_path = os.path.join(self.work_dir, "view_buy_pairs_counted")
+        self._exec_shell("sort <%s | uniq -c >%s" % (input_path, output_path))
+
+    def count_item_view(self):
+        #FIXME a hack
+        input_path = os.path.join(settings.work_dir, "item_similarities_V", "user_item_matrix")
+        output_path = os.path.join(self.work_dir, "item_view_times")
+        self._exec_shell("cut -d , -f 2 <%s | sort | uniq -c >%s" % (input_path, output_path))
+
+    def upload_viewed_ultimately_buy(self):
+        from viewed_ultimately_buy.upload_viewed_ultimately_buy import upload_viewed_ultimately_buy
+        item_view_times_path = os.path.join(self.work_dir, "item_view_times")
+        view_buy_pairs_counted_path = os.path.join(self.work_dir, "view_buy_pairs_counted")
+        upload_viewed_ultimately_buy(SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
 
 class BeginFlow(BaseFlow):
     def __init__(self):
@@ -236,30 +295,36 @@ preprocessing_flow.dependOn(begin_flow)
 v_similarity_calc_flow = VSimiliarityCalcFlow()
 v_similarity_calc_flow.dependOn(preprocessing_flow)
 
-plo_similarity_calc_flow = PLOSimiliarityCalcFlow()
+plo_similarity_calc_flow = PLOSimilarityCalcFlow()
 plo_similarity_calc_flow.dependOn(preprocessing_flow)
+
+
+buy_together_similarity_flow = BuyTogetherSimilarityFlow()
+buy_together_similarity_flow.dependOn(preprocessing_flow)
+
+
+viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
+viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 
 #finish_flow = FinishFlow()
 #finish_flow.dependOn(similarity_calc_flow)
 
-# TODO: VIEW_SIMILARITIES_CALC_FLOW(view also view, basedOnBrowsingHistory), BUY_SIMILARITIES_CALC_FLOW(Buy also Buy), 
-# TODO: BUY_TOGETHER_CALC_FLOW(Buy together), VIEW_ULTIMATE_BUY_FLOW
-# TODO: 
-
-#PREPROCESS_FLOW = [do_backfill, do_reverse_reversed_backfilled_raw_logs, 
-#        do_extract_user_item_matrix, do_de_duplicate_user_item_matrix]
-
-#SIMILARITIES_CALC_FLOW = [do_sort_user_item_matrix, do_emit_cooccurances,
-#                do_sort_cooccurances, do_count_cooccurances, do_format_item_similarities,
-#                do_make_item_similarities_bi_directional, do_sort_item_similarities_bi_directional,
-#                do_extract_top_n, do_upload_item_similarities_result]
-
-#COMPLETE_FLOW = [begin] + PREPROCESS_FLOW + SIMILARITIES_CALC_FLOW + [finish]
+# TODO: mark success/failure state
 
 
 if __name__ == "__main__":
-    try:
-        begin_flow()
-    finally:
-        logger.info("====================================")
+    while True:
+        for site in mongo_client.loadSites():
+            now = time.time()
+            if site.get("last_update_ts") is None \
+                or now - site.get("last_update_ts") > site["calc_interval"]:
+                SITE_ID = site["site_id"]
+                try:
+                    begin_flow()
+                finally:
+                    logger.info("====================================")
+                #FIXME: save last_update_ts
+        sleep_seconds = 10
+        logger.info("Go to sleep for %s seconds." % sleep_seconds)
+        time.sleep(sleep_seconds)
