@@ -387,10 +387,9 @@ def generateReqId():
     return str(uuid.uuid4())
 
 
-# recommendViewedAlsoView LogFormat: timestamp,RecVAV,user_id,tuijianbaoid,item_id,amount
+class BaseSimilarityProcessor(ActionProcessor):
+    similarity_type = None
 
-class RecommendViewedAlsoViewProcessor(ActionProcessor):
-    action_name = "RecVAV"
     ap = ArgumentProcessor(
          (("user_id", True),
          ("item_id", True),
@@ -408,7 +407,7 @@ class RecommendViewedAlsoViewProcessor(ActionProcessor):
                          "amount": args["amount"]})
 
     def process(self, site_id, args):
-        topn = mongo_client.recommend_viewed_also_view(site_id, args["item_id"], 
+        topn = mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
                         int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
@@ -418,8 +417,30 @@ class RecommendViewedAlsoViewProcessor(ActionProcessor):
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
+
+class RecommendViewedAlsoViewProcessor(BaseSimilarityProcessor):
+    action_name = "RecVAV"
+    similarity_type = "V"
+
 class RecommendViewedAlsoViewHandler(SingleRequestHandler):
     processor_class = RecommendViewedAlsoViewProcessor
+
+
+class BoughtAlsoBuyProcessor(BaseSimilarityProcessor):
+    action_name = "RecBAB"
+    similarity_type = "PLO"
+
+
+class BoughtAlsoBuyHandler(SingleRequestHandler):
+    processor_class = BoughtAlsoBuyProcessor
+
+
+class BoughtTogetherProcessor(BaseSimilarityProcessor):
+    action_name = "RecBTG"
+    similarity_type = "BuyTogether"
+
+class BoughtTogetherHandler(SingleRequestHandler):
+    processor_class = BoughtTogetherProcessor
 
 
 class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
@@ -452,7 +473,7 @@ class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
         except ValueError:
             return {"code": 1}
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
+        topn = mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
         topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
         req_id = generateReqId()
         self.logRecommendationRequest(args, site_id, req_id)
@@ -480,7 +501,7 @@ registerProcessors([
         ViewItemProcessor, AddFavoriteProcessor, RemoveFavoriteProcessor,
         RateItemProcessor,AddShopCartProcessor, RemoveShopCartProcessor,
         PlaceOrderProcessor, RecommendViewedAlsoViewProcessor,
-        RecommendBasedOnBrowsingHistoryProcessor
+        RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor
         ])
 
 handlers = [
@@ -496,6 +517,10 @@ handlers = [
     (r"/tui/placeOrder", PlaceOrderHandler),
     (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
     (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
+    (r"/tui/boughtAlsoBuy", BoughtAlsoBuyHandler),
+    (r"/tui/boughtTogether", BoughtTogetherHandler),
+    #(r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
+    # TODO: and based on cart content
     (r"/tui/packedRequest", PackedRequestHandler)
     ]
 

@@ -10,6 +10,10 @@ ab -n 10000 -c 5 -C 'tuijianbaoid=9ca7fd21-9f5a-4d47-8a03-c697d126e0f5' 'http://
 
 ab -n 10000 -c 5 'http://127.0.0.1:5588/tui/basedOnBrowsingHistory?site_id=demo1&user_id=blah&browsing_history=1006682,1012973,1084404,1121003,3300,559928,339152,3931,3333,88888&amount=8'
 
+
+curl 'http://127.0.0.1:5588/tui/basedOnBrowsingHistory?site_id=demo2&user_id=blah&browsing_history=I1,I2&amount=8'
+
+
 1006490
 1006682
 1007340
