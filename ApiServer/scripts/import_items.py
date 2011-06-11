@@ -18,8 +18,8 @@ for row in csv.DictReader(f, fieldnames=fields):
     count += 1
     if count % 1000 == 0:
         print count
-    item = {"item_id": row["id"], "item_name": row["商品名称"], 
-              "price": row["商品价格"], "image_link": row["商品缩略图"], 
-              "description": row["商品详情"],
+    item = {"item_id": row["id"], "item_name": row["item_name"], 
+              "price": row["price"], "image_link": row["image_link"], 
+              "description": row["description"],
               "item_link": "goods.php?id=%s" % row["id"]}
     mongo_client.updateItem(site_id, item)
