@@ -34,7 +34,7 @@ for line in open(file_name, "r"):
         break
     user_id, tjbid, item_id = line.strip().split(",")
     result = api_access("/tui/viewItem", 
-            {"site_id": "demo1", "item_id": item_id,
+            {"site_id": "demo2", "item_id": item_id,
              "user_id": user_id},
              tuijianbaoid=tjbid)
     assert result["code"] == 0, repr(result)
