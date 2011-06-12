@@ -443,6 +443,21 @@ class BoughtTogetherHandler(SingleRequestHandler):
     processor_class = BoughtTogetherProcessor
 
 
+#class ViewedUltimatelyBuyProcessor(ActionProcessor):
+#    action_name = "RecVUB"
+#    ap = ArgumentProcessor(
+#         (("user_id", True),
+#         ("item_id", True),
+#         ("include_item_info", False), # no, not include; yes, include
+#         ("amount", True),
+#        )
+#    )
+
+
+#class ViewedUltimatelyBuyHandler(SingleRequestHandler):
+#    processor_class = ViewedUltimatelyBuyProcessor
+
+
 class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
     action_name = "RecBOBH"
     ap = ArgumentProcessor(
@@ -479,6 +494,7 @@ class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
+
 class RecommendBasedOnBrowsingHistoryHandler(SingleRequestHandler):
     processor_class = RecommendBasedOnBrowsingHistoryProcessor
 
@@ -501,7 +517,9 @@ registerProcessors([
         ViewItemProcessor, AddFavoriteProcessor, RemoveFavoriteProcessor,
         RateItemProcessor,AddShopCartProcessor, RemoveShopCartProcessor,
         PlaceOrderProcessor, RecommendViewedAlsoViewProcessor,
-        RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor
+        RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor,
+        BoughtTogetherProcessor
+        #, ViewedUltimatelyBuyProcessor
         ])
 
 handlers = [

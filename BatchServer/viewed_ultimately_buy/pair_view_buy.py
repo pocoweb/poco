@@ -32,9 +32,9 @@ def pair_view_buy(input_path, output_path):
     f_output = open(output_path, "w")
     for line in open(input_path, "r"):
         user_id, timestamp, behavior, item_id = line.strip().split(",")
-        logger.critical("UBI:%s,%s,%s" % (user_id, behavior, item_id))
+        #logger.critical("UBI:%s,%s,%s" % (user_id, behavior, item_id))
         if last_user_id <> user_id:
-            logger.critical("OUTPUT:%s,%s" % (last_user_id, behaviors))
+            #logger.critical("OUTPUT:%s,%s" % (last_user_id, behaviors))
             output(f_output, last_user_id, behaviors)
             last_user_id = user_id
             behaviors = []

@@ -2,6 +2,7 @@ import logging
 import sys
 sys.path.append("../")
 import time
+import uuid
 import os
 import os.path
 import settings
@@ -313,6 +314,7 @@ viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 # TODO: mark success/failure state
 
 
+
 if __name__ == "__main__":
     while True:
         for site in mongo_client.loadSites():
@@ -320,6 +322,10 @@ if __name__ == "__main__":
             if site.get("last_update_ts") is None \
                 or now - site.get("last_update_ts") > site["calc_interval"]:
                 SITE_ID = site["site_id"]
+                CALC_RECORD = {"site_id": SITE_ID, "calculation_id": str(uuid.uuid4()),
+                               "start_time": time.time(), "end_time": None,
+                               "status": "NEW" # NEW, SUCCESS, FAILED
+                              }
                 try:
                     begin_flow()
                 finally:

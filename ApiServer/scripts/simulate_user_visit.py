@@ -4,8 +4,9 @@ import urllib
 import simplejson as json
 
 
-file_name = sys.argv[1]
-max_count = int(sys.argv[2])
+site_id = sys.argv[1]
+file_name = sys.argv[2]
+max_count = int(sys.argv[3])
 
 
 SERVER_NAME = "127.0.0.1"
@@ -34,7 +35,7 @@ for line in open(file_name, "r"):
         break
     user_id, tjbid, item_id = line.strip().split(",")
     result = api_access("/tui/viewItem", 
-            {"site_id": "demo1", "item_id": item_id,
+            {"site_id": site_id, "item_id": item_id,
              "user_id": user_id},
              tuijianbaoid=tjbid)
     assert result["code"] == 0, repr(result)

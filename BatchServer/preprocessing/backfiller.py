@@ -19,6 +19,7 @@ class BackFiller:
         self.output_file_path = output_file_path
         self.tjbid2user = {}
 
+    # TODO: maybe use atomic update later?
     def workOnDoc(self, log_doc, is_old_region):
         if not is_old_region and log_doc["user_id"] != "null":
             self.tjbid2user[log_doc["tjbid"]] = log_doc["user_id"]
@@ -36,6 +37,7 @@ class BackFiller:
         self.f_output.write("%s\n" % json.dumps(log_doc))
         self.f_output.flush()
 
+    # TODO: start a cursor every 200000 entries?
     def start(self):
         self.f_output = open(self.output_file_path, "w")
         latest_ts_this_time = None
