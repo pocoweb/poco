@@ -141,6 +141,6 @@ def recommend_based_on_browsing_history(site_id, similarity_type, browsing_histo
 # Logging Part
 def writeLogToMongo(site_id, content):
     raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
-    raw_logs.ensureIndex([("timestamp", pymongo.DESCENDING)])
+    raw_logs.ensure_index([("timestamp", pymongo.DESCENDING)])
     raw_logs.insert(content)
 
