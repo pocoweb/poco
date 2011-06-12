@@ -6,9 +6,17 @@ import pymongo
 
 
 connection = pymongo.Connection()
-item_similarities = getSiteDBCollection(connection, "demo1", "item_similarities")
+item_similarities = getSiteDBCollection(connection, "demo2", "raw_logs")
 t1 = time.time()
 for i in xrange(10000):
-    item_similarities.find_one({"item_id": "880001"})
+    item_similarities.find_one()
+t2 = time.time()
+print t2 - t1
+
+t1 = time.time()
+count = 0
+for row in item_similarities.find().sort("timestamp", -1):
+    count += 1
+    if count > 10000: break
 t2 = time.time()
 print t2 - t1
