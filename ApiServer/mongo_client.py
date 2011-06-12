@@ -3,6 +3,7 @@ import md5
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
+from common.utils import sign
 
 
 connection = pymongo.Connection()
@@ -16,10 +17,8 @@ def getCachedVAV(site_id, history_item):
     return cache[(site_id, history_item)]
 
 
-
-
-def recommend_viewed_also_view(site_id, item_id, amount):
-    item_similarities = getSiteDBCollection(connection, site_id, "item_similarities")
+def recommend_viewed_also_view(site_id, similarity_type, item_id, amount):
+    item_similarities = getSiteDBCollection(connection, site_id, "item_similarities_%s" % similarity_type)
     result = item_similarities.find_one({"item_id": item_id})
     if result is not None:
         most_similar_items = result["mostSimilarItems"]
@@ -32,8 +31,8 @@ def recommend_viewed_also_view(site_id, item_id, amount):
     return topn
 
 
-def getSimilaritiesForItems(site_id, item_ids):
-    item_similarities = getSiteDBCollection(connection, site_id, "item_similarities")
+def getSimilaritiesForItems(site_id, similarity_type, item_ids):
+    item_similarities = getSiteDBCollection(connection, site_id, "item_similarities_%s" % similarity_type)
     result = []
     for row in item_similarities.find({"item_id": {"$in": item_ids}}):
         most_similar_items = row["mostSimilarItems"]
@@ -56,11 +55,16 @@ def getSiteIds():
     return SITE_IDS
 
 
-def updateSite(site_id, site_name):
+def loadSites():
+    return [site for site in sites.find()]
+
+
+def updateSite(site_id, site_name, calc_interval):
     site = sites.find_one({"site_id": site_id})
     if site is None:
-        site = {"site_id": site_id}
+        site = {"site_id": site_id, "last_update_ts": None}
     site["site_name"] = site_name
+    site["calc_interval"] = calc_interval
     sites.save(site)
 
 
@@ -104,16 +108,8 @@ def convertTopNFormat(site_id, topn, include_item_info=True):
             result.append({"item_id": topn_row[0], "score": topn_row[1]})
     return result
 
-def sign(float):
-    if float > 0:
-        return 1
-    elif float == 0:
-        return 0
-    else:
-        return -1
 
-
-def calc_weighted_top_list_method1(site_id, browsing_history):
+def calc_weighted_top_list_method1(site_id, similarity_type, browsing_history):
     if len(browsing_history) > 15:
         recent_history = browsing_history[:15]
     else:
@@ -121,7 +117,7 @@ def calc_weighted_top_list_method1(site_id, browsing_history):
 
     # calculate weighted top list from recent browsing history
     rec_map = {}
-    for recommended_items in getSimilaritiesForItems(site_id, recent_history):
+    for recommended_items in getSimilaritiesForItems(site_id, similarity_type, recent_history):
         for rec_item, score in recommended_items:
             if rec_item not in browsing_history:
                 rec_map.setdefault(rec_item, [0,0])
@@ -135,8 +131,8 @@ def calc_weighted_top_list_method1(site_id, browsing_history):
     return [rec_tuple for rec_tuple in rec_tuples]
 
 
-def recommend_based_on_browsing_history(site_id, browsing_history, amount):
-    topn = calc_weighted_top_list_method1(site_id, browsing_history) 
+def recommend_based_on_browsing_history(site_id, similarity_type, browsing_history, amount):
+    topn = calc_weighted_top_list_method1(site_id, similarity_type, browsing_history) 
     if len(topn) > amount:
         topn = topn[:amount]
     return topn
@@ -145,5 +141,6 @@ def recommend_based_on_browsing_history(site_id, browsing_history, amount):
 # Logging Part
 def writeLogToMongo(site_id, content):
     raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
+    raw_logs.ensureIndex([("timestamp", pymongo.DESCENDING)])
     raw_logs.insert(content)
 

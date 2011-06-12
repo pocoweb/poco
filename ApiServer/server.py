@@ -12,12 +12,18 @@ import os.path
 import signal
 import uuid
 import settings
+import getopt
 
 
 import mongo_client
 
 
+# jquery serialize()  http://api.jquery.com/serialize/
+# http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
+# http://www.tsangpo.net/2010/04/24/unserialize-param-in-python.html
+
 # TODO: referer; 
+# TODO: when to reload site ids.
 
 class LogWriter:
     def __init__(self):
@@ -38,216 +44,295 @@ class LogWriter:
         mongo_client.writeLogToMongo(site_id, content)
 
 
-class ArgumentExtractor:
+def extractArguments(request):
+    result = {}
+    for key in request.arguments.keys():
+        result[key] = request.arguments[key][0]
+    return result
+
+class ArgumentProcessor:
     def __init__(self, definitions):
         self.definitions = definitions
 
-    def extractArguments(self, request):
+    def processArgs(self, args):
+        err_msg = None
         result = {}
         for argument_name, is_required in self.definitions:
-            if request.arguments.has_key(argument_name):
-                result[argument_name] = request.arguments[argument_name][0]
-            else:
+            if not args.has_key(argument_name):
                 if is_required:
-                    result = None
-                    break
+                    err_msg = "%s is required." % argument_name
                 else:
                     result[argument_name] = None
-        return result
-
-
-def api_method(m):
-    def the_method(self):
-        args = self.ae.extractArguments(self.request)
-        if args is None:
-            self.write('{"code": 1}')
-        else:
-            callback = args["callback"]
-            response = m(self, args)
-            response_json = json.dumps(response)
-            if callback != None:
-                response_text = "%s(%s)" % (callback, response_json)
             else:
-                response_text = response_json
-            self.write(response_text)
-    return the_method
+                result[argument_name] = args[argument_name]
 
+        return err_msg, result
 
-def check_site_id(m):
-    site_ids = mongo_client.getSiteIds()
-    def the_method(self, args):
-        if args["site_id"] not in site_ids:
-            return {"code": 2}
-        else:
-            return m(self, args)
-    return the_method
-
+class ArgumentError(Exception):
+    pass
 
 
 # TODO: how to update cookie expires
 class APIHandler(tornado.web.RequestHandler):
+    def get(self):
+        args = extractArguments(self.request)
+        site_id = args.get("site_id", None)
+        callback = args.get("callback", None)
+
+        site_ids = mongo_client.getSiteIds()
+        if site_id not in site_ids:
+            response = {'code': 2}
+        else:
+            del args["site_id"]
+            if callback is not None:
+                del args["callback"]
+            try:
+                response = self.process(site_id, args)
+            except ArgumentError as e:
+                response = {"code": 1, "err_msg": e.message}
+        response_json = json.dumps(response)
+        if callback != None:
+            response_text = "%s(%s)" % (callback, response_json)
+        else:
+            response_text = response_json
+        self.write(response_text)
+
+    def process(self, site_id, args):
+        pass
+
+
+class TjbIdEnabledHandler(APIHandler):
     def prepare(self):
         tornado.web.RequestHandler.prepare(self)
         self.tuijianbaoid = self.get_cookie("tuijianbaoid")
         if not self.tuijianbaoid:
             self.tuijianbaoid = str(uuid.uuid4())
-            self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=30)
+            self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=109500)
 
 
-# viewItem LogFormat: timestamp,V,user_id,tuijianbaoid,item_id
-class ViewItemHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
-         ("user_id", True), # if no user_id, pass in "null"
-         ("callback", False)
+class SingleRequestHandler(TjbIdEnabledHandler):
+    processor_class = None
+    def process(self, site_id, args):
+        processor = self.processor_class()
+        err_msg, args = processor.processArgs(args)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            args["tuijianbaoid"] = self.tuijianbaoid
+            return processor.process(site_id, args)
+
+
+class PackedRequestHandler(TjbIdEnabledHandler):
+    def parseRequests(self, args):
+        try:
+            result = json.loads(args["requests"])
+        except json.decoder.JSONDecodeError:
+            raise ArgumentError("failed to decode: %s" % (args["requests"], ))
+        if type(result) != list:
+            raise ArgumentError("expect a list of requests, but get %s" % (args["requests"], ))
+        return result
+
+    def redirectRequest(self, site_id, action_name, request):
+        request["site_id"] = site_id
+        request["tuijianbaoid"] = self.tuijianbaoid
+        processor = getProcessor(action_name)
+        err_msg, args = processor.processArgs(request)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            args["tuijianbaoid"] = self.tuijianbaoid
+            return processor.process(site_id, request)
+
+    def process(self, site_id, args):
+        if not args.has_key("requests"):
+            raise ArgumentError("missing 'requests' param")
+        requests = self.parseRequests(args)
+        response = {"code": 0, "request_responses": {}}
+        for request in requests:
+            if type(request) != dict or not request.has_key("action"):
+                raise ArgumentError("invalid request format: %s" % (request, ))
+            action_name = request["action"]
+            del request["action"]
+            response["request_responses"][action_name] = self.redirectRequest(site_id, action_name, request)
+        return response
+
+
+class ActionProcessor:
+    action_name = None
+    def logAction(self, site_id, action_content, tjb_id_required=True):
+        assert self.action_name != None
+        if tjb_id_required:
+            assert action_content.has_key("tjbid")
+        action_content["behavior"] = self.action_name
+        logWriter.writeEntry(site_id,
+            action_content)
+
+    def processArgs(self, args):
+        return self.ap.processArgs(args)
+
+    def process(self, site_id, args):
+        pass
+
+
+class ViewItemProcessor(ActionProcessor):
+    action_name = "V"
+    ap = ArgumentProcessor(
+         (("item_id", True),
+         ("user_id", True) # if no user_id, pass in "null"
         )
     )
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                {"behavior": "V",
-                 "user_id": args["user_id"],
-                 "tjbid": self.tuijianbaoid,
+    def process(self, site_id, args):
+        self.logAction(site_id,
+                {"user_id": args["user_id"],
+                 "tjbid": args["tuijianbaoid"],
                  "item_id": args["item_id"]})
         return {"code": 0}
 
+
+class ViewItemHandler(SingleRequestHandler):
+    processor_class = ViewItemProcessor
+
+
 # addFavorite LogFormat: timestamp,AF,user_id,tuijianbaoid,item_id
-class AddFavoriteHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
+
+
+class AddFavoriteProcessor(ActionProcessor):
+    action_name = "AF"
+    ap = ArgumentProcessor(
+        (
          ("item_id", True),
          ("user_id", True),
-         ("callback", False)
         )
     )
+    def process(self, site_id, args):
+        self.logAction(site_id,
+                        {"user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
+                         "item_id": args["item_id"]})
+        return {"code": 0}
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "AF",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+class AddFavoriteHandler(SingleRequestHandler):
+    processor_class = AddFavoriteProcessor
+
+
+class RemoveFavoriteProcessor(ActionProcessor):
+    action_name = "RF"
+    ap = ArgumentProcessor(
+         (("item_id", True),
+         ("user_id", True),
+        )
+    )
+    def process(self, site_id, args):
+        self.logAction(site_id, 
+                        {"user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
 
-# removeFavorite LogFormat: timestamp,RF,user_id,tuijianbaoid,item_id
-class RemoveFavoriteHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
-         ("user_id", True),
-         ("callback", False)
-        )
-    )
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"], 
-                        {"behavior": "RF",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
-                         "item_id": args["item_id"]})
-        return {"code": 0}
+class RemoveFavoriteHandler(SingleRequestHandler):
+    processor_class = RemoveFavoriteProcessor
 
 
-#rateItem LogFormat: timestamp,RI,user_id,tuijianbaoid,item_id,score
-class RateItemHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
+class RateItemProcessor(ActionProcessor):
+    action_name = "RI"
+    ap = ArgumentProcessor(
+         (("item_id", True),
          ("score", True),
          ("user_id", True),
-         ("callback", False)
         )
     )
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"], 
-                        {"behavior": "RI",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+    def process(self, site_id, args):
+        self.logAction(site_id, 
+                        {"user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"],
                          "score": args["score"]})
         return {"code": 0}
 
 
+class RateItemHandler(SingleRequestHandler):
+    processor_class = RateItemProcessor
+
+
 # FIXME: check user_id, the user_id can't be null.
-class addShopCartHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
+
+
+class AddShopCartProcessor(ActionProcessor):
+    action_name = "ASC"
+    ap = ArgumentProcessor(
+        (
          ("user_id", True),
          ("item_id", True),
-         ("callback", False)
         )
     )
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "ASC",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+    def process(self, site_id, args):
+        self.logAction(site_id,
+                        {"user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
+class AddShopCartHandler(SingleRequestHandler):
+    processor_class = AddShopCartProcessor
 
-class removeShopCartHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
+
+
+class RemoveShopCartProcessor(ActionProcessor):
+    action_name = "RSC"
+    ap = ArgumentProcessor(
+        (
          ("user_id", True),
          ("item_id", True),
-         ("callback", False)
         )
     )
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RSC",
-                         "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+    def process(self, site_id, args):
+        self.logAction(site_id,
+                        {"user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
+class RemoveShopCartHandler(SingleRequestHandler):
+    processor_class = RemoveShopCartProcessor
 
-#class PlaceOrderHandler(APIHandler):
-#    ae = ArgumentExtractor(
-#        (("site_id", True),
-#         ("user_id", True),
-#         ("order_content", True), # use comma to separate items
-#         ("callback", False)
-#        )
-#    )
 
-#    @api_method
-#    @check_site_id
-#    def get(self, args):
-#        if args["site_id"] not in customers:
-#            return {"code": 2}
-#        else:
-#            logWriter.writeEntry("PO", args["site_id"],  
-#                            args["user_id"], args["item_id"])
-#            return {"code": 0}
+class PlaceOrderProcessor(ActionProcessor):
+    action_name = "PLO"
+    ap = ArgumentProcessor(
+        (
+         ("user_id", True),
+         # order_content Format: item_id,price,amount|item_id,price,amount
+         ("order_content", True), 
+        )
+    )
+
+    def _convertOrderContent(self, order_content):
+        result = []
+        for row in order_content.split("|"):
+            item_id, price, amount = row.split(",")
+            result.append({"item_id": item_id, "price": price,
+                           "amount": amount})
+        return result
+
+    def process(self, site_id, args):
+        self.logAction(site_id,
+                       {"user_id": args["user_id"], 
+                        "tjbid": args["tuijianbaoid"],
+                        "order_content": self._convertOrderContent(args["order_content"])})
+        return {"code": 0}
+
+class PlaceOrderHandler(SingleRequestHandler):
+    processor_class = PlaceOrderProcessor
 
 
 # FIXME: update/remove item should be called in a secure way.
-class UpdateItemHandler(tornado.web.RequestHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
+class UpdateItemHandler(APIHandler):
+    ap = ArgumentProcessor(
+         (("item_id", True),
          ("item_link", True),
          ("item_name", True),
-         ("callback", False),
          ("description", False),
          ("image_link", False),
          ("price", False),
@@ -255,46 +340,39 @@ class UpdateItemHandler(tornado.web.RequestHandler):
         )
     )
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        del args["callback"]
-        site_id = args["site_id"]
-        del args["site_id"]
-        if args["description"] is None:
-            del args["description"]
-        if args["image_link"] is None:
-            del args["image_link"]
-        if args["price"] is None:
-            del args["price"]
-        if args["categories"] is None:
-            del args["categories"]
-        mongo_client.updateItem(site_id, args)
-        return {"code": 0}
+    def process(self, site_id, args):
+        err_msg, args = self.ap.processArgs(args)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            if args["description"] is None:
+                del args["description"]
+            if args["image_link"] is None:
+                del args["image_link"]
+            if args["price"] is None:
+                del args["price"]
+            if args["categories"] is None:
+                del args["categories"]
+            mongo_client.updateItem(site_id, args)
+            return {"code": 0}
 
 
-class RemoveItemHandler(tornado.web.RequestHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("item_id", True),
-         ("callback", False)
+class RemoveItemHandler(APIHandler):
+    ap = ArgumentProcessor(
+         [("item_id", True)]
         )
-    )
 
-    def removeItem(self, args):
-        site_id = args["site_id"]
-        del args["site_id"]
-        mongo_client.removeItem(site_id, args["item_id"])
-
-    @api_method
-    @check_site_id
-    def get(self, args):
-        self.removeItem(args)
-        return {"code": 0}
+    def process(self, site_id, args):
+        err_msg, args = self.ap.processArgs(args)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            mongo_client.removeItem(site_id, args["item_id"])
+            return {"code": 0}
 
 
 #class ClickRecItemHandler(tornado.web.RequestHandler):
-#    ae = ArgumentExtractor(
+#    ap = ArgumentProcessor(
 #        (("site_id", True),
 #         ("item_id", True),
 #         ("user_id", True),
@@ -309,66 +387,97 @@ def generateReqId():
     return str(uuid.uuid4())
 
 
-# recommendViewedAlsoView LogFormat: timestamp,RecVAV,user_id,tuijianbaoid,item_id,amount
-class RecommendViewedAlsoViewHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("user_id", True),
+class BaseSimilarityProcessor(ActionProcessor):
+    similarity_type = None
+
+    ap = ArgumentProcessor(
+         (("user_id", True),
          ("item_id", True),
          ("include_item_info", False), # no, not include; yes, include
          ("amount", True),
-         ("callback", False)
         )
     )
 
-    def logRecommendationRequest(self, args, req_id):
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RecVAV",
-                         "req_id": req_id,
+    def logRecommendationRequest(self, args, site_id, req_id):
+        self.logAction(site_id,
+                        {"req_id": req_id,
                          "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"],
                          "amount": args["amount"]})
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        topn = mongo_client.recommend_viewed_also_view(args["site_id"], args["item_id"], 
+    def process(self, site_id, args):
+        topn = mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
                         int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.convertTopNFormat(args["site_id"], topn, include_item_info)
+        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
         #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
         #                #,int(args["amount"]))
         req_id = generateReqId()
-        self.logRecommendationRequest(args, req_id)
+        self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-# basedOnBrowsingHistory LogFormat: timestamp,RecBOBH,user_id,tuijianbaoid,amount,browsing_history
-class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
-    ae = ArgumentExtractor(
-        (("site_id", True),
-         ("user_id", True),
-         ("browsing_history", False),
-         ("include_item_info", False), # no, not include; yes, include
-         ("amount", True),
-         ("callback", False)
-        ))
+class RecommendViewedAlsoViewProcessor(BaseSimilarityProcessor):
+    action_name = "RecVAV"
+    similarity_type = "V"
 
-    def logRecommendationRequest(self, args, req_id):
+class RecommendViewedAlsoViewHandler(SingleRequestHandler):
+    processor_class = RecommendViewedAlsoViewProcessor
+
+
+class BoughtAlsoBuyProcessor(BaseSimilarityProcessor):
+    action_name = "RecBAB"
+    similarity_type = "PLO"
+
+
+class BoughtAlsoBuyHandler(SingleRequestHandler):
+    processor_class = BoughtAlsoBuyProcessor
+
+
+class BoughtTogetherProcessor(BaseSimilarityProcessor):
+    action_name = "RecBTG"
+    similarity_type = "BuyTogether"
+
+class BoughtTogetherHandler(SingleRequestHandler):
+    processor_class = BoughtTogetherProcessor
+
+
+#class ViewedUltimatelyBuyProcessor(ActionProcessor):
+#    action_name = "RecVUB"
+#    ap = ArgumentProcessor(
+#         (("user_id", True),
+#         ("item_id", True),
+#         ("include_item_info", False), # no, not include; yes, include
+#         ("amount", True),
+#        )
+#    )
+
+
+#class ViewedUltimatelyBuyHandler(SingleRequestHandler):
+#    processor_class = ViewedUltimatelyBuyProcessor
+
+
+class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
+    action_name = "RecBOBH"
+    ap = ArgumentProcessor(
+    (
+     ("user_id", True),
+     ("browsing_history", False),
+     ("include_item_info", False), # no, not include; yes, include
+     ("amount", True),
+    ))
+
+    def logRecommendationRequest(self, args, site_id, req_id):
         browsing_history = args["browsing_history"].split(",")
-        logWriter.writeEntry(args["site_id"],
-                        {"behavior": "RecBOBH",
-                         "req_id": req_id,
+        self.logAction(site_id,
+                        {"req_id": req_id,
                          "user_id": args["user_id"], 
-                         "tjbid": self.tuijianbaoid, 
+                         "tjbid": args["tuijianbaoid"], 
                          "amount": args["amount"],
                          "browsing_history": browsing_history})
 
-    @api_method
-    @check_site_id
-    def get(self, args):
-        site_id = args["site_id"]
+    def process(self, site_id, args):
         browsing_history = args["browsing_history"]
         if browsing_history == None:
             browsing_history = []
@@ -379,17 +488,39 @@ class RecommendBasedOnBrowsingHistoryHandler(APIHandler):
         except ValueError:
             return {"code": 1}
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.recommend_based_on_browsing_history(site_id, browsing_history, amount)
-        topn = mongo_client.convertTopNFormat(args["site_id"], topn, include_item_info)
+        topn = mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
+        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
         req_id = generateReqId()
-        self.logRecommendationRequest(args, req_id)
+        self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
+
+
+class RecommendBasedOnBrowsingHistoryHandler(SingleRequestHandler):
+    processor_class = RecommendBasedOnBrowsingHistoryProcessor
 
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write('{"version": "Tuijianbao v1.0"}')
 
+processor_registry = {}
+
+def registerProcessors(processor_classes):
+    global processor_registry
+    for processor_class in processor_classes:
+        processor_registry[processor_class.action_name] = processor_class()
+
+def getProcessor(action_name):
+    return processor_registry[action_name]
+
+registerProcessors([
+        ViewItemProcessor, AddFavoriteProcessor, RemoveFavoriteProcessor,
+        RateItemProcessor,AddShopCartProcessor, RemoveShopCartProcessor,
+        PlaceOrderProcessor, RecommendViewedAlsoViewProcessor,
+        RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor,
+        BoughtTogetherProcessor
+        #, ViewedUltimatelyBuyProcessor
+        ])
 
 handlers = [
     (r"/", MainHandler),
@@ -399,16 +530,32 @@ handlers = [
     (r"/tui/rateItem", RateItemHandler),
     (r"/tui/removeItem", RemoveItemHandler),
     (r"/tui/updateItem", UpdateItemHandler),
+    (r"/tui/addShopCart", AddShopCartHandler),
+    (r"/tui/removeShopCart", RemoveShopCartHandler),
+    (r"/tui/placeOrder", PlaceOrderHandler),
     (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
-    (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler)
+    (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
+    (r"/tui/boughtAlsoBuy", BoughtAlsoBuyHandler),
+    (r"/tui/boughtTogether", BoughtTogetherHandler),
+    #(r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
+    # TODO: and based on cart content
+    (r"/tui/packedRequest", PackedRequestHandler)
     ]
 
 def main():
+    opts, _ = getopt.getopt(sys.argv[1:], 'p:', ['port='])
+    port = settings.server_port
+    for o, p in opts:
+        if o in ['-p', '--port']:
+	    try:
+	        port = int(p)
+	    except ValueError:
+                print "port should be integer"
     global logWriter
     logWriter = LogWriter()
     application = tornado.web.Application(handlers)
-    application.listen(settings.server_port, settings.server_name)
-    print "Listen at %s:%s" % (settings.server_name, settings.server_port)
+    application.listen(port, settings.server_name)
+    print "Listen at %s:%s" % (settings.server_name, port)
     tornado.ioloop.IOLoop.instance().start()
 
 

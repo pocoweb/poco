@@ -1,0 +1,15 @@
+sun@localhost:~/projects/MAHOUT/amazon/experiment>time sort rating_list > rating_list_sorted
+
+real	3m12.984s
+user	2m55.335s
+sys	0m2.570s
+
+
+time python get_cooccurance.py
+real	3m28.686s
+user	2m34.633s
+sys	0m12.463s
+
+time sort cooccurance > cooccurance_sorted
+
+time sort -c cooccurance_sorted

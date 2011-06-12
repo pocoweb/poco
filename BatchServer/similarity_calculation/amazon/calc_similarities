@@ -1,0 +1,9 @@
+#!/bin/sh
+echo "Sort User Item Matrix"
+time sort user_item_matrix > rating_list_sorted
+echo "Get co occurances"
+time python get_cooccurance.py
+echo "Sort Co occurances"
+time sort cooccurance > cooccurance_sorted
+echo "Count item co occurances"
+time uniq -c cooccurance_sorted > item_similarities

@@ -4,15 +4,36 @@ def getSiteDBName(site_id):
 def getSiteDBCollection(connection, site_id, collection_name):
     return connection[getSiteDBName(site_id)][collection_name]
 
+def getSiteDB(connection, site_id):
+    return connection[getSiteDBName(site_id)]
+
+
+def sign(float):
+    if float > 0:
+        return 1
+    elif float == 0:
+        return 0
+    else:
+        return -1
+
+
+def updateCollectionRecord(collection, key_name, key_value, initial_dict, content_dict):
+    record_in_db = collection.find_one({key_name: key_value})
+    if record_in_db is None:
+        record_in_db = initial_dict
+    record_in_db.update(content_dict)
+    collection.save(record_in_db)
+
+
 class UploadItemSimilarities:
-    def __init__(self, connection, site_id):
+    def __init__(self, connection, site_id, type="V"):
         self.connection = connection
         self.last_item1 = None
         self.last_rows = []
         self.item_similarities = getSiteDBCollection(self.connection, site_id, 
-                        "item_similarities")
+                        "item_similarities_%s" % type)
 
-    def insertSimOneRow(self):
+    def updateSimOneRow(self):
         item_in_db = self.item_similarities.find_one({"item_id": self.last_item1})
         if item_in_db is None:
             item_in_db = {}
@@ -29,8 +50,8 @@ class UploadItemSimilarities:
                 self.last_item1 = self.item_id1
                 last_rows = []
             elif self.last_item1 != self.item_id1:
-                self.insertSimOneRow()
+                self.updateSimOneRow()
             self.last_rows.append((item_id2, similarity))
 
         if len(self.last_rows) != 0:
-            self.insertSimOneRow()
+            self.updateSimOneRow()
