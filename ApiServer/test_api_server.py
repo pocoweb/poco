@@ -473,6 +473,24 @@ class PlaceOrderTest(BaseTestCase):
 
 
 class PackedRequestTest(BaseTestCase):
+    def testUpdateItem(self):
+        self.assertCurrentLinesCount(0)
+        requests = [{"action": "UItem", "item_id": "35", 
+               "item_link": "http://example.com/item?id=35", 
+               "item_name": "Something"}]
+        result, response_tuijianbaoid = api_access("/tui/packedRequest", 
+                {"site_id": "tester",
+                 "requests": json.dumps(requests)}, return_tuijianbaoid=True)
+        self.assertCurrentLinesCount(0)
+        self.assertEquals(result, {'code': 0, 'request_responses': {'UItem': {'code': 0}}})
+        item_in_db = mongo_client.getItem(SITE_ID, "35")
+        del item_in_db["_id"]
+        self.assertEquals(item_in_db,
+                {'item_name': 'Something', 
+                 'item_id': '35', 
+                 'available': True, 
+                 'item_link': 'http://example.com/item?id=35'})
+
     def testWithCallback(self):
         self.assertCurrentLinesCount(0)
         requests = [{"action": "RSC", "user_id": "guagua", "item_id": "25"},

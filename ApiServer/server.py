@@ -327,8 +327,8 @@ class PlaceOrderHandler(SingleRequestHandler):
     processor_class = PlaceOrderProcessor
 
 
-# FIXME: update/remove item should be called in a secure way.
-class UpdateItemHandler(APIHandler):
+class UpdateItemProcessor(ActionProcessor):
+    action_name = "UItem"
     ap = ArgumentProcessor(
          (("item_id", True),
          ("item_link", True),
@@ -357,7 +357,17 @@ class UpdateItemHandler(APIHandler):
             return {"code": 0}
 
 
-class RemoveItemHandler(APIHandler):
+
+# FIXME: update/remove item should be called in a secure way.
+class UpdateItemHandler(APIHandler):
+    processor = UpdateItemProcessor()
+
+    def process(self, site_id, args):
+        return self.processor.process(site_id, args)
+
+
+class RemoveItemProcessor(ActionProcessor):
+    action_name = "RItem"
     ap = ArgumentProcessor(
          [("item_id", True)]
         )
@@ -369,6 +379,14 @@ class RemoveItemHandler(APIHandler):
         else:
             mongo_client.removeItem(site_id, args["item_id"])
             return {"code": 0}
+
+
+
+class RemoveItemHandler(APIHandler):
+    processor = RemoveItemProcessor()
+
+    def process(self, site_id, args):
+        return self.processor.process(site_id, args)
 
 
 #class ClickRecItemHandler(tornado.web.RequestHandler):
@@ -518,7 +536,8 @@ registerProcessors([
         RateItemProcessor,AddShopCartProcessor, RemoveShopCartProcessor,
         PlaceOrderProcessor, RecommendViewedAlsoViewProcessor,
         RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor,
-        BoughtTogetherProcessor
+        BoughtTogetherProcessor,
+        RemoveItemProcessor, UpdateItemProcessor
         #, ViewedUltimatelyBuyProcessor
         ])
 
