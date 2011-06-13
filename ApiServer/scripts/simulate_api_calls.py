@@ -25,7 +25,11 @@ def api_access(path, params, tuijianbaoid=None, as_json=True):
 
 actions = []
 for line in open(file_name, "r"):
-    action = json.loads(line.strip())
+    line = line.strip()
+    if line == "" or line.startswith("#"):
+        action = None
+    else:
+        action = json.loads(line.strip())
     actions.append(action)
 
 def execute_next(amount=1):
@@ -33,21 +37,22 @@ def execute_next(amount=1):
     for j in range(amount):
         action_index = next_action_no - 1
         action = actions[action_index]
-        print next_action_no, action
-        action_name = action["action"]
-        if action.has_key("tuijianbaoid"):
-            tuijianbaoid = action["tuijianbaoid"]
-            del action["tuijianbaoid"]
-        else:
-            tuijianbaoid = None
-        del action["action"]
-        action["site_id"] = "demo2"
-        result = api_access("/tui/%s" % action_name,
-            params=action, tuijianbaoid=tuijianbaoid,
-            as_json=True)
-        if result["code"] != 0:
-            print "RESULT:", result
-        next_action_no += 1
+        if action != None:
+            print next_action_no, action
+            action_name = action["action"]
+            if action.has_key("tuijianbaoid"):
+                tuijianbaoid = action["tuijianbaoid"]
+                del action["tuijianbaoid"]
+            else:
+                tuijianbaoid = None
+            del action["action"]
+            action["site_id"] = "demo2"
+            result = api_access("/tui/%s" % action_name,
+                params=action, tuijianbaoid=tuijianbaoid,
+                as_json=True)
+            if result["code"] != 0:
+                print "RESULT:", result
+            next_action_no += 1
 
 next_action_no = 1
 while True:
@@ -57,3 +62,5 @@ while True:
         execute_next(1)
     elif command.startswith("e"):
         execute_next(int(command[1:]))
+    elif command == "all":
+        execute_next(999999999)
