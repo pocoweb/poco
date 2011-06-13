@@ -1,7 +1,6 @@
 import sys
 import time
 import logging
-import pymongo
 from common import utils
 import simplejson as json
 
@@ -12,8 +11,7 @@ logger = logging.getLogger("Backfiller")
 
 
 class BackFiller:
-    def __init__(self, site_id, last_ts, output_file_path):
-        connection = pymongo.Connection()
+    def __init__(self, connection, site_id, last_ts, output_file_path):
         self.raw_logs = utils.getSiteDBCollection(connection, site_id, "raw_logs")
         self.last_ts = last_ts
         self.output_file_path = output_file_path

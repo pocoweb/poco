@@ -12,7 +12,7 @@ settings.server_port = 15588
 # re-create database and upload similarities for test purpose.
 import pymongo
 from common import utils
-connection = pymongo.Connection()
+connection = pymongo.Connection(settings.mongodb_host)
 connection.drop_database(utils.getSiteDBName("tester"))
 utils.UploadItemSimilarities(connection, "tester")("item_similarities_for_test")
 

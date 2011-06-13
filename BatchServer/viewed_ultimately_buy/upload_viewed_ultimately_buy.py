@@ -1,12 +1,9 @@
-import pymongo
 from common.utils import getSiteDBCollection
 from common.utils import updateCollectionRecord
 from common.utils import sign
 
 
-connection = pymongo.Connection()
-
-def updateRecord(site_id, item_view_times_map, last_item_id1, last_rows):
+def updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_rows):
     viewed_ultimately_buys = getSiteDBCollection(connection, site_id, "viewed_ultimately_buys")
     last_rows.sort(lambda a,b: sign(b[1] - a[1]))
 
@@ -26,7 +23,7 @@ def updateRecord(site_id, item_view_times_map, last_item_id1, last_rows):
                 content_dict=content_dict)
 
 
-def upload_viewed_ultimately_buy(site_id, item_view_times_path, 
+def upload_viewed_ultimately_buy(connection, site_id, item_view_times_path, 
         view_buy_pairs_counted_path):
     item_view_times_map = {}
     for line in open(item_view_times_path, "r"):
@@ -42,10 +39,10 @@ def upload_viewed_ultimately_buy(site_id, item_view_times_path,
             last_item_id1 = item_id1
             last_rows = []
         elif last_item_id1 <> item_id1:
-            updateRecord(site_id, item_view_times_map, last_item_id1, last_rows)
+            updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_rows)
             last_item_id1 = item_id1
             last_rows = []
         last_rows.append((item_id2, float(count)))
 
     if last_item_id1 is not None:
-        updateRecord(site_id, item_view_times_map, last_item_id1, last_rows)
+        updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_rows)

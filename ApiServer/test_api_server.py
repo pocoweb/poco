@@ -65,7 +65,7 @@ SITE_ID = "tester"
 
 class BaseTestCase(unittest.TestCase):
     def setUp(self):
-        self.connection = pymongo.Connection()
+        self.connection = pymongo.Connection(settings.mongodb_host)
         self.cleanUpRawLogs()
 
     def updateItem(self, item_id):

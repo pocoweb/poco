@@ -72,7 +72,8 @@ class PreprocessingFlow(BaseFlow):
     def do_backfill(self):
         from preprocessing import backfiller
         last_ts = None # FIXME: load correct last_ts from somewhere
-        bf = backfiller.BackFiller(SITE_ID, last_ts, 
+        connection = pymongo.Connection(settings.mongodb_host)
+        bf = backfiller.BackFiller(connection, SITE_ID, last_ts, 
                     os.path.join(settings.work_dir, "reversed_backfilled_raw_logs"))
         last_ts = bf.start() # FIXME: save last_ts somewhere 
 
@@ -157,7 +158,7 @@ class BaseSimilarityCalcFlow(BaseFlow):
         from common.utils import UploadItemSimilarities
         import pymongo
         input_path = os.path.join(self.work_dir, "item_similarities_top_n")
-        connection = pymongo.Connection()
+        connection = pymongo.Connection(settings.mongodb_host)
         uis = UploadItemSimilarities(connection, SITE_ID, self.type)
         uis(input_path)
 
@@ -267,7 +268,8 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
         from viewed_ultimately_buy.upload_viewed_ultimately_buy import upload_viewed_ultimately_buy
         item_view_times_path = os.path.join(self.work_dir, "item_view_times")
         view_buy_pairs_counted_path = os.path.join(self.work_dir, "view_buy_pairs_counted")
-        upload_viewed_ultimately_buy(SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
+        connection = pymongo.Connection(settings.mongodb_host)
+        upload_viewed_ultimately_buy(connection, SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
 
 class BeginFlow(BaseFlow):
     def __init__(self):

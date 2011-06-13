@@ -2,9 +2,10 @@ import sys
 sys.path.insert(0, "../")
 import time
 import pymongo
+import settings
 
 
-connection = pymongo.Connection()
+connection = pymongo.Connection(settings.mongodb_host)
 connection.drop_database("benchmarkdb1")
 connection["benchmarkdb1"].create_collection("coll", {"capped":True, "size": 102400000})
 collection = connection["benchmarkdb1"]["coll"]

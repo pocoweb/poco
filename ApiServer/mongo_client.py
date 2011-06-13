@@ -5,8 +5,10 @@ from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
 from common.utils import sign
 
+import settings
 
-connection = pymongo.Connection()
+
+connection = pymongo.Connection(settings.mongodb_host)
 
 
 cache = {}

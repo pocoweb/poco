@@ -6,6 +6,8 @@ from optparse import OptionParser
 import pymongo
 from common.utils import getSiteDBCollection, getSiteDB
 
+import settings
+
 import mongo_client
 
 parser = OptionParser()
@@ -24,7 +26,7 @@ assert site_name is not None
 
 
 # TODO: use dropDatabase?
-connection = pymongo.Connection()
+connection = pymongo.Connection(settings.mongodb_host)
 if options.reset_db == "yes":
     getSiteDBCollection(connection, site_id, "item_similarities").drop()
     getSiteDBCollection(connection, site_id, "raw_logs").drop()
