@@ -2,6 +2,7 @@ import logging
 import sys
 sys.path.append("../")
 import time
+import pymongo
 import uuid
 import os
 import os.path
@@ -35,13 +36,17 @@ class BaseFlow:
         flow.dependencies.append(self)
 
     def __call__(self):
-        for job_callable in self.jobs:
-            if not self._execJob(job_callable):
-                return False
-        # execute downlines
-        for dependency in self.dependencies:
-            dependency()
-        return True
+        if self.__class__.__name__ in DISABLEDFLOWS:
+            self.logger.info("%s is in DISABLEDFLOWS, skipped." % self.__class__.__name__)
+            return True
+        else:
+            for job_callable in self.jobs:
+                if not self._execJob(job_callable):
+                    return False
+            # execute downlines
+            for dependency in self.dependencies:
+                dependency()
+            return True
 
     def _exec_shell(self, command):
         logger.info("Execute %s" % command)
@@ -324,6 +329,7 @@ if __name__ == "__main__":
             if site.get("last_update_ts") is None \
                 or now - site.get("last_update_ts") > site["calc_interval"]:
                 SITE_ID = site["site_id"]
+                DISABLEDFLOWS = site.get("disabledFlows", [])
                 CALC_RECORD = {"site_id": SITE_ID, "calculation_id": str(uuid.uuid4()),
                                "start_time": time.time(), "end_time": None,
                                "status": "NEW" # NEW, SUCCESS, FAILED

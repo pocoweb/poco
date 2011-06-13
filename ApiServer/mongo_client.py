@@ -64,7 +64,7 @@ def loadSites():
 def updateSite(site_id, site_name, calc_interval):
     site = sites.find_one({"site_id": site_id})
     if site is None:
-        site = {"site_id": site_id, "last_update_ts": None}
+        site = {"site_id": site_id, "last_update_ts": None, "disabledFlows": []}
     site["site_name"] = site_name
     site["calc_interval"] = calc_interval
     sites.save(site)
