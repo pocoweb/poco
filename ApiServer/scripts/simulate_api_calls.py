@@ -7,8 +7,8 @@ import simplejson as json
 file_name = sys.argv[1]
 site_id = sys.argv[2]
 
-SERVER_NAME = "api.tuijianbao.net"
-SERVER_PORT = 80
+SERVER_NAME = "localhost"
+SERVER_PORT = 5588
 
 def api_access(path, params, tuijianbaoid=None, as_json=True):
     url = "http://%s:%s%s?%s" % (SERVER_NAME, SERVER_PORT, path, 

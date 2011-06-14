@@ -480,10 +480,10 @@ class ViewedUltimatelyBuyProcessor(ActionProcessor):
                          "amount": args["amount"]})
 
     def process(self, site_id, args):
-        topn = mongo_client.recommend_viewed_ultimately_buy(site_id, self.similarity_type, args["item_id"], 
-                        int(args["amount"]))
+        topn = mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
+        print "TOPN2:", topn
         req_id = generateReqId()
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
