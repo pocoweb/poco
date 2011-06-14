@@ -33,6 +33,20 @@ def recommend_viewed_also_view(site_id, similarity_type, item_id, amount):
     return topn
 
 
+def recommend_viewed_ultimately_buy(site_id, item_id, amount):
+    viewed_ultimately_buys = getSiteDBCollection(connection, site_id, "viewed_ultimately_buys")
+    result = viewed_ultimately_buys.find_one({"item_id": item_id})
+    if result is not None:
+        vubs = result["viewedUltimatelyBuys"]
+    else:
+        vubs = []
+    if len(vubs) > amount:
+        topn = vubs[:amount]
+    else:
+        topn = vubs
+    return [(topn_item["item_id"], topn_item["percentage"]) for topn_item in topn]
+
+
 def getSimilaritiesForItems(site_id, similarity_type, item_ids):
     item_similarities = getSiteDBCollection(connection, site_id, "item_similarities_%s" % similarity_type)
     result = []

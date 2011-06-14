@@ -461,19 +461,36 @@ class BoughtTogetherHandler(SingleRequestHandler):
     processor_class = BoughtTogetherProcessor
 
 
-#class ViewedUltimatelyBuyProcessor(ActionProcessor):
-#    action_name = "RecVUB"
-#    ap = ArgumentProcessor(
-#         (("user_id", True),
-#         ("item_id", True),
-#         ("include_item_info", False), # no, not include; yes, include
-#         ("amount", True),
-#        )
-#    )
+class ViewedUltimatelyBuyProcessor(ActionProcessor):
+    action_name = "RecVUB"
+    ap = ArgumentProcessor(
+         (("user_id", True),
+         ("item_id", True),
+         ("include_item_info", False), # no, not include; yes, include
+         ("amount", True),
+        )
+    )
+
+    def logRecommendationRequest(self, args, site_id, req_id):
+        self.logAction(site_id,
+                        {"req_id": req_id,
+                         "user_id": args["user_id"], 
+                         "tjbid": args["tuijianbaoid"], 
+                         "item_id": args["item_id"],
+                         "amount": args["amount"]})
+
+    def process(self, site_id, args):
+        topn = mongo_client.recommend_viewed_ultimately_buy(site_id, self.similarity_type, args["item_id"], 
+                        int(args["amount"]))
+        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
+        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
+        req_id = generateReqId()
+        self.logRecommendationRequest(args, site_id, req_id)
+        return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-#class ViewedUltimatelyBuyHandler(SingleRequestHandler):
-#    processor_class = ViewedUltimatelyBuyProcessor
+class ViewedUltimatelyBuyHandler(SingleRequestHandler):
+    processor_class = ViewedUltimatelyBuyProcessor
 
 
 class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
@@ -538,7 +555,7 @@ registerProcessors([
         RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor,
         BoughtTogetherProcessor,
         RemoveItemProcessor, UpdateItemProcessor
-        #, ViewedUltimatelyBuyProcessor
+        , ViewedUltimatelyBuyProcessor
         ])
 
 handlers = [
@@ -556,7 +573,7 @@ handlers = [
     (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
     (r"/tui/boughtAlsoBuy", BoughtAlsoBuyHandler),
     (r"/tui/boughtTogether", BoughtTogetherHandler),
-    #(r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
+    (r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
     # TODO: and based on cart content
     (r"/tui/packedRequest", PackedRequestHandler)
     ]
