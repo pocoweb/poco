@@ -483,7 +483,8 @@ class ViewedUltimatelyBuyProcessor(ActionProcessor):
         topn = mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
-        print "TOPN2:", topn
+        for topn_item in topn:
+            topn_item["percentage"] = int(round(topn_item["score"] * 100))
         req_id = generateReqId()
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
