@@ -5,9 +5,10 @@ import simplejson as json
 
 
 file_name = sys.argv[1]
+site_id = sys.argv[2]
 
-SERVER_NAME = "127.0.0.1"
-SERVER_PORT = 5588
+SERVER_NAME = "api.tuijianbao.net"
+SERVER_PORT = 80
 
 def api_access(path, params, tuijianbaoid=None, as_json=True):
     url = "http://%s:%s%s?%s" % (SERVER_NAME, SERVER_PORT, path, 
@@ -34,7 +35,7 @@ for line in open(file_name, "r"):
 
 def execute_next(amount=1):
     global next_action_no
-    for j in range(amount):
+    for j in xrange(amount):
         action_index = next_action_no - 1
         action = actions[action_index]
         if action != None:
@@ -46,13 +47,13 @@ def execute_next(amount=1):
             else:
                 tuijianbaoid = None
             del action["action"]
-            action["site_id"] = "demo2"
+            action["site_id"] = site_id
             result = api_access("/tui/%s" % action_name,
                 params=action, tuijianbaoid=tuijianbaoid,
                 as_json=True)
             if result["code"] != 0:
                 print "RESULT:", result
-            next_action_no += 1
+        next_action_no += 1
 
 next_action_no = 1
 while True:
