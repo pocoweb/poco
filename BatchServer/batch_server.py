@@ -8,7 +8,7 @@ import os
 import os.path
 import settings
 from ApiServer import mongo_client
-
+from common.utils import getSiteDBCollection
 
 # TODO: use hamake?
 
@@ -36,16 +36,24 @@ class BaseFlow:
         flow.dependencies.append(self)
 
     def __call__(self):
+        writeFlowBegin(SITE_ID, self.__class__.__name__)
         if self.__class__.__name__ in DISABLEDFLOWS:
             self.logger.info("%s is in DISABLEDFLOWS, skipped." % self.__class__.__name__)
+            writeFlowEnd(SITE_ID, self.__class__.__name__, is_successful=True, is_skipped=True)
             return True
         else:
             for job_callable in self.jobs:
                 if not self._execJob(job_callable):
+                    writeFlowEnd(SITE_ID, self.__class__.__name__, is_successful=False, is_skipped=False,
+                                    err_msg="SOME_JOBS_FAILED")
+                    CALC_SUCC = False
                     return False
+
+            global CALC_SUCC
             # execute downlines
             for dependency in self.dependencies:
-                dependency()
+                CALC_SUCC = CALC_SUCC and dependency()
+            writeFlowEnd(SITE_ID, self.__class__.__name__, is_successful=True, is_skipped=False)
             return True
 
     def _exec_shell(self, command):
@@ -63,7 +71,9 @@ class BaseFlow:
         except:
             logger.critical("An Exception happened while running Job: %s" % callable,
                 exc_info=True)
-            # TODO: mark failed status in database and send message (email, sms)
+            # TODO: send message (email, sms)
+            # TODO: record exception info.
+            writeFailedJob(SITE_ID, self.__class__.__name__, callable.__name__)
             return False
 
 
@@ -318,8 +328,83 @@ viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 #finish_flow = FinishFlow()
 #finish_flow.dependOn(similarity_calc_flow)
 
-# TODO: mark success/failure state
+# TODO: use calculation_id in logs.
 
+
+# CALCULATION_RECORD = {"id": "", "begin_timestamp": "", "end_timestamp": "", "is_successful": "",
+#                        "flows": {
+#                               "<flow_name>": {"begin_timestamp": "", "end_timestamp": "", "is_successful": <>, "failed_job_name": ""}
+#                         }
+#                      }
+
+def createCalculationRecord(site_id):
+    connection = pymongo.Connection(settings.mongodb_host)
+    calculation_id = str(uuid.uuid4())
+    record = {"calculation_id": calculation_id, "begin_timestamp": time.time(), "flows": {}}
+    calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
+    calculation_records.save(record)
+    return calculation_id
+
+
+def getCalculationRecord(site_id, calculation_id):
+    connection = pymongo.Connection(settings.mongodb_host)
+    calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
+    return calculation_records.find_one({"calculation_id": calculation_id})
+
+
+def updateCalculationRecord(site_id, record):
+    connection = pymongo.Connection(settings.mongodb_host)
+    calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
+    calculation_records.save(record)
+
+
+def writeFailedJob(site_id, flow_name, failed_job_name):
+    record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    flow_record = record["flows"][flow_name]
+    flow_record["failed_job_name"] = failed_job_name
+    updateCalculationRecord(SITE_ID, record)
+
+
+def writeFlowBegin(site_id, flow_name):
+    record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    record["flows"][flow_name] = {"begin_timestamp": time.time()}
+    updateCalculationRecord(SITE_ID, record)
+
+
+def writeFlowEnd(site_id, flow_name, is_successful, is_skipped, err_msg = None):
+    record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    flow_record = record["flows"][flow_name] 
+    flow_record["end_timestamp"] = time.time()
+    flow_record["is_successful"] = is_successful
+    flow_record["is_skipped"] = is_skipped
+    if not is_successful:
+        flow_record["err_msg"] = err_msg
+    updateCalculationRecord(SITE_ID, record)
+
+
+def writeCalculationEnd(site_id, is_successful, err_msg = None):
+    record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    record["end_timestamp"] = time.time()
+    record["is_successful"] = is_successful
+    if not is_successful:
+        record["err_msg"] = err_msg
+    updateCalculationRecord(SITE_ID, record)
+
+
+# format:
+#     {"event": "BEGIN_CALC", "timestamp": <timestamp>, "calculation_id": <calculation_id>}
+#     {"event": "BEGIN_FLOW", "timestamp": <timestamp>, "flow_name": "", "calculation_id": <calculation_id>}
+#     {"event": "BEGIN_JOB",  "timestamp": <timestamp>, "job_name": "", "calculation_id": <calculation_id>}
+#     {"event": "END_JOB",    "timestamp": <timestamp>, "job_name": "", "is_successful": <true or false>, "calculation_id": <calculation_id>}
+#     {"event": "END_FLOW", "timestamp": <timestamp>, "flow_name": "", "calculation_id": <calculation_id>, "is_successful": <true or false>, , "is_skipped": <True or False>}
+#     {"event": "END_CALC", "timestamp": <timestamp>, "calculation_id": <calculation_id>, "is_successful": <true or false>, "reason": ""}
+#     "timestamp" and calculation_id are automatically added by this function.
+def writeCalculationLog(site_id, content):
+    connection = pymongo.Connection(settings.mongodb_host)
+    calculation_logs = getSiteDBCollection(connection, site_id, "calculation_logs")
+    content["timestamp"] = time.time()
+    content["calculation_id"] = CALCULATION_ID
+    calculation_logs.insert(content)
 
 
 if __name__ == "__main__":
@@ -330,12 +415,15 @@ if __name__ == "__main__":
                 or now - site.get("last_update_ts") > site["calc_interval"]:
                 SITE_ID = site["site_id"]
                 DISABLEDFLOWS = site.get("disabledFlows", [])
-                CALC_RECORD = {"site_id": SITE_ID, "calculation_id": str(uuid.uuid4()),
-                               "start_time": time.time(), "end_time": None,
-                               "status": "NEW" # NEW, SUCCESS, FAILED
-                              }
+                CALCULATION_ID = createCalculationRecord(SITE_ID)
+                CALC_SUCC = True
                 try:
-                    begin_flow()
+                    try:
+                        begin_flow()
+                        writeCalculationEnd(SITE_ID, CALC_SUCC, err_msg = "SOME_FLOWS_FAILED")
+                    except:
+                        logger.critical("Unexpected Exception:", exc_info=True)
+                        writeCalculationEnd(SITE_ID, False, "UNEXPECTED_EXCEPTION")
                 finally:
                     logger.info("====================================")
                 #FIXME: save last_update_ts
