@@ -13,9 +13,6 @@ from ApiServer import mongo_client
 from common.utils import getSiteDBCollection
 
 
-#class SiteHandler(tornado.web.RequestHandler):
-#    def 
-
 def convertSecondsAsHoursMinutesSeconds(seconds):
     seconds = int(seconds)
     hours = seconds / 3600
@@ -32,8 +29,9 @@ def convertSecondsAsHoursMinutesSeconds(seconds):
 
 
 
-def getSiteInfos(sites):
+def getSiteInfos():
     connection = pymongo.Connection(settings.mongodb_host)
+    sites = mongo_client.loadSites()
     result = []
     for site in sites:
         sci = {"site_id": site["site_id"], "site_name": site["site_name"], "disabledFlows": site.get("disabledFlows", [])}
@@ -77,10 +75,16 @@ def getSiteInfos(sites):
 
     return result
 
+
+class AjaxLoadDataHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write(json.dumps(getSiteInfos()))
+
+
 class IndexHandler(tornado.web.RequestHandler):
     def get(self):
-        sites = getSiteInfos(mongo_client.loadSites())
-        self.render("templates/index.html", sites=sites)
+        #sites = getSiteInfos()
+        self.render("templates/index.html")
 
 def scheduleCalculation(site_id):
     connection = pymongo.Connection(settings.mongodb_host)
@@ -104,7 +108,8 @@ app_settings = {
 
 handlers = [
     (r"/", IndexHandler),
-    (r"/ajax/calcAsap",  RunCalculationHandler)
+    (r"/ajax/calcAsap",  RunCalculationHandler),
+    (r"/ajax/loadData",  AjaxLoadDataHandler)
 ]
 
 

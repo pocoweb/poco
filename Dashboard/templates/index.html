@@ -1,11 +1,11 @@
 <html>
    <head>
-      <title>Dash Board</title>
+      <title>Admin Board</title>
       <script type="text/javascript" src="/static/jquery-1.6.1.min.js"></script>
    </head>
    <body>
-   <h1>Dash Board</h1>
-   <span id="secondsCount"></span> seconds since last update. <a href="javascript:reloadPage()">Update</a>
+   <h1>Admin Board</h1>
+   <!--<span id="refreshingStatus">Idle</span>-->
     <script type="text/javascript">
         function calcAsap(site_id) {
             $.getJSON("/ajax/calcAsap", {site_id: site_id},
@@ -14,58 +14,66 @@
                 });
         };
 
-        function reloadPage() {
-            window.location.reload();
-        };
 
-        var secondsCount = -1;
-        function updateSecondsCount() {
-            secondsCount ++;
-            document.getElementById("secondsCount").innerHTML = "" + secondsCount;
+        var refreshing = false;
+        function refreshData() {
+            if (refreshing) return;
+            //document.getElementById("refreshingStatus").innerHTML = "refreshing";
+            refreshing = true;
+            $.getJSON("/ajax/loadData", {},
+                function(data) {
+                    var html = "";
+                    $.each(data, function(idx, site) {
+                        html += "<li>" + site.site_id + 
+                        "&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
+                        html += "<ul>"
+                        html += "<li>Name: " + site.site_name + "</li>";
+                        if (typeof(site.disabledFlows) != "undefined") {
+                            html += "<li>Disabled Calculation Flows: " 
+                            $.each(site.disabledFlows, function(idx, item) {
+                                html += item + "&nbsp;&nbsp;"; 
+                            });
+                            html += "</li>";
+                        }
+                        if (site.status != "NEVER_CALC") {
+                            html += "<li>Last Calculation ID:&nbsp;" + site.last_calculation_id + "</li>";
+                        };
+                        html += "<li>Status:&nbsp;";
+                        if (site.status == "NEVER_CALC") {html += '<span style="color: gray">'}
+                        else if (site.status == "SUCCESSFUL") {html += '<span style="color:green">'}
+                        else if (site.status == "FAILED") {html += '<span style="color: red">'}
+                        else if (site.status == "RUNNING") {html += '<span style="color: yellow">'};
+                        html += site.status;
+                        html += "</span>(";
+                        if (site.status == "SUCCESSFUL" || site.status == "FAILED") {
+                            html += site.since_last + "&nbsp;ago. " + site.time_spent + "&nbsp;spent.";
+                        }
+                        else if (site.status == "RUNNING") {
+                            html += site.time_spent + "&nbsp;since the beginning of calculation.";
+                        };
+                        html += ")";
+                        html += "</li>";
+
+                        if (typeof(site.est_next_run) != "undefined") {
+                            html += "<li>Estimated Next Calculation: " + site.est_next_run + "&nbsp;later</li>";
+                        }
+
+                        if (typeof(site.request_waiting_time) != "undefined") {
+                            html += "<li>Pending calculation request(waited " + site.request_waiting_time + ")</li>";
+                        }
+
+                        html += "</ul>"
+                    });
+                    $("#sites-container").html(html);
+                    refreshing = false;
+                    //document.getElementById("refreshingStatus").innerHTML = "Idle";
+                });
         };
-        setInterval("updateSecondsCount()", 1000);
+        refreshData();
+        setInterval("refreshData()", 1000);
     </script>
-     <ul>
-       {% for site in sites %}
-         <li>{{ escape(site["site_id"]) }} <a href="javascript: calcAsap('{{site["site_id"]}}');">Calculate ASAP</a>
-            <ul>
-                <li>Name: {{ site["site_name"] }}</li>
-                <!-- <li>Calculation Interval: </li> -->
-                <li>Disabled Calculation Flows: {{ site.get("disabledFlows", [])}}</li>
-                <li>
-                {% if site["status"] <> "NEVER_CALC" %}
-                    Last Calculation ID: {{ site["last_calculation_id"] }}
-                {% end %}
-                </li>
-                <li>Status: 
-                {% if site["status"] == "NEVER_CALC" %} <span style="color: gray"> {% end %}
-                {% if site["status"] == "SUCCESSFUL" %} <span style="color:green"> {% end %}
-                {% if site["status"] == "FAILED" %} <span style="color:red"> {% end %}
-                {% if site["status"] == "RUNNING" %} <span style="color:yellow"> {% end %}
-                {{ site["status"] }}</span>
-                {% if site["status"] == "SUCCESSFUL" %}
-                    ({{ site["since_last"] }} ago. {{site["time_spent"]}} spent.)
-                {% elif site["status"] == "FAILED" %}
-                    ({{ site["since_last"] }} ago. {{site["time_spent"]}} spent.)
-                {% elif site["status"] == "RUNNING" %}
-                    ({{ site["time_spent"] }} since the beginning of calculation. }})
-                {% end %}
-                </li>
-                {% if site.has_key("est_next_run") %}
-                <li>
-                Estimated Next:{{ site["est_next_run"] }} later
-                </li>
-                {% end %}
-                {% if site.has_key("request_waiting_time") %}
-                </li>
-                <li>
-                    Pending calculation request(waited {{site["request_waiting_time"]}})
-                </li>
-                {% end %}
-            </ul>
-         </li>
-       {% end %}
-     </ul>
+    <ul id="sites-container">
+    </ul>
    </body>
 </html>
 
