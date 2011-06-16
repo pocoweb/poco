@@ -36,6 +36,7 @@ class BaseFlow:
         flow.dependencies.append(self)
 
     def __call__(self):
+        global CALC_SUCC
         writeFlowBegin(SITE_ID, self.__class__.__name__)
         if self.__class__.__name__ in DISABLEDFLOWS:
             self.logger.info("%s is in DISABLEDFLOWS, skipped." % self.__class__.__name__)
@@ -49,10 +50,9 @@ class BaseFlow:
                     CALC_SUCC = False
                     return False
 
-            global CALC_SUCC
             # execute downlines
             for dependency in self.dependencies:
-                CALC_SUCC = CALC_SUCC and dependency()
+                dependency()
             writeFlowEnd(SITE_ID, self.__class__.__name__, is_successful=True, is_skipped=False)
             return True
 
@@ -248,6 +248,8 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
                       self.do_sort_user_view_buy_logs,
                       self.do_pair_view_buy,
                       self.count_pairs,
+                      self.do_extract_user_item_matrix,
+                      self.do_de_duplicate_user_item_matrix,
                       self.count_item_view,
                       self.upload_viewed_ultimately_buy]
 
@@ -273,9 +275,20 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
         output_path = os.path.join(self.work_dir, "view_buy_pairs_counted")
         self._exec_shell("sort <%s | uniq -c >%s" % (input_path, output_path))
 
+    def do_extract_user_item_matrix(self):
+        from preprocessing.extract_user_item_matrix import v_extract_user_item_matrix
+        input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        output_path = os.path.join(self.work_dir, "user_item_matrix_maybe_dup")
+        v_extract_user_item_matrix(input_path, output_path)
+
+    def do_de_duplicate_user_item_matrix(self):
+        input_path  = os.path.join(self.work_dir, "user_item_matrix_maybe_dup")
+        output_path = os.path.join(self.work_dir, "user_item_matrix")
+        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+
     def count_item_view(self):
         #FIXME a hack
-        input_path = os.path.join(settings.work_dir, "item_similarities_V", "user_item_matrix")
+        input_path = os.path.join(self.work_dir, "user_item_matrix")
         output_path = os.path.join(self.work_dir, "item_view_times")
         self._exec_shell("cut -d , -f 2 <%s | sort | uniq -c >%s" % (input_path, output_path))
 
@@ -367,6 +380,7 @@ def writeFailedJob(site_id, flow_name, failed_job_name):
 
 def writeFlowBegin(site_id, flow_name):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    logging.info("RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
     record["flows"][flow_name] = {"begin_timestamp": time.time()}
     updateCalculationRecord(SITE_ID, record)
 
@@ -407,26 +421,62 @@ def writeCalculationLog(site_id, content):
     calculation_logs.insert(content)
 
 
+def getManualCalculationSites():
+    connection = pymongo.Connection(settings.mongodb_host)
+    result = []
+    for site in mongo_client.loadSites():
+        manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
+        record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
+        if record_in_db is not None:
+            result.append(site)
+    return result
+
+def updateSiteLastUpdateTs(site_id):
+    connection = pymongo.Connection(settings.mongodb_host)
+    sites = connection["tjb-db"]["sites"]
+    sites.update({"site_id": site_id}, {"$set": {"last_update_ts": time.time()}})
+
+
+def workOnSite(site, is_manual_calculation=False):
+    connection = pymongo.Connection(settings.mongodb_host)
+    manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
+    record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
+    if record_in_db is not None:
+        manual_calculation_list.remove(record_in_db)
+
+    now = time.time()
+    if is_manual_calculation or site.get("last_update_ts", None) is None \
+        or now - site.get("last_update_ts") > site["calc_interval"]:
+        global SITE_ID
+        global DISABLEDFLOWS
+        global CALCULATION_ID
+        global CALC_SUCC
+        SITE_ID = site["site_id"]
+        DISABLEDFLOWS = site.get("disabledFlows", [])
+        CALC_SUCC = True
+        CALCULATION_ID = createCalculationRecord(SITE_ID)
+        try:
+            try:
+                logger.info("BEGIN CALCULATION ON:%s, CALCULATION_ID:%s" % (SITE_ID, CALCULATION_ID))
+                begin_flow()
+                #print "CALC_SUCC", CALC_SUCC
+                writeCalculationEnd(SITE_ID, CALC_SUCC, err_msg = "SOME_FLOWS_FAILED")
+            except:
+                logger.critical("Unexpected Exception:", exc_info=True)
+                writeCalculationEnd(SITE_ID, False, "UNEXPECTED_EXCEPTION")
+        finally:
+            logger.info("END CALCULATION ON:%s, CALCULATION_ID:%s" % (SITE_ID, CALCULATION_ID))
+        #FIXME: save last_update_ts
+        updateSiteLastUpdateTs(site["site_id"])
+
+
 if __name__ == "__main__":
     while True:
         for site in mongo_client.loadSites():
-            now = time.time()
-            if site.get("last_update_ts") is None \
-                or now - site.get("last_update_ts") > site["calc_interval"]:
-                SITE_ID = site["site_id"]
-                DISABLEDFLOWS = site.get("disabledFlows", [])
-                CALCULATION_ID = createCalculationRecord(SITE_ID)
-                CALC_SUCC = True
-                try:
-                    try:
-                        begin_flow()
-                        writeCalculationEnd(SITE_ID, CALC_SUCC, err_msg = "SOME_FLOWS_FAILED")
-                    except:
-                        logger.critical("Unexpected Exception:", exc_info=True)
-                        writeCalculationEnd(SITE_ID, False, "UNEXPECTED_EXCEPTION")
-                finally:
-                    logger.info("====================================")
-                #FIXME: save last_update_ts
-        sleep_seconds = 10
-        logger.info("Go to sleep for %s seconds." % sleep_seconds)
+            for site in getManualCalculationSites():
+                workOnSite(site, is_manual_calculation=True)
+            workOnSite(site)
+
+        sleep_seconds = 1
+        #logger.info("Go to sleep for %s seconds." % sleep_seconds)
         time.sleep(sleep_seconds)

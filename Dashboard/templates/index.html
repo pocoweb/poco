@@ -1,0 +1,71 @@
+<html>
+   <head>
+      <title>Dash Board</title>
+      <script type="text/javascript" src="/static/jquery-1.6.1.min.js"></script>
+   </head>
+   <body>
+   <h1>Dash Board</h1>
+   <span id="secondsCount"></span> seconds since last update. <a href="javascript:reloadPage()">Update</a>
+    <script type="text/javascript">
+        function calcAsap(site_id) {
+            $.getJSON("/ajax/calcAsap", {site_id: site_id},
+                function(data) {
+                    reloadPage();
+                });
+        };
+
+        function reloadPage() {
+            window.location.reload();
+        };
+
+        var secondsCount = -1;
+        function updateSecondsCount() {
+            secondsCount ++;
+            document.getElementById("secondsCount").innerHTML = "" + secondsCount;
+        };
+        setInterval("updateSecondsCount()", 1000);
+    </script>
+     <ul>
+       {% for site in sites %}
+         <li>{{ escape(site["site_id"]) }} <a href="javascript: calcAsap('{{site["site_id"]}}');">Calculate ASAP</a>
+            <ul>
+                <li>Name: {{ site["site_name"] }}</li>
+                <!-- <li>Calculation Interval: </li> -->
+                <li>Disabled Calculation Flows: {{ site.get("disabledFlows", [])}}</li>
+                <li>
+                {% if site["status"] <> "NEVER_CALC" %}
+                    Last Calculation ID: {{ site["last_calculation_id"] }}
+                {% end %}
+                </li>
+                <li>Status: 
+                {% if site["status"] == "NEVER_CALC" %} <span style="color: gray"> {% end %}
+                {% if site["status"] == "SUCCESSFUL" %} <span style="color:green"> {% end %}
+                {% if site["status"] == "FAILED" %} <span style="color:red"> {% end %}
+                {% if site["status"] == "RUNNING" %} <span style="color:yellow"> {% end %}
+                {{ site["status"] }}</span>
+                {% if site["status"] == "SUCCESSFUL" %}
+                    ({{ site["since_last"] }} ago. {{site["time_spent"]}} spent.)
+                {% elif site["status"] == "FAILED" %}
+                    ({{ site["since_last"] }} ago. {{site["time_spent"]}} spent.)
+                {% elif site["status"] == "RUNNING" %}
+                    ({{ site["time_spent"] }} since the beginning of calculation. }})
+                {% end %}
+                </li>
+                {% if site.has_key("est_next_run") %}
+                <li>
+                Estimated Next:{{ site["est_next_run"] }} later
+                </li>
+                {% end %}
+                {% if site.has_key("request_waiting_time") %}
+                </li>
+                <li>
+                    Pending calculation request(waited {{site["request_waiting_time"]}})
+                </li>
+                {% end %}
+            </ul>
+         </li>
+       {% end %}
+     </ul>
+   </body>
+</html>
+
