@@ -1,5 +1,6 @@
 import pymongo
 import md5
+import urllib
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -110,7 +111,15 @@ def getItem(site_id, item_id):
     items = getSiteDBCollection(connection, site_id, "items")
     return items.find_one({"item_id": item_id})
 
-def convertTopNFormat(site_id, topn, include_item_info=True):
+
+def getRedirectUrlFor(url, site_id, item_id, req_id):
+    param_str = urllib.urlencode({"url": url, "site_id": site_id, "item_id": item_id,
+                      "req_id": req_id})
+    full_url = settings.api_server_prefix + "/tui/redirect?" + param_str
+    return full_url
+
+
+def convertTopNFormat(site_id, req_id, topn, include_item_info=True):
     items_collection = getSiteDBCollection(connection, site_id, "items")
     result = []
     for topn_row in topn:
@@ -121,6 +130,8 @@ def convertTopNFormat(site_id, topn, include_item_info=True):
             del item_in_db["_id"]
             del item_in_db["available"]
             item_in_db["score"] = topn_row[1]
+            item_in_db["item_link"] = getRedirectUrlFor(item_in_db["item_link"], site_id, 
+                                            item_in_db["item_id"], req_id)
             result.append(item_in_db)
         else:
             result.append({"item_id": topn_row[0], "score": topn_row[1]})

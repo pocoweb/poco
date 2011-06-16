@@ -101,7 +101,7 @@ class APIHandler(tornado.web.RequestHandler):
         pass
 
 
-class TjbIdEnabledHandler(APIHandler):
+class TjbIdEnabledHandlerMixin:
     def prepare(self):
         tornado.web.RequestHandler.prepare(self)
         self.tuijianbaoid = self.get_cookie("tuijianbaoid")
@@ -110,7 +110,7 @@ class TjbIdEnabledHandler(APIHandler):
             self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=109500)
 
 
-class SingleRequestHandler(TjbIdEnabledHandler):
+class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     processor_class = None
     def process(self, site_id, args):
         processor = self.processor_class()
@@ -122,7 +122,7 @@ class SingleRequestHandler(TjbIdEnabledHandler):
             return processor.process(site_id, args)
 
 
-class PackedRequestHandler(TjbIdEnabledHandler):
+class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     def parseRequests(self, args):
         try:
             result = json.loads(args["requests"])
@@ -428,10 +428,10 @@ class BaseSimilarityProcessor(ActionProcessor):
         topn = mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
                         int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
+        req_id = generateReqId()
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
         #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
         #                #,int(args["amount"]))
-        req_id = generateReqId()
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
@@ -482,10 +482,10 @@ class ViewedUltimatelyBuyProcessor(ActionProcessor):
     def process(self, site_id, args):
         topn = mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
+        req_id = generateReqId()
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
         for topn_item in topn:
             topn_item["percentage"] = int(round(topn_item["score"] * 100))
-        req_id = generateReqId()
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
@@ -525,10 +525,13 @@ class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
             return {"code": 1}
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         topn = mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
-        topn = mongo_client.convertTopNFormat(site_id, topn, include_item_info)
         req_id = generateReqId()
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
         self.logRecommendationRequest(args, site_id, req_id)
         return {"code": 0, "topn": topn, "req_id": req_id}
+
+
+
 
 
 class RecommendBasedOnBrowsingHistoryHandler(SingleRequestHandler):
@@ -538,6 +541,28 @@ class RecommendBasedOnBrowsingHistoryHandler(SingleRequestHandler):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write('{"version": "Tuijianbao v1.0"}')
+
+
+
+
+class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.RequestHandler):
+    def get(self):
+        url = self.request.arguments.get("url", [None])[0]
+        site_id = self.request.arguments.get("site_id", [None])[0]
+        req_id = self.request.arguments.get("req_id", [None])[0]
+        item_id = self.request.arguments.get("item_id", [None])[0]
+        if url is None or site_id not in mongo_client.getSiteIds():
+            # FIXME
+            self.redirect("")
+            return
+        else:
+            log_content = {"behavior": "ClickRec", "url": url, 
+                           "req_id": req_id, "item_id": item_id, "site_id": site_id,
+                           "tuijianbaoid": self.tuijianbaoid}
+            logWriter.writeEntry(site_id, log_content)
+            self.redirect(url)
+            return
+
 
 processor_registry = {}
 
@@ -576,7 +601,8 @@ handlers = [
     (r"/tui/boughtTogether", BoughtTogetherHandler),
     (r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
     # TODO: and based on cart content
-    (r"/tui/packedRequest", PackedRequestHandler)
+    (r"/tui/packedRequest", PackedRequestHandler),
+    (r"/tui/redirect", RecommendedItemRedirectHandler)
     ]
 
 def main():
