@@ -5,6 +5,7 @@ sys.path.insert(0, "../")
 import tornado.ioloop
 import tornado.web
 import simplejson as json
+import copy
 import re
 import time
 import os
@@ -122,40 +123,6 @@ class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             return processor.process(site_id, args)
 
 
-class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
-    def parseRequests(self, args):
-        try:
-            result = json.loads(args["requests"])
-        except json.decoder.JSONDecodeError:
-            raise ArgumentError("failed to decode: %s" % (args["requests"], ))
-        if type(result) != list:
-            raise ArgumentError("expect a list of requests, but get %s" % (args["requests"], ))
-        return result
-
-    def redirectRequest(self, site_id, action_name, request):
-        request["site_id"] = site_id
-        request["tuijianbaoid"] = self.tuijianbaoid
-        processor = getProcessor(action_name)
-        err_msg, args = processor.processArgs(request)
-        if err_msg:
-            return {"code": 1, "err_msg": err_msg}
-        else:
-            args["tuijianbaoid"] = self.tuijianbaoid
-            return processor.process(site_id, request)
-
-    def process(self, site_id, args):
-        if not args.has_key("requests"):
-            raise ArgumentError("missing 'requests' param")
-        requests = self.parseRequests(args)
-        response = {"code": 0, "request_responses": {}}
-        for request in requests:
-            if type(request) != dict or not request.has_key("action"):
-                raise ArgumentError("invalid request format: %s" % (request, ))
-            action_name = request["action"]
-            del request["action"]
-            response["request_responses"][action_name] = self.redirectRequest(site_id, action_name, request)
-        return response
-
 
 class ActionProcessor:
     action_name = None
@@ -188,6 +155,10 @@ class ViewItemProcessor(ActionProcessor):
                  "tjbid": args["tuijianbaoid"],
                  "item_id": args["item_id"]})
         return {"code": 0}
+
+
+
+
 
 
 class ViewItemHandler(SingleRequestHandler):
@@ -389,18 +360,6 @@ class RemoveItemHandler(APIHandler):
         return self.processor.process(site_id, args)
 
 
-#class ClickRecItemHandler(tornado.web.RequestHandler):
-#    ap = ArgumentProcessor(
-#        (("site_id", True),
-#         ("item_id", True),
-#         ("user_id", True),
-#         ("req_id", True),
-#         ("req_page", False),
-#         ("callback", False)
-#        )
-#    )
-
-
 def generateReqId():
     return str(uuid.uuid4())
 
@@ -543,8 +502,6 @@ class MainHandler(tornado.web.RequestHandler):
         self.write('{"version": "Tuijianbao v1.0"}')
 
 
-
-
 class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.RequestHandler):
     def get(self):
         url = self.request.arguments.get("url", [None])[0]
@@ -564,45 +521,118 @@ class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.Reque
             return
 
 
-processor_registry = {}
-
-def registerProcessors(processor_classes):
-    global processor_registry
+ACTION_NAME2PROCESSOR_CLASS = {}
+def fillActionName2ProcessorClass():
+    _g = globals()
+    global ACTION_NAME2PROCESSOR_CLASS
+    processor_classes = []
+    for key in _g.keys():
+        if issubclass(_g[key], ActionProcessor):
+            processor_classes.append(_g[key])
     for processor_class in processor_classes:
-        processor_registry[processor_class.action_name] = processor_class()
+        ACTION_NAME2PROCESSOR_CLASS[processor_class.action_name] = processor_class
+fillActionName2ProcessorClass()
 
-def getProcessor(action_name):
-    return processor_registry[action_name]
 
-registerProcessors([
-        ViewItemProcessor, AddFavoriteProcessor, RemoveFavoriteProcessor,
-        RateItemProcessor,AddShopCartProcessor, RemoveShopCartProcessor,
-        PlaceOrderProcessor, RecommendViewedAlsoViewProcessor,
-        RecommendBasedOnBrowsingHistoryProcessor, BoughtAlsoBuyProcessor,
-        BoughtTogetherProcessor,
-        RemoveItemProcessor, UpdateItemProcessor
-        , ViewedUltimatelyBuyProcessor
-        ])
+def getAbbrName2RelatedInfo(abbr_map):
+    result = {}
+    _g = globals()
+    for request_type in abbr_map.keys():
+        for attr_abbr in abbr_map[request_type].keys():
+            processor_class = ACTION_NAME2PROCESSOR_CLASS[abbr_map[request_type]["action_name"]]
+            result[request_type + attr_abbr] = (processor_class,
+                                                request_type,
+                                                abbr_map[request_type][attr_abbr])
+    return result
+
+
+import packed_request
+ABBR_NAME2RELATED_INFO = getAbbrName2RelatedInfo(packed_request._abbr_map)
+
+MASK2ACTION_NAME = packed_request.MASK2ACTION_NAME
+
+
+# 1. use the masks
+# 2. shared params
+# 3. overriding
+class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
+    def extractRequests(self, args):
+        global ABBR_NAME2RELATED_INFO
+        args = copy.copy(args)
+        result = {}
+        shared_params = {}
+        remain_args = {}
+
+        if not args.has_key("-"):
+            raise ArgumentError("missing '-' argument")
+
+        try:
+            mask_set = int(args["-"], 16)
+        except ValueError:
+            raise ArgumentError("invalid '-' argument")
+
+        for mask in MASK2ACTION_NAME.keys():
+            if mask & mask_set != 0:
+                action_name = MASK2ACTION_NAME[mask]
+                processor_class = ACTION_NAME2PROCESSOR_CLASS[action_name]
+                
+
+        for key in args.keys():
+            if key.startswith("_"):
+                shared_params[key[1:]] = args[key]
+            else:
+                remain_args[key] = args[key]
+
+        for key in remain_args.keys():
+            _processor, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None))
+            if _processor is None:
+                raise ArgumentError("invalid param:%s" % key)
+            else:
+                if not result.has_key((_processor, request_type)):
+                    result[(_processor, request_type)] = copy.copy(shared_params)
+                result[(_processor, request_type)][attr_name] = args[key]
+
+        return result
+
+    def redirectRequest(self, site_id, processor_class, request_args):
+        request_args["site_id"] = site_id
+        processor = processor_class()
+        err_msg, processed_args = processor.processArgs(request_args)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            processed_args["tuijianbaoid"] = self.tuijianbaoid
+            return processor.process(site_id, processed_args)
+
+    def process(self, site_id, args):
+        requests = self.extractRequests(args)
+        response = {"code": 0, "responses": {}}
+        for processor_class, request_type in requests.keys():
+            request_args = requests[(processor_class, request_type)]
+            response["responses"][request_type] = \
+                self.redirectRequest(site_id, processor_class, request_args)
+        return response
+
 
 handlers = [
     (r"/", MainHandler),
-    (r"/tui/viewItem", ViewItemHandler),
-    (r"/tui/addFavorite", AddFavoriteHandler),
-    (r"/tui/removeFavorite", RemoveFavoriteHandler),
-    (r"/tui/rateItem", RateItemHandler),
-    (r"/tui/removeItem", RemoveItemHandler),
-    (r"/tui/updateItem", UpdateItemHandler),
-    (r"/tui/addShopCart", AddShopCartHandler),
-    (r"/tui/removeShopCart", RemoveShopCartHandler),
-    (r"/tui/placeOrder", PlaceOrderHandler),
-    (r"/tui/viewedAlsoView", RecommendViewedAlsoViewHandler),
-    (r"/tui/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
-    (r"/tui/boughtAlsoBuy", BoughtAlsoBuyHandler),
-    (r"/tui/boughtTogether", BoughtTogetherHandler),
-    (r"/tui/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
+    (r"/1.0/viewItem", ViewItemHandler),
+    (r"/1.0/addFavorite", AddFavoriteHandler),
+    (r"/1.0/removeFavorite", RemoveFavoriteHandler),
+    (r"/1.0/rateItem", RateItemHandler),
+    (r"/1.0/removeItem", RemoveItemHandler),
+    (r"/1.0/updateItem", UpdateItemHandler),
+    (r"/1.0/addShopCart", AddShopCartHandler),
+    (r"/1.0/removeShopCart", RemoveShopCartHandler),
+    (r"/1.0/placeOrder", PlaceOrderHandler),
+    (r"/1.0/viewedAlsoView", RecommendViewedAlsoViewHandler),
+    (r"/1.0/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
+    (r"/1.0/boughtAlsoBuy", BoughtAlsoBuyHandler),
+    (r"/1.0/boughtTogether", BoughtTogetherHandler),
+    (r"/1.0/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
     # TODO: and based on cart content
-    (r"/tui/packedRequest", PackedRequestHandler),
-    (r"/tui/redirect", RecommendedItemRedirectHandler)
+    (r"/1.0/packedRequest", PackedRequestHandler),
+    (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]
 
 def main():
