@@ -1,6 +1,7 @@
 import pymongo
-import md5
+import hashlib
 import urllib
+import random
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -76,13 +77,27 @@ def loadSites():
     return [site for site in sites.find()]
 
 
+# FIXME; should also make the api_key field unique.
+def generateApiKey(site_id, site_name):
+    api_key = hashlib.md5("%s:%s:%s" % (site_id, site_name, random.random())).hexdigest()[3:11]
+    while sites.find_one({"api_key": api_key}) is not None:
+        api_key = hashlib.md5("%s:%s:%s" % (site_id, site_name, random.random())).hexdigest()[3:11]
+    return api_key
+
+class UpdateSiteError(Exception):
+    pass
+
 def updateSite(site_id, site_name, calc_interval):
     site = sites.find_one({"site_id": site_id})
     if site is None:
+        if site_name is None:
+            raise UpdateSiteError("site_name is required for new site creation.")
         site = {"site_id": site_id}
     site.setdefault("last_update_ts", None)
     site.setdefault("disabledFlows", [])
-    site["site_name"] = site_name
+    site.setdefault("api_key", generateApiKey())
+    if site_name is not None:
+        site["site_name"] = site_name
     site["calc_interval"] = calc_interval
     sites.save(site)
 

@@ -12,6 +12,8 @@ import settings
 from ApiServer import mongo_client
 from common.utils import getSiteDBCollection
 
+from site_utils import generateApiKey
+
 
 def convertSecondsAsHoursMinutesSeconds(seconds):
     seconds = int(seconds)
@@ -26,7 +28,6 @@ def convertSecondsAsHoursMinutesSeconds(seconds):
         result_str += "%s minutes " % minutes
     result_str += "%s seconds" % seconds_remain
     return result_str
-
 
 
 def getSiteInfos():
@@ -101,6 +102,114 @@ class RunCalculationHandler(tornado.web.RequestHandler):
         self.write('{"code": 0}')
 
 
+import re
+
+class BaseSiteHandler(tornado.web.RequestHandler):
+    def _checkSiteIdValid(self, site_id):
+        return re.match("[A-Za-z0-9_]+$", site_id) is not None
+
+    def _checkCalcIntervalValid(self, calc_interval):
+        return re.match("[0-9]+$", calc_interval) is not None
+
+    def _formatDisabledFlows(self, disabledFlows):
+        return ",".join(disabledFlows)
+
+    def _parseDisabledFlows(self, disabledFlows):
+        return [flow.strip() for flow in disabledFlows.split(",")]
+
+
+class AddSiteHandler(BaseSiteHandler):
+    def get(self):
+        self.render("templates/edit_site.html", is_add_site=True, data={})
+
+    def addSite(self, site_id, site_name, calc_interval, disabledFlows):
+        connection = pymongo.Connection(settings.mongodb_host)
+        site = {"site_id": site_id,
+                "last_update_ts": None,
+                "disabledFlows": disabledFlows,
+                "api_key": generateApiKey(connection, site_id, site_name),
+                "site_name": site_name,
+                "calc_interval": calc_interval}
+        connection["tjb-db"]["sites"].save(site)
+
+    def _checkSiteIdAvailable(self, site_id):
+        connection = pymongo.Connection(settings.mongodb_host)
+        return connection["tjb-db"]["sites"].find_one({"site_id": site_id}) is None
+
+    def post(self):
+        arguments = self.request.arguments
+        if not arguments.has_key("site_id") \
+            or not arguments.has_key("site_name") \
+            or not arguments.has_key("calc_interval"):
+            self.write("missing arguments")
+        else:
+            site_id =   arguments["site_id"][0]
+            site_name = arguments["site_name"][0]
+            calc_interval = arguments["calc_interval"][0]
+            disabledFlowsFormatted = arguments.get("disabledFlows", [""])[0]
+
+            if not self._checkSiteIdValid(site_id):
+                self.write("site_id is not valid")
+                return
+            elif not self._checkSiteIdAvailable(site_id):
+                self.write("site_id already in use.")
+                return
+            elif not self._checkCalcIntervalValid(calc_interval):
+                self.write("calc_interval is not valid.")
+                return
+
+            disabledFlows = self._parseDisabledFlows(disabledFlowsFormatted)
+            self.addSite(site_id, site_name, calc_interval, disabledFlows)
+
+            self.redirect("/edit_site?site_id=%s" % site_id)
+
+
+class EditSiteHandler(BaseSiteHandler):
+    def _getSite(self, site_id):
+        connection = pymongo.Connection(settings.mongodb_host)
+        return connection["tjb-db"]["sites"].find_one({"site_id": site_id})
+
+    def get(self):
+        site_id = self.request.arguments["site_id"][0]
+        if not self._checkSiteIdValid(site_id):
+            self.write("site_id is not valid")
+            return
+        site = self._getSite(site_id)
+        site["disabledFlowsFormatted"] = self._formatDisabledFlows(site["disabledFlows"])
+        self.render("templates/edit_site.html", is_add_site=False, data=site)
+
+    def _updateSite(self, site_id, site_name, calc_interval, disabledFlows):
+        connection = pymongo.Connection(settings.mongodb_host)
+        site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
+        site["site_name"] = site_name
+        site["calc_interval"] = calc_interval
+        site["disabledFlows"] = disabledFlows
+        connection["tjb-db"]["sites"].save(site)
+
+    def post(self):
+        arguments = self.request.arguments
+        if not arguments.has_key("site_id") \
+            or not arguments.has_key("site_name") \
+            or not arguments.has_key("calc_interval"):
+            self.write("missing arguments")
+        else:
+            site_id =   arguments["site_id"][0]
+            site_name = arguments["site_name"][0]
+            calc_interval = arguments["calc_interval"][0]
+            disabledFlowsFormatted = arguments.get("disabledFlowsFormatted", [""])[0]
+
+            if not self._checkSiteIdValid(site_id):
+                self.write("site_id is not valid")
+                return
+            elif not self._checkCalcIntervalValid(calc_interval):
+                self.write("calc_interval is not valid.")
+                return
+            
+            self._updateSite(site_id, site_name, calc_interval, 
+                    self._parseDisabledFlows(disabledFlowsFormatted))
+
+            self.redirect("/edit_site?site_id=%s" % site_id)
+
 app_settings = {
     "static_path": os.path.join(os.path.dirname(__file__), "static")
 }
@@ -109,7 +218,9 @@ app_settings = {
 handlers = [
     (r"/", IndexHandler),
     (r"/ajax/calcAsap",  RunCalculationHandler),
-    (r"/ajax/loadData",  AjaxLoadDataHandler)
+    (r"/ajax/loadData",  AjaxLoadDataHandler),
+    (r"/add_site", AddSiteHandler),
+    (r"/edit_site", EditSiteHandler)
 ]
 
 
