@@ -527,7 +527,7 @@ def fillActionName2ProcessorClass():
     global ACTION_NAME2PROCESSOR_CLASS
     processor_classes = []
     for key in _g.keys():
-        if issubclass(_g[key], ActionProcessor):
+        if type(_g[key]) == type(ActionProcessor) and issubclass(_g[key], ActionProcessor):
             processor_classes.append(_g[key])
     for processor_class in processor_classes:
         ACTION_NAME2PROCESSOR_CLASS[processor_class.action_name] = processor_class
@@ -551,6 +551,8 @@ ABBR_NAME2RELATED_INFO = getAbbrName2RelatedInfo(packed_request._abbr_map)
 
 MASK2ACTION_NAME = packed_request.MASK2ACTION_NAME
 
+ACTION_NAME2REQUEST_TYPE = packed_request.ACTION_NAME2REQUEST_TYPE
+
 
 # 1. use the masks
 # 2. shared params
@@ -568,14 +570,9 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
 
         try:
             mask_set = int(args["-"], 16)
+            del args["-"]
         except ValueError:
             raise ArgumentError("invalid '-' argument")
-
-        for mask in MASK2ACTION_NAME.keys():
-            if mask & mask_set != 0:
-                action_name = MASK2ACTION_NAME[mask]
-                processor_class = ACTION_NAME2PROCESSOR_CLASS[action_name]
-                
 
         for key in args.keys():
             if key.startswith("_"):
@@ -583,13 +580,20 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             else:
                 remain_args[key] = args[key]
 
+        for mask in MASK2ACTION_NAME.keys():
+            if mask & mask_set != 0:
+                action_name = MASK2ACTION_NAME[mask]
+                request_type = ACTION_NAME2REQUEST_TYPE[action_name]
+                processor_class = ACTION_NAME2PROCESSOR_CLASS[action_name]
+                result[(processor_class, request_type)] = copy.copy(shared_params)
+
         for key in remain_args.keys():
-            _processor, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None))
+            _processor, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None, None))
             if _processor is None:
                 raise ArgumentError("invalid param:%s" % key)
             else:
                 if not result.has_key((_processor, request_type)):
-                    result[(_processor, request_type)] = copy.copy(shared_params)
+                    raise ArgumentError("argument %s not covered by mask_set." % key)
                 result[(_processor, request_type)][attr_name] = args[key]
 
         return result
@@ -602,7 +606,8 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             return {"code": 1, "err_msg": err_msg}
         else:
             processed_args["tuijianbaoid"] = self.tuijianbaoid
-            return processor.process(site_id, processed_args)
+            result = processor.process(site_id, processed_args)
+            return result
 
     def process(self, site_id, args):
         requests = self.extractRequests(args)

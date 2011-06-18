@@ -128,7 +128,18 @@ def createActionNameAttrName2FullAbbrName():
     return result
 
 ACTION_NAME_ATTR_NAME2FULL_ABBR_NAME = createActionNameAttrName2FullAbbrName()
-#print ACTION_NAME_ATTR_NAME2FULL_ABBR_NAME
+
+
+def createActionName2RequestType():
+    global _abbr_map
+    result = {}
+    for request_type in _abbr_map.keys():
+        for attr_abbr in _abbr_map[request_type].keys():
+            result[_abbr_map[request_type]["action_name"]] = request_type
+    return result
+
+ACTION_NAME2REQUEST_TYPE = createActionName2RequestType()
+
 
 class PackedRequest:
     def __init__(self):
@@ -141,7 +152,7 @@ class PackedRequest:
     def addRequest(self, action_name, request):
         self.requests.append((action_name, request))
 
-    def getFullUrl(self, site_id, api_prefix):
+    def getUrlArgs(self, site_id):
         url_args = {"site_id": site_id}
         action_mask_set = 0
         for action_name, request in self.requests:
@@ -155,16 +166,20 @@ class PackedRequest:
         for key in self.shared_params.keys():
             url_args["_" + key] = self.shared_params[key]
         url_args["-"] = "%x" % action_mask_set
+        return url_args
+
+    def getFullUrl(self, site_id, api_prefix):
+        url_args = self.getUrlArgs(site_id)
         return api_prefix + "/1.0/packedRequest?" + urllib.urlencode(url_args)
 
 
 if __name__ == "__main__":
     pr = PackedRequest()
-    pr.addSharedParams("user_id", "U335")
-    pr.addSharedParams("item_id", "I318")
-    pr.addSharedParams("include_item_info", "yes")
-    pr.addRequest("V", {})
-    pr.addRequest("RI", {"score": 5})
-    pr.addRequest("RecBTG", {"amount": 8})
-    pr.addRequest("RecBOBH", {"amount": 5, "browsing_history": "I122,I133,I155"})
+    #pr.addSharedParams("user_id", "U335")
+    #pr.addSharedParams("item_id", "I318")
+    #pr.addSharedParams("include_item_info", "yes")
+    pr.addRequest("UItem", {"item_id": 35, "item_link": "http://example.com/item?id=35", "item_name": "Something"})
+    #pr.addRequest("RI", {"score": 5})
+    #pr.addRequest("RecBTG", {"amount": 8})
+    #pr.addRequest("RecBOBH", {"amount": 5, "browsing_history": "I122,I133,I155"})
     print pr.getFullUrl("demo1", "http://localhost:5588")
