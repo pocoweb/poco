@@ -86,6 +86,25 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    }
              }
 
+def generateREQUEST_TYPE_ATTR_NAME2FULL_ABBR_NAME_js():
+    result = "REQUEST_TYPE_ATTR_NAME2FULL_ABBR_NAME = {\n"
+    global _abbr_map
+    for request_type in _abbr_map.keys():
+        for attr_abbr in _abbr_map[request_type].keys():
+            if len(attr_abbr) < 2:
+                result += '    "' + request_type + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '",\n'
+    result += "}\n"
+    return result
+
+def generateREQUEST_TYPE2MASK_js():
+    result = "REQUEST_TYPE2MASK = {\n"
+    global _abbr_map
+    for request_type in _abbr_map.keys():
+        index = _abbr_map[request_type]["index"]
+        result += '    "' + request_type + '" : ' + str(2 ** (index - 1)) + ',\n'
+    result += "}\n"
+    return result
+
 
 def createActionName2Mask():
     global _abbr_map
