@@ -59,18 +59,21 @@ def getSimilaritiesForItems(site_id, similarity_type, item_ids):
 
 
 sites = connection["tjb-db"]["sites"]
-SITE_IDS = None
-def reloadSiteIds():
-    global SITE_IDS
-    site_ids = [site["site_id"] for site in sites.find()]
-    SITE_IDS = set(site_ids)
+
+API_KEY2SITE_ID = None
+
+def reloadApiKey2SiteID():
+    global API_KEY2SITE_ID
+    API_KEY2SITE_ID = {}
+    for site in sites.find():
+        API_KEY2SITE_ID[site["api_key"]] = site["site_id"]
 
 
-def getSiteIds():
-    global SITE_IDS
-    if SITE_IDS is None:
-        reloadSiteIds()
-    return SITE_IDS
+def getApiKey2SiteID():
+    global API_KEY2SITE_ID
+    if API_KEY2SITE_ID is None:
+        reloadApiKey2SiteID()
+    return API_KEY2SITE_ID
 
 
 def loadSites():

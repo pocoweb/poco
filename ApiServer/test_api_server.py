@@ -56,11 +56,18 @@ def api_access(path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoi
         return body
 
 
+
 def generate_uid():
     return hashlib.md5(repr(time.time())).hexdigest()
 
 
 SITE_ID = "tester"
+
+def getApiKey(site_id):
+    connection = pymongo.Connection(settings.mongodb_host)
+    return connection["tjb-db"]["sites"].find_one({"site_id": site_id})["api_key"]
+
+API_KEY = getApiKey(SITE_ID)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -106,7 +113,7 @@ class ViewItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result, response_tuijianbaoid = api_access("/viewItem",
-            {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id},
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id},
             return_tuijianbaoid=True)
         self.assertEquals(result, {"code": 0})
         self.assertCurrentLinesCount(1)
@@ -119,7 +126,7 @@ class ViewItemTest(BaseTestCase):
         
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/viewItem",
-            {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id},
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id},
             tuijianbaoid=tjbid)
         self.assertEquals(result, {"code": 0})
         self.assertCurrentLinesCount(2)
@@ -132,13 +139,13 @@ class ViewItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/viewItem",
-            {"site_id": SITE_ID, "item_id": item_id})
+            {"api_key": API_KEY, "item_id": item_id})
         self.assertSomeKeys(result, {"code": 1})
         self.assertCurrentLinesCount(0)
 
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/viewItem",
-            {"site_id": SITE_ID, "user_id": user_id})
+            {"api_key": API_KEY, "user_id": user_id})
         self.assertSomeKeys(result, {"code": 1})
         self.assertCurrentLinesCount(0)
 
@@ -146,18 +153,18 @@ class ViewItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/viewItem",
-            {"site_id": SITE_ID, "item_id": item_id, "user_id": user_id, "callback": "blah"},
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id, "callback": "blah"},
              as_json=False)
         self.assertEquals(result, "blah({\"code\": 0})")
         self.assertCurrentLinesCount(1)
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "V", "user_id": user_id, "item_id": item_id})
 
-    def test_viewItemSiteIdNotExists(self):
+    def test_viewItemApiKeyNotExists(self):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/viewItem",
-            {"site_id": "THESITEWHICHNOTEXISTS", "item_id": item_id, "user_id": user_id, 
+            {"api_key": "THEAPIKEYWHICHNOTEXISTS", "item_id": item_id, "user_id": user_id, 
              "callback": "blah"},
              as_json=False)
         self.assertEquals(result, "blah({\"code\": 2})")
@@ -169,7 +176,7 @@ class FavoriteItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/addFavorite",
-            {"site_id": SITE_ID, "user_id": user_id,
+            {"api_key": API_KEY, "user_id": user_id,
              "item_id": item_id})
         self.assertSomeKeys(result,{"code": 0})
         self.assertCurrentLinesCount(1)
@@ -180,7 +187,7 @@ class FavoriteItemTest(BaseTestCase):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/removeFavorite",
-            {"site_id": SITE_ID, "user_id": user_id,
+            {"api_key": API_KEY, "user_id": user_id,
              "item_id": item_id})
         self.assertCurrentLinesCount(1)
         self.assertEquals(result,{"code": 0})
@@ -193,7 +200,7 @@ class RateItemTest(BaseTestCase):
     def test_rateItem(self):
         item_id, user_id = generate_uid(), generate_uid()
         result = api_access("/rateItem",
-            {"site_id": SITE_ID, "user_id": user_id,
+            {"api_key": API_KEY, "user_id": user_id,
              "item_id": item_id, "score": "5"})
         self.assertEquals(result,{"code": 0})
         self.assertSomeKeys(self.readLastLine(),
@@ -208,7 +215,7 @@ class UpdateItemTest(BaseTestCase):
     def test_updateItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
-            {"site_id": SITE_ID, "item_id": item_id, 
+            {"api_key": API_KEY, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter I"},
              assert_returns_tuijianbaoid=False)
@@ -223,7 +230,7 @@ class UpdateItemTest(BaseTestCase):
 
         # update an already existed item
         result = api_access("/updateItem",
-            {"site_id": SITE_ID, "item_id": item_id, 
+            {"api_key": API_KEY, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter II",
              "price": "25.0"},
@@ -240,7 +247,7 @@ class UpdateItemTest(BaseTestCase):
 
         # update an already existed item again
         result = api_access("/updateItem",
-            {"site_id": SITE_ID, "item_id": item_id, 
+            {"api_key": API_KEY, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter II"},
              assert_returns_tuijianbaoid=False)
@@ -256,7 +263,7 @@ class UpdateItemTest(BaseTestCase):
     def testUpdateItemWithOptionalParams(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
-            {"site_id": SITE_ID, "item_id": item_id, 
+            {"api_key": API_KEY, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter I",
              "price": "15.0"},
@@ -276,7 +283,7 @@ class RemoveItemTest(BaseTestCase):
     def test_removeItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
-            {"site_id": SITE_ID, "item_id": item_id, 
+            {"api_key": API_KEY, "item_id": item_id, 
              "item_link": "http://example.com/item?id=%s" % item_id,
              "item_name": "Harry Potter I"},
              assert_returns_tuijianbaoid=False)
@@ -291,7 +298,7 @@ class RemoveItemTest(BaseTestCase):
 
         # remove the existed item
         result = api_access("/removeItem",
-            {"site_id": SITE_ID, "item_id": item_id},
+            {"api_key": API_KEY, "item_id": item_id},
             assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
@@ -317,7 +324,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
 
     def _test_recommendViewedAlsoView(self):
         result = api_access("/viewedAlsoView", 
-                {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "4",
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
                  "include_item_info": "no"})
         self.assertSomeKeys(result,
             {"code": 0,
@@ -335,7 +342,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
 
     def _test_IncludeItemInfoDefaultToYes(self):
         result = api_access("/viewedAlsoView", 
-                {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "3"})
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "3"})
         self.assertSomeKeys(result,
                 {"code": 0,
                  "topn": [{'item_name': 'Harry Potter I', 'item_id': '3', 
@@ -355,7 +362,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
 
     def _test_amount_param(self):
         result = api_access("/viewedAlsoView", 
-                {"site_id": "tester", "user_id": "hah", "item_id": "1", "amount": "5"})
+                {"api_key": API_KEY, "user_id": "hah", "item_id": "1", "amount": "5"})
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["topn"], 
                 [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
@@ -374,7 +381,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
 
     def _test_ItemNotExists(self):
         result = api_access("/viewedAlsoView", 
-                {"site_id": "tester", "user_id": "haha", "item_id": "NOTEXISTS", "amount": "4"})
+                {"api_key": API_KEY, "user_id": "haha", "item_id": "NOTEXISTS", "amount": "4"})
         self.assertSomeKeys(result,
                 {"code": 0,
                  "topn": []})
@@ -389,7 +396,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
 
     def _test_IncludeItemInfoYes(self):
         result = api_access("/viewedAlsoView", 
-                {"site_id": "tester", "user_id": "ha", "item_id": "1", "amount": "4",
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
                  "include_item_info": "yes"})
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["topn"], 
@@ -421,7 +428,7 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
 
     def _test_RecommendBasedOnBrowsingHistory(self):
         result = api_access("/basedOnBrowsingHistory", 
-                {"site_id": "tester", "user_id": "ha",
+                {"api_key": API_KEY, "user_id": "ha",
                  "browsing_history": "1,2",
                  "amount": "3",
                  "include_item_info": "yes"})
@@ -442,7 +449,7 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
 class AddShopCartTest(BaseTestCase):
     def test_RecommendBasedOnBrowsingHistory(self):
         result = api_access("/addShopCart", 
-                {"site_id": "tester", "user_id": "ha",
+                {"api_key": API_KEY, "user_id": "ha",
                  "item_id": "5"})
         self.assertEquals(result, {"code": 0})
         self.assertSomeKeys(self.readLastLine(),
@@ -455,7 +462,7 @@ class AddShopCartTest(BaseTestCase):
 class RemoveShopCartTest(BaseTestCase):
     def test_RecommendBasedOnBrowsingHistory(self):
         result = api_access("/removeShopCart", 
-                {"site_id": "tester", "user_id": "guagua",
+                {"api_key": API_KEY, "user_id": "guagua",
                  "item_id": "50"})
         self.assertEquals(result, {"code": 0})
         self.assertSomeKeys(self.readLastLine(),
@@ -467,7 +474,7 @@ class RemoveShopCartTest(BaseTestCase):
 class PlaceOrderTest(BaseTestCase):
     def test_RecommendPlaceOrder(self):
         result, response_tuijianbaoid = api_access("/placeOrder", 
-                {"site_id": "tester", "user_id": "guagua",
+                {"api_key": API_KEY, "user_id": "guagua",
                  "order_content": "3,2.5,1|5,1.3,2"},
                  return_tuijianbaoid=True)
         self.assertEquals(result, {"code": 0})
@@ -489,7 +496,7 @@ class PackedRequestTest(BaseTestCase):
         pr.addRequest("UItem", {"item_id": "35", "item_link": "http://example.com/item?id=35", 
                "item_name": "Something"})
         result, response_tuijianbaoid = api_access("/packedRequest", 
-                        pr.getUrlArgs("tester"), return_tuijianbaoid=True)
+                        pr.getUrlArgs(API_KEY), return_tuijianbaoid=True)
         self.assertCurrentLinesCount(0)
         req_type = packed_request.ACTION_NAME2REQUEST_TYPE["UItem"]
         self.assertEquals(result, {'code': 0, 'responses': {req_type: {'code': 0}}})
@@ -506,7 +513,7 @@ class PackedRequestTest(BaseTestCase):
         pr = packed_request.PackedRequest()
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V", {"user_id": "guaye", "item_id": "35"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
         url_args["callback"] = "callback"
         result, response_tuijianbaoid = api_access("/packedRequest", 
                 url_args, as_json=False, return_tuijianbaoid=True)
@@ -529,7 +536,7 @@ class PackedRequestTest(BaseTestCase):
         pr = packed_request.PackedRequest()
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
         result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
@@ -565,7 +572,7 @@ class PackedRequestTest(BaseTestCase):
         pr.addSharedParams("user_id", "jason")
         pr.addRequest("RSC", {"item_id": "25"})
         pr.addRequest("V",   {"item_id": "35"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
         result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
@@ -592,7 +599,7 @@ class PackedRequestTest(BaseTestCase):
         pr.addSharedParams("item_id", "25")
         pr.addRequest("RSC", {})
         pr.addRequest("V",   {"item_id": "35"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
         result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
@@ -618,7 +625,7 @@ class PackedRequestTest(BaseTestCase):
         pr = packed_request.PackedRequest()
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
         result = api_access("/packedRequest", url_args)
         self.assertEquals(result,
                     {"code": 0,
@@ -632,7 +639,7 @@ class PackedRequestTest(BaseTestCase):
         pr = packed_request.PackedRequest()
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
-        url_args = pr.getUrlArgs("tester")
+        url_args = pr.getUrlArgs(API_KEY)
 
         result = api_access("/packedRequest", url_args)
         self.assertEquals(result,

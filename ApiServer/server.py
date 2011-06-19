@@ -77,14 +77,15 @@ class ArgumentError(Exception):
 class APIHandler(tornado.web.RequestHandler):
     def get(self):
         args = extractArguments(self.request)
-        site_id = args.get("site_id", None)
+        api_key = args.get("api_key", None)
         callback = args.get("callback", None)
 
-        site_ids = mongo_client.getSiteIds()
-        if site_id not in site_ids:
+        api_key2site_id = mongo_client.getApiKey2SiteID()
+        if not api_key2site_id.has_key(api_key):
             response = {'code': 2}
         else:
-            del args["site_id"]
+            site_id = api_key2site_id[api_key]
+            del args["api_key"]
             if callback is not None:
                 del args["callback"]
             try:
@@ -505,14 +506,17 @@ class MainHandler(tornado.web.RequestHandler):
 class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.RequestHandler):
     def get(self):
         url = self.request.arguments.get("url", [None])[0]
-        site_id = self.request.arguments.get("site_id", [None])[0]
+        api_key = self.request.arguments.get("api_key", [None])[0]
         req_id = self.request.arguments.get("req_id", [None])[0]
         item_id = self.request.arguments.get("item_id", [None])[0]
-        if url is None or site_id not in mongo_client.getSiteIds():
+        
+        api_key2site_id = mongo_client.getApiKey2SiteID()
+        if url is None or not api_key2site_id.has_key(api_key):
             # FIXME
             self.redirect("")
             return
         else:
+            site_id = api_key2site_id[api_key]
             log_content = {"behavior": "ClickRec", "url": url, 
                            "req_id": req_id, "item_id": item_id, "site_id": site_id,
                            "tuijianbaoid": self.tuijianbaoid}

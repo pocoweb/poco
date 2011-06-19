@@ -18,3 +18,15 @@ items = {
              "item_name": "SaaS Book"}
         }
 
+
+import pymongo
+import settings
+
+
+def getApiKey(site_id):
+    connection = pymongo.Connection(settings.mongodb_host)
+    return connection["tjb-db"]["sites"].find_one({"site_id": site_id})["api_key"]
+
+for item in items.values():
+    item["api_key"] = getApiKey(item["site_id"])
+    del item["site_id"]

@@ -152,8 +152,8 @@ class PackedRequest:
     def addRequest(self, action_name, request):
         self.requests.append((action_name, request))
 
-    def getUrlArgs(self, site_id):
-        url_args = {"site_id": site_id}
+    def getUrlArgs(self, api_key):
+        url_args = {"api_key": api_key}
         action_mask_set = 0
         for action_name, request in self.requests:
             for key in request.keys():
@@ -168,8 +168,8 @@ class PackedRequest:
         url_args["-"] = "%x" % action_mask_set
         return url_args
 
-    def getFullUrl(self, site_id, api_prefix):
-        url_args = self.getUrlArgs(site_id)
+    def getFullUrl(self, api_key, api_prefix):
+        url_args = self.getUrlArgs(api_key)
         return api_prefix + "/1.0/packedRequest?" + urllib.urlencode(url_args)
 
 
