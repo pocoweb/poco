@@ -2,40 +2,48 @@ import urllib
 
 
 _abbr_map = {"vi_": {"action_name": 'V',
+                     "full_name": 'viewItem',
                      "index": 1,
                     "i": "item_id",
                     "u": "user_id"},
               "af_": {"action_name": 'AF',
+                      "full_name": 'addFavorite',
                       "index": 2,
                      "i": "item_id",
                      "u": "user_id"},
               "rf_": {"action_name": 'RF',
+                      "full_name": "removeFavorite",
                       "index": 3,
                      "i": "item_id",
                      "u": "user_id"
                     },
               "ri_": {"action_name": 'RI',
+                      "full_name": "rateItem",
                       "index": 4,
                      "i": "item_id",
                      "s": "score",
                      "u": "user_id"
                     },
               "asc": {"action_name": 'ASC',
+                      "full_name": "addOrderItem",
                       "index": 5,
                      "u": "user_id",
                      "i": "item_id"
                     },
               "rsc": {"action_name": 'RSC',
+                      "full_name": "removeOrderItem",
                       "index": 6,
                       "u": "user_id",
                       "i": "item_id"
                     },
               "plo": {"action_name": 'PLO',
+                      "full_name": "placeOrder",
                       "index": 7,
                       "u": "user_id",
                       "o": "order_content"
                     },
               "upi": {"action_name": 'UItem',
+                      "full_name": "updateItem",
                       "index": 8,
                      "i": "item_id",
                      "l": "item_link",
@@ -46,10 +54,12 @@ _abbr_map = {"vi_": {"action_name": 'V',
                      "c": "categories"
                     },
                "rmi": {"action_name": 'RItem',
+                      "full_name": "removeItem",
                       "index": 8,
                       "i": "item_id"
                    },
                "rcv": {"action_name": 'RecVAV',
+                       "full_name": 'getAlsoViewed',
                        "index": 9,
                        "u": "user_id",
                        "i": "item_id",
@@ -57,6 +67,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "a": "amount"
                    },
                "rcb": {"action_name": 'RecBAB',
+                       "full_name": "getAlsoBought",
                        "index": 10,
                        "u": "user_id",
                        "i": "item_id",
@@ -64,6 +75,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "a": "amount"
                    },
                 "rct": {"action_name": 'RecBTG',
+                        "full_name": "getBoughtTogether",
                         "index": 11,
                        "u": "user_id",
                        "i": "item_id",
@@ -71,6 +83,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "a": "amount"
                    },
                 "rcu": {"action_name": 'RecVUB',
+                        "full_name": "getUltimatelyBought",
                         "index": 12,
                        "u": "user_id",
                        "i": "item_id",
@@ -78,6 +91,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "a": "amount"
                    },
                 "rch": {"action_name": 'RecBOBH',
+                        "full_name": "getByBrowsingHistory",
                         "index": 13,
                       "u": "user_id",
                       "h": "browsing_history",
@@ -86,22 +100,22 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    }
              }
 
-def generateREQUEST_TYPE_ATTR_NAME2FULL_ABBR_NAME_js():
-    result = "REQUEST_TYPE_ATTR_NAME2FULL_ABBR_NAME = {\n"
+def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
+    result = "FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
     for request_type in _abbr_map.keys():
         for attr_abbr in _abbr_map[request_type].keys():
             if len(attr_abbr) < 2:
-                result += '    "' + request_type + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '",\n'
+                result += '    "' + _abbr_map[request_type]["full_name"] + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '",\n'
     result += "}\n"
     return result
 
-def generateREQUEST_TYPE2MASK_js():
-    result = "REQUEST_TYPE2MASK = {\n"
+def generateFULL_NAME2MASK_js():
+    result = "FULL_NAME2MASK = {\n"
     global _abbr_map
     for request_type in _abbr_map.keys():
         index = _abbr_map[request_type]["index"]
-        result += '    "' + request_type + '" : ' + str(2 ** (index - 1)) + ',\n'
+        result += '    "' + _abbr_map[request_type]["full_name"] + '" : ' + str(2 ** (index - 1)) + ',\n'
     result += "}\n"
     return result
 
@@ -149,15 +163,15 @@ def createActionNameAttrName2FullAbbrName():
 ACTION_NAME_ATTR_NAME2FULL_ABBR_NAME = createActionNameAttrName2FullAbbrName()
 
 
-def createActionName2RequestType():
+def createActionName2FullName():
     global _abbr_map
     result = {}
     for request_type in _abbr_map.keys():
         for attr_abbr in _abbr_map[request_type].keys():
-            result[_abbr_map[request_type]["action_name"]] = request_type
+            result[_abbr_map[request_type]["action_name"]] = _abbr_map[request_type]["full_name"]
     return result
 
-ACTION_NAME2REQUEST_TYPE = createActionName2RequestType()
+ACTION_NAME2FULL_NAME = createActionName2FullName()
 
 
 class PackedRequest:

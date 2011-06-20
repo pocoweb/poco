@@ -160,8 +160,6 @@ class ViewItemProcessor(ActionProcessor):
 
 
 
-
-
 class ViewItemHandler(SingleRequestHandler):
     processor_class = ViewItemProcessor
 
@@ -231,7 +229,7 @@ class RateItemHandler(SingleRequestHandler):
 # FIXME: check user_id, the user_id can't be null.
 
 
-class AddShopCartProcessor(ActionProcessor):
+class AddOrderItemProcessor(ActionProcessor):
     action_name = "ASC"
     ap = ArgumentProcessor(
         (
@@ -246,12 +244,12 @@ class AddShopCartProcessor(ActionProcessor):
                          "item_id": args["item_id"]})
         return {"code": 0}
 
-class AddShopCartHandler(SingleRequestHandler):
-    processor_class = AddShopCartProcessor
+class AddOrderItemHandler(SingleRequestHandler):
+    processor_class = AddOrderItemProcessor
 
 
 
-class RemoveShopCartProcessor(ActionProcessor):
+class RemoveOrderItemProcessor(ActionProcessor):
     action_name = "RSC"
     ap = ArgumentProcessor(
         (
@@ -266,8 +264,8 @@ class RemoveShopCartProcessor(ActionProcessor):
                          "item_id": args["item_id"]})
         return {"code": 0}
 
-class RemoveShopCartHandler(SingleRequestHandler):
-    processor_class = RemoveShopCartProcessor
+class RemoveOrderItemHandler(SingleRequestHandler):
+    processor_class = RemoveOrderItemProcessor
 
 
 class PlaceOrderProcessor(ActionProcessor):
@@ -396,32 +394,32 @@ class BaseSimilarityProcessor(ActionProcessor):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-class RecommendViewedAlsoViewProcessor(BaseSimilarityProcessor):
+class GetAlsoViewedProcessor(BaseSimilarityProcessor):
     action_name = "RecVAV"
     similarity_type = "V"
 
-class RecommendViewedAlsoViewHandler(SingleRequestHandler):
-    processor_class = RecommendViewedAlsoViewProcessor
+class GetAlsoViewedHandler(SingleRequestHandler):
+    processor_class = GetAlsoViewedProcessor
 
 
-class BoughtAlsoBuyProcessor(BaseSimilarityProcessor):
+class GetAlsoBoughtProcessor(BaseSimilarityProcessor):
     action_name = "RecBAB"
     similarity_type = "PLO"
 
 
-class BoughtAlsoBuyHandler(SingleRequestHandler):
-    processor_class = BoughtAlsoBuyProcessor
+class GetAlsoBoughtHandler(SingleRequestHandler):
+    processor_class = GetAlsoBoughtProcessor
 
 
-class BoughtTogetherProcessor(BaseSimilarityProcessor):
+class GetBoughtTogetherProcessor(BaseSimilarityProcessor):
     action_name = "RecBTG"
     similarity_type = "BuyTogether"
 
-class BoughtTogetherHandler(SingleRequestHandler):
-    processor_class = BoughtTogetherProcessor
+class GetBoughtTogetherHandler(SingleRequestHandler):
+    processor_class = GetBoughtTogetherProcessor
 
 
-class ViewedUltimatelyBuyProcessor(ActionProcessor):
+class GetUltimatelyBoughtProcessor(ActionProcessor):
     action_name = "RecVUB"
     ap = ArgumentProcessor(
          (("user_id", True),
@@ -450,11 +448,11 @@ class ViewedUltimatelyBuyProcessor(ActionProcessor):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-class ViewedUltimatelyBuyHandler(SingleRequestHandler):
-    processor_class = ViewedUltimatelyBuyProcessor
+class GetUltimatelyBoughtHandler(SingleRequestHandler):
+    processor_class = GetUltimatelyBoughtProcessor
 
 
-class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
+class GetByBrowsingHistoryProcessor(ActionProcessor):
     action_name = "RecBOBH"
     ap = ArgumentProcessor(
     (
@@ -494,8 +492,8 @@ class RecommendBasedOnBrowsingHistoryProcessor(ActionProcessor):
 
 
 
-class RecommendBasedOnBrowsingHistoryHandler(SingleRequestHandler):
-    processor_class = RecommendBasedOnBrowsingHistoryProcessor
+class GetByBrowsingHistoryHandler(SingleRequestHandler):
+    processor_class = GetByBrowsingHistoryProcessor
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -545,6 +543,7 @@ def getAbbrName2RelatedInfo(abbr_map):
         for attr_abbr in abbr_map[request_type].keys():
             processor_class = ACTION_NAME2PROCESSOR_CLASS[abbr_map[request_type]["action_name"]]
             result[request_type + attr_abbr] = (processor_class,
+                                                abbr_map[request_type]["full_name"],
                                                 request_type,
                                                 abbr_map[request_type][attr_abbr])
     return result
@@ -555,7 +554,7 @@ ABBR_NAME2RELATED_INFO = getAbbrName2RelatedInfo(packed_request._abbr_map)
 
 MASK2ACTION_NAME = packed_request.MASK2ACTION_NAME
 
-ACTION_NAME2REQUEST_TYPE = packed_request.ACTION_NAME2REQUEST_TYPE
+ACTION_NAME2FULL_NAME = packed_request.ACTION_NAME2FULL_NAME
 
 
 # 1. use the masks
@@ -587,18 +586,18 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         for mask in MASK2ACTION_NAME.keys():
             if mask & mask_set != 0:
                 action_name = MASK2ACTION_NAME[mask]
-                request_type = ACTION_NAME2REQUEST_TYPE[action_name]
+                full_name = ACTION_NAME2FULL_NAME[action_name]
                 processor_class = ACTION_NAME2PROCESSOR_CLASS[action_name]
-                result[(processor_class, request_type)] = copy.copy(shared_params)
+                result[(processor_class, full_name)] = copy.copy(shared_params)
 
         for key in remain_args.keys():
-            _processor, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None, None))
+            _processor, full_name, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None, None, None))
             if _processor is None:
                 raise ArgumentError("invalid param:%s" % key)
             else:
-                if not result.has_key((_processor, request_type)):
+                if not result.has_key((_processor, full_name)):
                     raise ArgumentError("argument %s not covered by mask_set." % key)
-                result[(_processor, request_type)][attr_name] = args[key]
+                result[(_processor, full_name)][attr_name] = args[key]
 
         return result
 
@@ -616,9 +615,9 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     def process(self, site_id, args):
         requests = self.extractRequests(args)
         response = {"code": 0, "responses": {}}
-        for processor_class, request_type in requests.keys():
-            request_args = requests[(processor_class, request_type)]
-            response["responses"][request_type] = \
+        for processor_class, full_name in requests.keys():
+            request_args = requests[(processor_class, full_name)]
+            response["responses"][full_name] = \
                 self.redirectRequest(site_id, processor_class, request_args)
         return response
 
@@ -631,14 +630,14 @@ handlers = [
     (r"/1.0/rateItem", RateItemHandler),
     (r"/1.0/removeItem", RemoveItemHandler),
     (r"/1.0/updateItem", UpdateItemHandler),
-    (r"/1.0/addShopCart", AddShopCartHandler),
-    (r"/1.0/removeShopCart", RemoveShopCartHandler),
+    (r"/1.0/addOrderItem", AddOrderItemHandler),
+    (r"/1.0/removeOrderItem", RemoveItemHandler),
     (r"/1.0/placeOrder", PlaceOrderHandler),
-    (r"/1.0/viewedAlsoView", RecommendViewedAlsoViewHandler),
-    (r"/1.0/basedOnBrowsingHistory", RecommendBasedOnBrowsingHistoryHandler),
-    (r"/1.0/boughtAlsoBuy", BoughtAlsoBuyHandler),
-    (r"/1.0/boughtTogether", BoughtTogetherHandler),
-    (r"/1.0/viewedUltimatelyBuy", ViewedUltimatelyBuyHandler),
+    (r"/1.0/getAlsoViewed", GetAlsoViewedHandler),
+    (r"/1.0/getByBrowsingHistory", GetByBrowsingHistoryHandler),
+    (r"/1.0/getAlsoBought", GetAlsoBoughtHandler),
+    (r"/1.0/getBoughtTogether", GetBoughtTogetherHandler),
+    (r"/1.0/getUltimatelyBought", GetUltimatelyBoughtHandler),
     # TODO: and based on cart content
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)

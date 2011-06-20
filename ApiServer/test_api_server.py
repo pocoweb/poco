@@ -43,7 +43,7 @@ def api_access(path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoi
     else:
         response_tuijianbaoid = None
     if assert_returns_tuijianbaoid and tuijianbaoid is None:
-        assert response_tuijianbaoid is not None
+        assert response_tuijianbaoid is not None, "response: %s" % result
     if as_json:
         result_obj = json.loads(result)
         body = result_obj
@@ -447,8 +447,8 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
 
 
 class AddShopCartTest(BaseTestCase):
-    def test_RecommendBasedOnBrowsingHistory(self):
-        result = api_access("/addShopCart", 
+    def test(self):
+        result = api_access("/addOrderItem", 
                 {"api_key": API_KEY, "user_id": "ha",
                  "item_id": "5"})
         self.assertEquals(result, {"code": 0})
@@ -460,8 +460,8 @@ class AddShopCartTest(BaseTestCase):
 
 
 class RemoveShopCartTest(BaseTestCase):
-    def test_RecommendBasedOnBrowsingHistory(self):
-        result = api_access("/removeShopCart", 
+    def test(self):
+        result = api_access("/removeOrderItem", 
                 {"api_key": API_KEY, "user_id": "guagua",
                  "item_id": "50"})
         self.assertEquals(result, {"code": 0})
@@ -498,8 +498,8 @@ class PackedRequestTest(BaseTestCase):
         result, response_tuijianbaoid = api_access("/packedRequest", 
                         pr.getUrlArgs(API_KEY), return_tuijianbaoid=True)
         self.assertCurrentLinesCount(0)
-        req_type = packed_request.ACTION_NAME2REQUEST_TYPE["UItem"]
-        self.assertEquals(result, {'code': 0, 'responses': {req_type: {'code': 0}}})
+        full_name = packed_request.ACTION_NAME2FULL_NAME["UItem"]
+        self.assertEquals(result, {'code': 0, 'responses': {full_name: {'code': 0}}})
         item_in_db = mongo_client.getItem(SITE_ID, "35")
         del item_in_db["_id"]
         self.assertEquals(item_in_db,
@@ -518,7 +518,7 @@ class PackedRequestTest(BaseTestCase):
         result, response_tuijianbaoid = api_access("/packedRequest", 
                 url_args, as_json=False, return_tuijianbaoid=True)
         self.assertEquals(result,
-                'callback({"code": 0, "responses": {"vi_": {"code": 0}, "rsc": {"code": 0}}})')
+                'callback({"code": 0, "responses": {"removeOrderItem": {"code": 0}, "viewItem": {"code": 0}}})')
         self.assertCurrentLinesCount(2)
         # TODO: check logs, also "action"
         self.assertSomeKeys(self.readLineMatch({"behavior": "RSC"}),
@@ -541,8 +541,8 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
-                        {"vi_": {"code": 0},
-                         "rsc": {"code": 0}}
+                        {"viewItem": {"code": 0},
+                         "removeOrderItem": {"code": 0}}
                     })
         self.assertCurrentLinesCount(2)
         # TODO: check logs, also "action"
@@ -577,8 +577,8 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
-                        {"vi_": {"code": 0},
-                         "rsc": {"code": 0}}
+                        {"viewItem": {"code": 0},
+                         "removeOrderItem": {"code": 0}}
                     })
         self.assertCurrentLinesCount(2)
         # TODO: check logs, also "action"
@@ -604,8 +604,8 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
-                        {"vi_": {"code": 0},
-                         "rsc": {"code": 0}}
+                        {"viewItem": {"code": 0},
+                         "removeOrderItem": {"code": 0}}
                     })
         self.assertCurrentLinesCount(2)
         # TODO: check logs, also "action"
@@ -630,8 +630,8 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result,
                     {"code": 0,
                      "responses":
-                      {"vi_": {"code": 1, 'err_msg': 'item_id is required.'},
-                       "rsc": {"code": 0}}
+                      {"viewItem": {"code": 1, 'err_msg': 'item_id is required.'},
+                       "removeOrderItem": {"code": 0}}
                       })
 
     def testWithoutCallbackWithoutTjbidGiven(self):
@@ -645,8 +645,8 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
-                        {"vi_": {"code": 0},
-                         "rsc": {"code": 0}}
+                        {"viewItem": {"code": 0},
+                         "removeOrderItem": {"code": 0}}
                     })
         self.assertCurrentLinesCount(2)
         # TODO: check logs, also "action"
