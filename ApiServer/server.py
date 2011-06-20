@@ -512,7 +512,7 @@ class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.Reque
         api_key2site_id = mongo_client.getApiKey2SiteID()
         if url is None or not api_key2site_id.has_key(api_key):
             # FIXME
-            self.redirect("")
+            self.write("wrong url")
             return
         else:
             site_id = api_key2site_id[api_key]

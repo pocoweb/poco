@@ -61,12 +61,16 @@ def getSimilaritiesForItems(site_id, similarity_type, item_ids):
 sites = connection["tjb-db"]["sites"]
 
 API_KEY2SITE_ID = None
+SITE_ID2API_KEY = None
 
 def reloadApiKey2SiteID():
     global API_KEY2SITE_ID
+    global SITE_ID2API_KEY
     API_KEY2SITE_ID = {}
+    SITE_ID2API_KEY = {}
     for site in sites.find():
         API_KEY2SITE_ID[site["api_key"]] = site["site_id"]
+        SITE_ID2API_KEY[site["site_id"]] = site["api_key"]
 
 
 def getApiKey2SiteID():
@@ -131,7 +135,8 @@ def getItem(site_id, item_id):
 
 
 def getRedirectUrlFor(url, site_id, item_id, req_id):
-    param_str = urllib.urlencode({"url": url, "site_id": site_id, "item_id": item_id,
+    api_key = SITE_ID2API_KEY[site_id]
+    param_str = urllib.urlencode({"url": url, "api_key": api_key, "item_id": item_id,
                       "req_id": req_id})
     full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
     return full_url
