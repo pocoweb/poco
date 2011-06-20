@@ -133,7 +133,7 @@ def getItem(site_id, item_id):
 def getRedirectUrlFor(url, site_id, item_id, req_id):
     param_str = urllib.urlencode({"url": url, "site_id": site_id, "item_id": item_id,
                       "req_id": req_id})
-    full_url = settings.api_server_prefix + "/tui/redirect?" + param_str
+    full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
     return full_url
 
 

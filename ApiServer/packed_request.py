@@ -100,6 +100,22 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    }
              }
 
+def generateALL_ATTR_NAMES_js():
+    global _abbr_map
+    attr_names = {}
+    for request_type in _abbr_map.keys():
+        for attr_abbr in _abbr_map[request_type].keys():
+            if len(attr_abbr) < 2:
+                attr_names[_abbr_map[request_type][attr_abbr]] = 1
+
+    result = "ALL_ATTR_NAMES = {\n"
+    for attr_name in attr_names.keys():
+        result += "    '%s': 1,\n" % (attr_name)
+    result += "}\n"
+
+    return result
+
+
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
     result = "FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
