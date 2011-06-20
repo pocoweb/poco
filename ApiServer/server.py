@@ -257,6 +257,7 @@ class RemoveOrderItemProcessor(ActionProcessor):
          ("item_id", True),
         )
     )
+
     def process(self, site_id, args):
         self.logAction(site_id,
                         {"user_id": args["user_id"], 
@@ -631,7 +632,7 @@ handlers = [
     (r"/1.0/removeItem", RemoveItemHandler),
     (r"/1.0/updateItem", UpdateItemHandler),
     (r"/1.0/addOrderItem", AddOrderItemHandler),
-    (r"/1.0/removeOrderItem", RemoveItemHandler),
+    (r"/1.0/removeOrderItem", RemoveOrderItemHandler),
     (r"/1.0/placeOrder", PlaceOrderHandler),
     (r"/1.0/getAlsoViewed", GetAlsoViewedHandler),
     (r"/1.0/getByBrowsingHistory", GetByBrowsingHistoryHandler),
