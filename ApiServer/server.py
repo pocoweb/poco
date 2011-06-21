@@ -375,13 +375,17 @@ class BaseSimilarityProcessor(ActionProcessor):
         )
     )
 
-    def logRecommendationRequest(self, args, site_id, req_id):
+    def logRecommendationRequest(self, args, site_id, req_id, recommended_items):
         self.logAction(site_id,
                         {"req_id": req_id,
                          "user_id": args["user_id"], 
                          "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"],
+                         "recommended_items": recommended_items,
                          "amount": args["amount"]})
+
+    def _extractRecommendedItems(self, topn):
+        return [topn_row["item_id"] for topn_row in topn]
 
     def process(self, site_id, args):
         topn = mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
@@ -389,9 +393,10 @@ class BaseSimilarityProcessor(ActionProcessor):
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = generateReqId()
         topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
+        recommended_items = self._extractRecommendedItems(topn)
         #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
         #                #,int(args["amount"]))
-        self.logRecommendationRequest(args, site_id, req_id)
+        self.logRecommendationRequest(args, site_id, req_id, recommended_items)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
@@ -430,22 +435,27 @@ class GetUltimatelyBoughtProcessor(ActionProcessor):
         )
     )
 
-    def logRecommendationRequest(self, args, site_id, req_id):
+    def logRecommendationRequest(self, args, site_id, req_id, recommended_items):
         self.logAction(site_id,
                         {"req_id": req_id,
                          "user_id": args["user_id"], 
                          "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"],
+                         "recommended_items": recommended_items,
                          "amount": args["amount"]})
+
+    def _extractRecommendedItems(self, topn):
+        return [topn_row["item_id"] for topn_row in topn]
 
     def process(self, site_id, args):
         topn = mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = generateReqId()
         topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
+        recommended_items = self._extractRecommendedItems(topn)
         for topn_item in topn:
             topn_item["percentage"] = int(round(topn_item["score"] * 100))
-        self.logRecommendationRequest(args, site_id, req_id)
+        self.logRecommendationRequest(args, site_id, req_id, recommended_items)
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
