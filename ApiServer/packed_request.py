@@ -51,6 +51,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                      "d": "description",
                      "m": "image_link",
                      "p": "price",
+                     "r": "market_price",
                      "c": "categories"
                     },
                "rmi": {"action_name": 'RItem',
