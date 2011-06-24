@@ -297,6 +297,7 @@ class UpdateItemProcessor(ActionProcessor):
          ("description", False),
          ("image_link", False),
          ("price", False),
+         ("market_price", False),
          ("categories", False)
         )
     )
@@ -312,6 +313,8 @@ class UpdateItemProcessor(ActionProcessor):
                 del args["image_link"]
             if args["price"] is None:
                 del args["price"]
+            if args["market_price"] is None:
+                del args["market_price"]
             if args["categories"] is None:
                 del args["categories"]
             mongo_client.updateItem(site_id, args)
