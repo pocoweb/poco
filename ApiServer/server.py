@@ -518,7 +518,7 @@ class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.Reque
             site_id = api_key2site_id[api_key]
             log_content = {"behavior": "ClickRec", "url": url, 
                            "req_id": req_id, "item_id": item_id, "site_id": site_id,
-                           "tuijianbaoid": self.tuijianbaoid}
+                           "tjbid": self.tuijianbaoid}
             logWriter.writeEntry(site_id, log_content)
             self.redirect(url)
             return
