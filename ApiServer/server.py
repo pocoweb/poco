@@ -27,19 +27,9 @@ import mongo_client
 # TODO: when to reload site ids.
 
 class LogWriter:
-    def __init__(self):
-        self.count = 0
-        self.last_timestamp = None
-
     def writeEntry(self, site_id, content):
         timestamp = time.time()
-        if timestamp <> self.last_timestamp:
-            self.count = 0
-        else:
-            self.count += 1
-        self.last_timestamp = timestamp
-        timestamp_plus_count = "%r+%s" % (timestamp, self.count)
-        content["timestamp"] = timestamp_plus_count
+        content["timestamp"] = timestamp
         if settings.print_raw_log:
             print "RAW LOG: site_id: %s, %s" % (site_id, content)
         mongo_client.writeLogToMongo(site_id, content)

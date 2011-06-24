@@ -1,0 +1,32 @@
+<html>
+<head>
+<style>
+    td.num {
+        text-align: right;
+    }
+    td.na {
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+<h1>Dash Board</h1>
+{% for site in sites %}
+<h2>{{site.site_name}}</h2>
+<table>
+<tr><th>时间段</th><th>商品浏览数</th><th>商品浏览人次</th><th>订单数</th><th>推荐请求数</th><th>推荐点击数</th></tr>
+
+    {% for stat_row in site.statistics %}
+    {% if stat_row.is_available %}
+        <tr><td>{{stat_row.date}}</td><td class="num">{{stat_row.PV_V}}</td><td class="num">{{stat_row.UV_V}}</td><td class="num">{{stat_row.PV_PLO}}</td><td class="num">{{stat_row.PV_Rec}}</td>
+        <td class="num">{{stat_row.ClickRec}}</td>
+        </tr>
+    {% else %}
+        <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
+    {% endif %}
+    {% endfor %}
+
+</table>
+{% endfor %}
+</body>
+</html>

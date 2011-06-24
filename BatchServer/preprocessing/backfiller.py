@@ -19,21 +19,23 @@ class BackFiller:
 
     # TODO: maybe use atomic update later?
     def workOnDoc(self, log_doc, is_old_region):
-        if not is_old_region and log_doc["user_id"] != "null":
-            self.tjbid2user[log_doc["tjbid"]] = log_doc["user_id"]
-        if log_doc.get("filled_user_id", None) is None \
-            or log_doc["filled_user_id"].startswith("ANO_"):
-            if log_doc["user_id"] == "null":
-                if self.tjbid2user.has_key(log_doc["tjbid"]):
-                    log_doc["filled_user_id"] = self.tjbid2user[log_doc["tjbid"]]
+        if log_doc.has_key("tjbid"):
+            user_id = log_doc.get("user_id", "null")
+            if not is_old_region and user_id != "null":
+                self.tjbid2user[log_doc["tjbid"]] = user_id
+            if log_doc.get("filled_user_id", None) is None \
+                or log_doc["filled_user_id"].startswith("ANO_"):
+                if user_id == "null":
+                    if self.tjbid2user.has_key(log_doc["tjbid"]):
+                        log_doc["filled_user_id"] = self.tjbid2user[log_doc["tjbid"]]
+                    else:
+                        log_doc["filled_user_id"] = "ANO_" + log_doc["tjbid"]
                 else:
-                    log_doc["filled_user_id"] = "ANO_" + log_doc["tjbid"]
-            else:
-                log_doc["filled_user_id"] = log_doc["user_id"]
-            self.raw_logs.save(log_doc)
-        del log_doc["_id"]
-        self.f_output.write("%s\n" % json.dumps(log_doc))
-        self.f_output.flush()
+                    log_doc["filled_user_id"] = user_id
+                self.raw_logs.save(log_doc)
+            del log_doc["_id"]
+            self.f_output.write("%s\n" % json.dumps(log_doc))
+            self.f_output.flush()
 
     # TODO: start a cursor every 200000 entries?
     def start(self):

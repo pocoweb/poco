@@ -98,6 +98,61 @@ class PreprocessingFlow(BaseFlow):
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
 
 
+class StatisticsFlow(BaseFlow):
+    def __init__(self):
+        BaseFlow.__init__(self, "preprocessing")
+        self.work_dir = os.path.join(settings.work_dir, "statistics")
+        if not os.path.isdir(self.work_dir):
+            os.mkdir(self.work_dir)
+        self.jobs += [self.do_behavior_date_row, self.do_count_behaviors,
+                      self.do_upload_count_behaviors,
+                      self.do_extract_behavior_date_tjbid,
+                      self.do_sort_uniq_behavior_date_tjbid,
+                      self.do_count_behavior_by_unique_visitor,
+                      self.do_upload_count_behavior_by_unique_visitor]
+
+    def do_behavior_date_row(self):
+        from statistics import behavior_date_row
+        input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        output_path = os.path.join(self.work_dir, "behavior_date_row")
+        behavior_date_row.behavior_date_row(input_path, output_path)
+
+    def do_count_behaviors(self):
+        input_path  = os.path.join(self.work_dir, "behavior_date_row")
+        output_path = os.path.join(self.work_dir, "count_by_behavior_date")
+        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
+
+    def do_upload_count_behaviors(self):
+        import pymongo
+        connection = pymongo.Connection(settings.mongodb_host)
+        from statistics import upload_count_behaviors
+        input_path  = os.path.join(self.work_dir, "count_by_behavior_date")
+        upload_count_behaviors.upload_count_behaviors(connection, SITE_ID, input_path)
+
+    def do_extract_behavior_date_tjbid(self):
+        from statistics import extract_behavior_date_tjbid
+        input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        output_path = os.path.join(self.work_dir, "behavior_date_tjbid")
+        extract_behavior_date_tjbid.extract_behavior_date_tjbid(input_path, output_path)
+
+    def do_sort_uniq_behavior_date_tjbid(self):
+        input_path  = os.path.join(self.work_dir, "behavior_date_tjbid")
+        output_path = os.path.join(self.work_dir, "uniq_behavior_date_tjbid")
+        self._exec_shell("sort %s | uniq | cut -f 1-2 -d , >%s" % (input_path, output_path))
+
+    def do_count_behavior_by_unique_visitor(self):
+        input_path  = os.path.join(self.work_dir, "uniq_behavior_date_tjbid")
+        output_path = os.path.join(self.work_dir, "unique_visit_by_behavior_date")
+        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
+
+    def do_upload_count_behavior_by_unique_visitor(self):
+        import pymongo
+        connection = pymongo.Connection(settings.mongodb_host)
+        from statistics import upload_count_behaviors_by_unique_visitors
+        input_path  = os.path.join(self.work_dir, "unique_visit_by_behavior_date")
+        upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)        
+
+
 class BaseSimilarityCalcFlow(BaseFlow):
     def __init__(self, type):
         BaseFlow.__init__(self, "similarities-calc:%s" % type)
@@ -322,6 +377,9 @@ begin_flow = BeginFlow()
 
 preprocessing_flow = PreprocessingFlow()
 preprocessing_flow.dependOn(begin_flow)
+
+statistics_flow = StatisticsFlow()
+statistics_flow.dependOn(preprocessing_flow)
 
 v_similarity_calc_flow = VSimiliarityCalcFlow()
 v_similarity_calc_flow.dependOn(preprocessing_flow)

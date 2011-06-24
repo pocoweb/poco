@@ -10,7 +10,8 @@ for site in sites.find():
         api_key = generateApiKey(connection, site["site_id"], site["site_name"])
         sites.update({"site_id": site["site_id"]},
                     {"$set": {"api_key": api_key}})
-    if type(site.get("calc_interval", None)) == float:
+    calc_interval = site.get("calc_interval", None)
+    if type(calc_interval) != int and calc_interval != None:
         sites.update({"site_id": site["site_id"]},
                     {"$set": {"calc_interval": int(site["calc_interval"])}})
     if not site.has_key("disabledFlows"):

@@ -208,6 +208,9 @@ class EditSiteHandler(BaseSiteHandler):
                 self.write("calc_interval is not valid.")
                 return
             
+
+            calc_interval = int(calc_interval)
+
             self._updateSite(site_id, site_name, calc_interval, 
                     self._parseDisabledFlows(disabledFlowsFormatted))
 
