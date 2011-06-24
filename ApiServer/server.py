@@ -649,9 +649,9 @@ def main():
     port = settings.server_port
     for o, p in opts:
         if o in ['-p', '--port']:
-	        try:
-	            port = int(p)
-	        except ValueError:
+            try:
+                port = int(p)
+            except ValueError:
                 print "port should be integer"
     global logWriter
     logWriter = LogWriter()
