@@ -1,5 +1,7 @@
 import pymongo
-import md5
+import hashlib
+import urllib
+import random
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -57,31 +59,52 @@ def getSimilaritiesForItems(site_id, similarity_type, item_ids):
 
 
 sites = connection["tjb-db"]["sites"]
-SITE_IDS = None
-def reloadSiteIds():
-    global SITE_IDS
-    site_ids = [site["site_id"] for site in sites.find()]
-    SITE_IDS = set(site_ids)
+
+API_KEY2SITE_ID = None
+SITE_ID2API_KEY = None
+
+def reloadApiKey2SiteID():
+    global API_KEY2SITE_ID
+    global SITE_ID2API_KEY
+    API_KEY2SITE_ID = {}
+    SITE_ID2API_KEY = {}
+    for site in sites.find():
+        API_KEY2SITE_ID[site["api_key"]] = site["site_id"]
+        SITE_ID2API_KEY[site["site_id"]] = site["api_key"]
 
 
-def getSiteIds():
-    global SITE_IDS
-    if SITE_IDS is None:
-        reloadSiteIds()
-    return SITE_IDS
+def getApiKey2SiteID():
+    global API_KEY2SITE_ID
+    if API_KEY2SITE_ID is None:
+        reloadApiKey2SiteID()
+    return API_KEY2SITE_ID
 
 
 def loadSites():
     return [site for site in sites.find()]
 
 
+# FIXME; should also make the api_key field unique.
+def generateApiKey(site_id, site_name):
+    api_key = hashlib.md5("%s:%s:%s" % (site_id, site_name, random.random())).hexdigest()[3:11]
+    while sites.find_one({"api_key": api_key}) is not None:
+        api_key = hashlib.md5("%s:%s:%s" % (site_id, site_name, random.random())).hexdigest()[3:11]
+    return api_key
+
+class UpdateSiteError(Exception):
+    pass
+
 def updateSite(site_id, site_name, calc_interval):
     site = sites.find_one({"site_id": site_id})
     if site is None:
+        if site_name is None:
+            raise UpdateSiteError("site_name is required for new site creation.")
         site = {"site_id": site_id}
     site.setdefault("last_update_ts", None)
     site.setdefault("disabledFlows", [])
-    site["site_name"] = site_name
+    site.setdefault("api_key", generateApiKey())
+    if site_name is not None:
+        site["site_name"] = site_name
     site["calc_interval"] = calc_interval
     sites.save(site)
 
@@ -110,7 +133,16 @@ def getItem(site_id, item_id):
     items = getSiteDBCollection(connection, site_id, "items")
     return items.find_one({"item_id": item_id})
 
-def convertTopNFormat(site_id, topn, include_item_info=True):
+
+def getRedirectUrlFor(url, site_id, item_id, req_id):
+    api_key = SITE_ID2API_KEY[site_id]
+    param_str = urllib.urlencode({"url": url, "api_key": api_key, "item_id": item_id,
+                      "req_id": req_id})
+    full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
+    return full_url
+
+
+def convertTopNFormat(site_id, req_id, topn, include_item_info=True):
     items_collection = getSiteDBCollection(connection, site_id, "items")
     result = []
     for topn_row in topn:
@@ -121,6 +153,8 @@ def convertTopNFormat(site_id, topn, include_item_info=True):
             del item_in_db["_id"]
             del item_in_db["available"]
             item_in_db["score"] = topn_row[1]
+            item_in_db["item_link"] = getRedirectUrlFor(item_in_db["item_link"], site_id, 
+                                            item_in_db["item_id"], req_id)
             result.append(item_in_db)
         else:
             result.append({"item_id": topn_row[0], "score": topn_row[1]})

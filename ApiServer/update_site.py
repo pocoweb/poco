@@ -20,8 +20,8 @@ parser.add_option("-c", "--calc_interval", dest="calc_interval", help="How long 
 (options, args) = parser.parse_args()
 
 site_id, site_name = options.site_id, options.site_name
-assert site_id is not None
-assert site_name is not None
+#assert site_id is not None
+#assert site_name is not None
 
 
 

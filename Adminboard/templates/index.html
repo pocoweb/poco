@@ -5,6 +5,7 @@
    </head>
    <body>
    <h1>Admin Board</h1>
+   <a href="/add_site">Add Site</a>
    <!--<span id="refreshingStatus">Idle</span>-->
     <script type="text/javascript">
         function calcAsap(site_id) {
@@ -24,8 +25,8 @@
                 function(data) {
                     var html = "";
                     $.each(data, function(idx, site) {
-                        html += "<li>" + site.site_id + 
-                        "&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
+                        html += "<li><a href='/edit_site?site_id=" + site.site_id + "'>" + site.site_id + 
+                        "</a>&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
                         html += "<ul>"
                         html += "<li>Name: " + site.site_name + "</li>";
                         if (typeof(site.disabledFlows) != "undefined") {
