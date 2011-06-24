@@ -1,13 +1,14 @@
 upstream api_server_frontends {
     server 127.0.0.1:3001;
     server 127.0.0.1:3002;
+    server 127.0.0.1:3003;
+    server 127.0.0.1:3004;
 }
 
 
 server {
     listen 80;
     server_name api.tuijianbao.net
-
 
     #access_log /cube/app/api.tuijianbao.net/logs/nginx/access.log;
 
@@ -18,6 +19,13 @@ server {
 
     # Allow file uploads
     client_max_body_size 50M;
+
+    location ^~ /js/ {
+        root /cube/app/api.tuijianbao.net/public_html/js;
+        if ($query_string) {
+            expires max;
+        }
+    }
 
     location ^~ /static/ {
         root /cube/app/api.tuijianbao.net/public_html;
