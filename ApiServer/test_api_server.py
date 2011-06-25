@@ -313,7 +313,20 @@ class RemoveItemTest(BaseTestCase):
                  "item_name": "Harry Potter I"})
 
 
-class RecommendViewedAlsoViewItemTest(BaseTestCase):
+class BaseRecommendationTest(BaseTestCase):
+    def decodeAndValidateRedirectUrls(self, topn, req_id, api_key):
+        import cgi
+        import urlparse
+        for topn_row in topn:
+            parsed_qs = cgi.parse_qs(urlparse.urlparse(topn_row["item_link"]).query)
+            original_url = parsed_qs["url"][0]
+            self.assertEquals(parsed_qs["req_id"][0], req_id)
+            self.assertEquals(parsed_qs["api_key"][0], api_key)
+            self.assertEquals(parsed_qs["item_id"][0], topn_row["item_id"])
+            topn_row["item_link"] = original_url
+
+
+class GetByAlsoViewedTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
         self.updateItem("3")
@@ -322,11 +335,8 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
         self.updateItem("11")
         self.updateItem("15")
 
-    def test(self):
-        raise "RecommendViewedAlsoViewItemTest skipped"
-
-    def _test_recommendViewedAlsoView(self):
-        result = api_access("/viewedAlsoView", 
+    def test_recommendViewedAlsoView(self):
+        result = api_access("/getAlsoViewed", 
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
                  "include_item_info": "no"})
         self.assertSomeKeys(result,
@@ -343,19 +353,23 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "item_id": "1",
              "amount": "4"})
 
-    def _test_IncludeItemInfoDefaultToYes(self):
-        result = api_access("/viewedAlsoView", 
+    def test_IncludeItemInfoDefaultToYes(self):
+        result = api_access("/getAlsoViewed", 
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "3"})
+        req_id = result["req_id"]
+
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+
         self.assertSomeKeys(result,
                 {"code": 0,
-                 "topn": [{'item_name': 'Harry Potter I', 'item_id': '3', 
+                 "topn": [
+                 {'item_name': 'Harry Potter I', 'item_id': '3', 
                         'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
-                {'item_name': 'Lord of Ring I', 'item_id': '2', 
+                 {'item_name': 'Lord of Ring I', 'item_id': '2', 
                         'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
-                {'item_name': 'Best Books', 'item_id': '8', 
+                 {'item_name': 'Best Books', 'item_id': '8', 
                         'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}
                 ]})
-        req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "RecVAV",
              "req_id": req_id,
@@ -363,10 +377,13 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "item_id": "1",
              "amount": "3"})
 
-    def _test_amount_param(self):
-        result = api_access("/viewedAlsoView", 
+    def test_amount_param(self):
+        result = api_access("/getAlsoViewed", 
                 {"api_key": API_KEY, "user_id": "hah", "item_id": "1", "amount": "5"})
         self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+
         self.assertEquals(result["topn"], 
                 [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
                 {'item_name': 'Lord of Ring I', 'item_id': '2', 'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
@@ -374,7 +391,6 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
                 {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
                 ])
-        req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
             {"behavior": "RecVAV",
              "req_id": req_id,
@@ -382,8 +398,8 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "item_id": "1",
              "amount": "5"})
 
-    def _test_ItemNotExists(self):
-        result = api_access("/viewedAlsoView", 
+    def test_ItemNotExists(self):
+        result = api_access("/getAlsoViewed", 
                 {"api_key": API_KEY, "user_id": "haha", "item_id": "NOTEXISTS", "amount": "4"})
         self.assertSomeKeys(result,
                 {"code": 0,
@@ -397,11 +413,13 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "amount": "4"})
 
 
-    def _test_IncludeItemInfoYes(self):
-        result = api_access("/viewedAlsoView", 
+    def test_IncludeItemInfoYes(self):
+        result = api_access("/getAlsoViewed", 
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
                  "include_item_info": "yes"})
         self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
         self.assertEquals(result["topn"], 
                 [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
                 {'item_name': 'Lord of Ring I', 'item_id': '2', 'score': 0.99329999999999996, 'item_link': 'http://example.com/item?id=2'}, 
@@ -416,9 +434,7 @@ class RecommendViewedAlsoViewItemTest(BaseTestCase):
              "amount": "4"})
 
 
-
-
-class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
+class GetByBrowsingHistoryTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
         self.updateItem("3")
@@ -426,16 +442,15 @@ class RecommendBasedOnBrowsingHistoryTest(BaseTestCase):
         self.updateItem("8")
         self.updateItem("11")
 
-    def test(self):
-        raise "RecommendBasedOnBrowsingHistoryTest skipped."
-
-    def _test_RecommendBasedOnBrowsingHistory(self):
-        result = api_access("/basedOnBrowsingHistory", 
+    def test_RecommendBasedOnBrowsingHistory(self):
+        result = api_access("/getByBrowsingHistory", 
                 {"api_key": API_KEY, "user_id": "ha",
                  "browsing_history": "1,2",
                  "amount": "3",
                  "include_item_info": "yes"})
         self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
         self.assertEquals(result["topn"], 
                 [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
                  {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
