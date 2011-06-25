@@ -110,6 +110,15 @@ class BaseTestCase(unittest.TestCase):
         for key in keyValuesToCheck.keys():
             self.assertEquals(theDict[key], keyValuesToCheck[key])
 
+    def cleanUpPurchasingHistory(self):
+        c_purchasing_history = getSiteDBCollection(self.connection, SITE_ID, "purchasing_history")
+        for doc in c_purchasing_history.find():
+            c_purchasing_history.remove(doc)
+
+    def assertPurchasingHistoryCount(self, count):
+        self.assertEquals(len(self.readCollectionLines("purchasing_history")), count)
+
+
 
 class ViewItemTest(BaseTestCase):
     def test_viewItem1(self):
@@ -464,6 +473,52 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
              "amount": "3"})
 
 
+class GetByPurchasingHistoryTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.cleanUpPurchasingHistory()
+
+    def test_RecommendGetByPurchasingHistory(self):
+        self.assertPurchasingHistoryCount(0)
+        result = api_access("/getByPurchasingHistory", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "amount": "3",
+                 "include_item_info": "yes"})  
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"], [])
+
+        # Place some order
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "order_content": "1,2.5,1|2,1.3,2"},
+                 return_tuijianbaoid=True)
+
+        # now, let's try to get some recommendations
+        result = api_access("/getByPurchasingHistory", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+        self.assertEquals(result["topn"], 
+                [
+                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.99980000000000002, 'item_link': 'http://example.com/item?id=11'},
+                {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}
+                 ])
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecPH",
+             "req_id": req_id,
+             "user_id": "ha",
+             "amount": "3"})
+
+
+
 class AddShopCartTest(BaseTestCase):
     def test(self):
         result = api_access("/addOrderItem", 
@@ -494,15 +549,7 @@ class PlaceOrderTest(BaseTestCase):
         BaseTestCase.setUp(self)
         self.cleanUpPurchasingHistory()
 
-    def cleanUpPurchasingHistory(self):
-        c_purchasing_history = getSiteDBCollection(self.connection, SITE_ID, "purchasing_history")
-        for doc in c_purchasing_history.find():
-            c_purchasing_history.remove(doc)
-
-    def assertPurchasingHistoryCount(self, count):
-        self.assertEquals(len(self.readCollectionLines("purchasing_history")), count)
-
-    def test_RecommendPlaceOrder(self):
+    def test_PlaceOrder(self):
         self.assertPurchasingHistoryCount(0)
         result, response_tuijianbaoid = api_access("/placeOrder", 
                 {"api_key": API_KEY, "user_id": "guagua",

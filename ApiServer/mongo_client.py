@@ -77,7 +77,7 @@ def recommend_based_on_purchasing_history(site_id, user_id, amount):
     purchasing_history = get_purchasing_history(site_id, user_id)["purchasing_history"]
     if len(purchasing_history) > 15:
         purchasing_history = purchasing_history[:15]
-    topn = calc_weighted_top_list_method1(site_id, similarity_type, purchasing_history) 
+    topn = calc_weighted_top_list_method1(site_id, "PLO", purchasing_history) 
     if len(topn) > amount:
         topn = topn[:amount]
     return topn

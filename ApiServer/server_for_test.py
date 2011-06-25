@@ -14,7 +14,8 @@ import pymongo
 from common import utils
 connection = pymongo.Connection(settings.mongodb_host)
 connection.drop_database(utils.getSiteDBName("tester"))
-utils.UploadItemSimilarities(connection, "tester")("item_similarities_for_test")
+utils.UploadItemSimilarities(connection, "tester", type="V")("item_similarities_v_for_test")
+utils.UploadItemSimilarities(connection, "tester", type="PLO")("item_similarities_plo_for_test")
 
 if __name__ == "__main__":
     server.main()

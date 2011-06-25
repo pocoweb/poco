@@ -492,7 +492,7 @@ class GetByBrowsingHistoryHandler(SingleRequestHandler):
     processor_class = GetByBrowsingHistoryProcessor
 
 
-class GetByPurchasingHistoryProcessor(ActionProcessor):
+class GetByPurchasingHistoryProcessor(BaseRecommendationProcessor):
     action_name = "RecPH"
     ap = ArgumentProcessor(
     (("user_id", True),
@@ -505,6 +505,7 @@ class GetByPurchasingHistoryProcessor(ActionProcessor):
         if user_id == "null":
             return []
         else:
+            amount = int(args["amount"])
             return mongo_client.recommend_based_on_purchasing_history(site_id, user_id, amount)
 
 
