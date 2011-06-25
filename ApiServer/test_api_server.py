@@ -87,14 +87,17 @@ class BaseTestCase(unittest.TestCase):
             raw_logs.remove(doc)
         pass
 
+    def readCollectionLines(self, collection_name):
+        return [line for line in getSiteDBCollection(self.connection, SITE_ID, collection_name).find()]
+
     def readCurrentLines(self):
-        return [line for line in getSiteDBCollection(self.connection, SITE_ID, "raw_logs").find()]
+        return self.readCollectionLines("raw_logs")
 
     def readLineMatch(self, criteria):
         return getSiteDBCollection(self.connection, SITE_ID, "raw_logs").find_one(criteria)
 
-    def readLastLine(self):
-        lines = self.readCurrentLines()
+    def readLastLine(self, collection_name="raw_logs"):
+        lines = self.readCollectionLines(collection_name)
         if len(lines) > 0:
             return lines[-1]
         else:
@@ -472,7 +475,20 @@ class RemoveShopCartTest(BaseTestCase):
 
 
 class PlaceOrderTest(BaseTestCase):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.cleanUpPurchasingHistory()
+
+    def cleanUpPurchasingHistory(self):
+        c_purchasing_history = getSiteDBCollection(self.connection, SITE_ID, "purchasing_history")
+        for doc in c_purchasing_history.find():
+            c_purchasing_history.remove(doc)
+
+    def assertPurchasingHistoryCount(self, count):
+        self.assertEquals(len(self.readCollectionLines("purchasing_history")), count)
+
     def test_RecommendPlaceOrder(self):
+        self.assertPurchasingHistoryCount(0)
         result, response_tuijianbaoid = api_access("/placeOrder", 
                 {"api_key": API_KEY, "user_id": "guagua",
                  "order_content": "3,2.5,1|5,1.3,2"},
@@ -486,6 +502,56 @@ class PlaceOrderTest(BaseTestCase):
                                {"item_id": "5", "price": "1.3", "amount": "2"}
                                ]
             })
+        self.assertPurchasingHistoryCount(1)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['3', '5'],
+                 "user_id": "guagua"})
+
+    def test_PurchasingHistory(self):
+        self.assertPurchasingHistoryCount(0)
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "guagua",
+                 "order_content": "3,2.5,1|5,1.3,2"},
+                 return_tuijianbaoid=True)
+        self.assertEquals(result, {"code": 0})
+        self.assertPurchasingHistoryCount(1)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['3', '5'],
+                 "user_id": "guagua"})
+
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "guagua",
+                 "order_content": "4,2.5,1|7,1.3,2"},
+                 return_tuijianbaoid=True)
+        self.assertEquals(result, {"code": 0})
+        self.assertPurchasingHistoryCount(1)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['4', '7', '3', '5'],
+                 "user_id": "guagua"})
+
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "guagua",
+                 "order_content": "5,2.5,1|3,1.3,2"},
+                 return_tuijianbaoid=True)
+        self.assertEquals(result, {"code": 0})
+        self.assertPurchasingHistoryCount(1)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['5', '3', '4', '7'],
+                 "user_id": "guagua"})
+
+        # let's use another user "jacob"
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "jacob",
+                 "order_content": "5,2.5,1|3,1.3,2"},
+                 return_tuijianbaoid=True)
+        self.assertEquals(result, {"code": 0})
+        self.assertPurchasingHistoryCount(2)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['5', '3'],
+                 "user_id": "jacob"})
+
+
+
 
 
 import packed_request

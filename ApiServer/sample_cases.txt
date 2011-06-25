@@ -4,7 +4,7 @@ ab -n 5000 -c 50 -C "tuijianbaoid=9ca7fd21-9f5a-4d47-8a03-c697d126e0f5" 'http://
 
 curl 'http://127.0.0.1:5588/tui/viewedAlsoView?site_id=demo1&user_id=blah&item_id=1006682&amount=8'
 
-curl 'http://127.0.0.1:5588/tui/updateItem?site_id=demo1&item_id=I123&item_link=blahblah&item_name=Wizard'
+curl 'http://127.0.0.1:5588/1.0/updateItem?api_key=79ba9425&market_price=388.0&item_id=I123&item_link=blahblah&item_name=Wizard'
 curl 'http://127.0.0.1:5588/tui/removeItem?site_id=demo1&item_id=I123'
 
 

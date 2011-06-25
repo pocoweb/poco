@@ -98,7 +98,19 @@ _abbr_map = {"vi_": {"action_name": 'V',
                       "h": "browsing_history",
                       "c": "include_item_info",
                       "a": "amount"
-                   }
+                   },
+                "rcp": {"action_name": "RecPH",
+                        "full_name": "getByPurchasingHistory",
+                        "index": 14,
+                        "u": "user_id",
+                        "c": "include_item_info",
+                        "a": "amount"},
+                #"rcc": {"action_name": "RecSC",
+                #        "full_name": "getByShoppingCart",
+                #        "index": 15,
+                #        "u": "user_id",
+                #        "c": "include_item_info",
+                #        "a": "amount"}
              }
 
 def generateALL_ATTR_NAMES_js():

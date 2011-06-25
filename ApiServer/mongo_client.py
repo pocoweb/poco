@@ -2,6 +2,7 @@ import pymongo
 import hashlib
 import urllib
 import random
+import time
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -32,6 +33,53 @@ def recommend_viewed_also_view(site_id, similarity_type, item_id, amount):
         topn = most_similar_items[:amount]
     else:
         topn = most_similar_items
+    return topn
+
+
+MAX_PURCHASING_HISTORY_AMOUNT = 100
+# ASSUME use will not purchase so quickly that the order of two purchasing will be reversed.
+# ASSUMING purchasing speed is far slower than page view.
+# there is a small chance that the "purchasing_history" will not 100% correctly reflect the raw_log
+def updateUserPurchasingHistory(site_id, user_id):
+    c_purchasing_history = getSiteDBCollection(connection, site_id, "purchasing_history")
+    ph_in_db = c_purchasing_history.find_one({"user_id": user_id})
+    if ph_in_db is None:
+        ph_in_db = {"user_id": user_id, "purchasing_history": []}
+    c_raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
+    cursor = c_raw_logs.find({"user_id": user_id, "behavior": "PLO"}).sort("timestamp", -1).limit(MAX_PURCHASING_HISTORY_AMOUNT)
+    is_items_enough = False
+    purchasing_history = []
+    ph_map = {}
+    for record_PLO in cursor:
+        for order_item in record_PLO["order_content"]:
+            item_id = order_item["item_id"]
+            if not ph_map.has_key(item_id):
+                purchasing_history.append(item_id)
+                ph_map[item_id] = 1
+            if len(purchasing_history) > MAX_PURCHASING_HISTORY_AMOUNT:
+                is_items_enough = True
+                break
+        if is_items_enough:
+            break
+    ph_in_db["purchasing_history"] = purchasing_history
+    c_purchasing_history.save(ph_in_db)
+
+
+def get_purchasing_history(site_id, user_id):
+    c_purchasing_history = getSiteDBCollection(connection, site_id, "purchasing_history")
+    ph_in_db = c_purchasing_history.find_one({"user_id": user_id})
+    if ph_in_db is None:
+        ph_in_db = {"user_id": user_id, "purchasing_history": []}
+    return ph_in_db
+
+
+def recommend_based_on_purchasing_history(site_id, user_id, amount):
+    purchasing_history = get_purchasing_history(site_id, user_id)["purchasing_history"]
+    if len(purchasing_history) > 15:
+        purchasing_history = purchasing_history[:15]
+    topn = calc_weighted_top_list_method1(site_id, similarity_type, purchasing_history) 
+    if len(topn) > amount:
+        topn = topn[:amount]
     return topn
 
 

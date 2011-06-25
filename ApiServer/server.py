@@ -238,7 +238,6 @@ class AddOrderItemHandler(SingleRequestHandler):
     processor_class = AddOrderItemProcessor
 
 
-
 class RemoveOrderItemProcessor(ActionProcessor):
     action_name = "RSC"
     ap = ArgumentProcessor(
@@ -254,6 +253,7 @@ class RemoveOrderItemProcessor(ActionProcessor):
                          "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
+
 
 class RemoveOrderItemHandler(SingleRequestHandler):
     processor_class = RemoveOrderItemProcessor
@@ -282,6 +282,7 @@ class PlaceOrderProcessor(ActionProcessor):
                        {"user_id": args["user_id"], 
                         "tjbid": args["tuijianbaoid"],
                         "order_content": self._convertOrderContent(args["order_content"])})
+        mongo_client.updateUserPurchasingHistory(site_id=site_id, user_id=args["user_id"])
         return {"code": 0}
 
 class PlaceOrderHandler(SingleRequestHandler):
@@ -357,7 +358,36 @@ def generateReqId():
     return str(uuid.uuid4())
 
 
-class BaseSimilarityProcessor(ActionProcessor):
+class BaseRecommendationProcessor(ActionProcessor):
+    # args should have "user_id", "tuijianbaoid"
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        return {"req_id": req_id,
+                "user_id": args["user_id"], 
+                "tjbid": args["tuijianbaoid"], 
+                "recommended_items": recommended_items,
+                "amount": args["amount"]}
+
+    def getTopN(self, site_id, args):
+        raise NotImplemented
+
+    def postprocessTopN(self, topn):
+        pass
+
+    def _extractRecommendedItems(self, topn):
+        return [topn_row["item_id"] for topn_row in topn]
+
+    def process(self, site_id, args):
+        topn = self.getTopN(site_id, args)
+        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
+        req_id = generateReqId()
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
+        self.postprocessTopN(topn)
+        recommended_items = self._extractRecommendedItems(topn)
+        self.logAction(site_id, self.getRecommendationLog(args, req_id, recommended_items))
+        return {"code": 0, "topn": topn, "req_id": req_id}
+
+
+class BaseSimilarityProcessor(BaseRecommendationProcessor):
     similarity_type = None
 
     ap = ArgumentProcessor(
@@ -368,29 +398,14 @@ class BaseSimilarityProcessor(ActionProcessor):
         )
     )
 
-    def logRecommendationRequest(self, args, site_id, req_id, recommended_items):
-        self.logAction(site_id,
-                        {"req_id": req_id,
-                         "user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
-                         "item_id": args["item_id"],
-                         "recommended_items": recommended_items,
-                         "amount": args["amount"]})
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log["item_id"] = args["item_id"]
+        return log
 
-    def _extractRecommendedItems(self, topn):
-        return [topn_row["item_id"] for topn_row in topn]
-
-    def process(self, site_id, args):
-        topn = mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
+    def getTopN(self, site_id, args):
+        return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
                         int(args["amount"]))
-        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        req_id = generateReqId()
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
-        recommended_items = self._extractRecommendedItems(topn)
-        #topn = mongo_client.getCachedVAV(args["site_id"], args["item_id"]) 
-        #                #,int(args["amount"]))
-        self.logRecommendationRequest(args, site_id, req_id, recommended_items)
-        return {"code": 0, "topn": topn, "req_id": req_id}
 
 
 class GetAlsoViewedProcessor(BaseSimilarityProcessor):
@@ -418,7 +433,7 @@ class GetBoughtTogetherHandler(SingleRequestHandler):
     processor_class = GetBoughtTogetherProcessor
 
 
-class GetUltimatelyBoughtProcessor(ActionProcessor):
+class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
     action_name = "RecVUB"
     ap = ArgumentProcessor(
          (("user_id", True),
@@ -428,35 +443,24 @@ class GetUltimatelyBoughtProcessor(ActionProcessor):
         )
     )
 
-    def logRecommendationRequest(self, args, site_id, req_id, recommended_items):
-        self.logAction(site_id,
-                        {"req_id": req_id,
-                         "user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
-                         "item_id": args["item_id"],
-                         "recommended_items": recommended_items,
-                         "amount": args["amount"]})
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        log = BaseRecommendationProcessor.getRecommendationLog(args, req_id, recommended_items)
+        log["item_id"] = args["item_id"]
+        return log
 
-    def _extractRecommendedItems(self, topn):
-        return [topn_row["item_id"] for topn_row in topn]
+    def getTopN(self, site_id, args):
+        return mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
 
-    def process(self, site_id, args):
-        topn = mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
-        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        req_id = generateReqId()
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
-        recommended_items = self._extractRecommendedItems(topn)
+    def postprocessTopN(self, topn):
         for topn_item in topn:
             topn_item["percentage"] = int(round(topn_item["score"] * 100))
-        self.logRecommendationRequest(args, site_id, req_id, recommended_items)
-        return {"code": 0, "topn": topn, "req_id": req_id}
 
 
 class GetUltimatelyBoughtHandler(SingleRequestHandler):
     processor_class = GetUltimatelyBoughtProcessor
 
 
-class GetByBrowsingHistoryProcessor(ActionProcessor):
+class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
     action_name = "RecBOBH"
     ap = ArgumentProcessor(
     (
@@ -466,16 +470,12 @@ class GetByBrowsingHistoryProcessor(ActionProcessor):
      ("amount", True),
     ))
 
-    def logRecommendationRequest(self, args, site_id, req_id):
-        browsing_history = args["browsing_history"].split(",")
-        self.logAction(site_id,
-                        {"req_id": req_id,
-                         "user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
-                         "amount": args["amount"],
-                         "browsing_history": browsing_history})
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log["browsing_history"] = args["browsing_history"].split(",")
+        return log
 
-    def process(self, site_id, args):
+    def getTopN(self, site_id, args):
         browsing_history = args["browsing_history"]
         if browsing_history == None:
             browsing_history = []
@@ -484,20 +484,32 @@ class GetByBrowsingHistoryProcessor(ActionProcessor):
         try:
             amount = int(args["amount"])
         except ValueError:
-            return {"code": 1}
-        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        topn = mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
-        req_id = generateReqId()
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
-        self.logRecommendationRequest(args, site_id, req_id)
-        return {"code": 0, "topn": topn, "req_id": req_id}
-
-
-
+            raise ArgumentError("amount should be an integer.")
+        return mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
 
 
 class GetByBrowsingHistoryHandler(SingleRequestHandler):
     processor_class = GetByBrowsingHistoryProcessor
+
+
+class GetByPurchasingHistoryProcessor(ActionProcessor):
+    action_name = "RecPH"
+    ap = ArgumentProcessor(
+    (("user_id", True),
+     ("include_item_info", False), # no, not include; yes, include
+     ("amount", True),
+    ))
+
+    def getTopN(self, site_id, args):
+        user_id = args["user_id"]
+        if user_id == "null":
+            return []
+        else:
+            return mongo_client.recommend_based_on_purchasing_history(site_id, user_id, amount)
+
+
+class GetByPurchasingHistoryHandler(SingleRequestHandler):
+    processor_class = GetByPurchasingHistoryProcessor
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -642,6 +654,7 @@ handlers = [
     (r"/1.0/getAlsoBought", GetAlsoBoughtHandler),
     (r"/1.0/getBoughtTogether", GetBoughtTogetherHandler),
     (r"/1.0/getUltimatelyBought", GetUltimatelyBoughtHandler),
+    (r"/1.0/getByPurchasingHistory", GetByPurchasingHistoryHandler),
     # TODO: and based on cart content
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
