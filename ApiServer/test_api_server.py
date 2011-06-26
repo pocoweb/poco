@@ -473,6 +473,36 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
              "amount": "3"})
 
 
+class GetByShoppingCartTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+
+    def test_GetByShoppingCart(self):
+        result = api_access("/getByShoppingCart", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "shopping_cart": "1,2",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+        self.assertEquals(result["topn"], 
+                [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99770000000000003, 'item_link': 'http://example.com/item?id=3'}, 
+                 {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99250000000000005, 'item_link': 'http://example.com/item?id=8'}, 
+                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'}])
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecSC",
+             "req_id": req_id,
+             "user_id": "ha",
+             "shopping_cart": ["1", "2"],
+             "amount": "3"})
+
+
 class GetByPurchasingHistoryTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
@@ -611,9 +641,6 @@ class PlaceOrderTest(BaseTestCase):
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
                 {"purchasing_history": ['5', '3'],
                  "user_id": "jacob"})
-
-
-
 
 
 import packed_request

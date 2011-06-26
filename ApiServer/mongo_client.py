@@ -231,8 +231,8 @@ def calc_weighted_top_list_method1(site_id, similarity_type, browsing_history):
     return [rec_tuple for rec_tuple in rec_tuples]
 
 
-def recommend_based_on_browsing_history(site_id, similarity_type, browsing_history, amount):
-    topn = calc_weighted_top_list_method1(site_id, similarity_type, browsing_history) 
+def recommend_based_on_some_items(site_id, similarity_type, browsing_history, amount):
+    topn = calc_weighted_top_list_method1(site_id, similarity_type, browsing_history)
     if len(topn) > amount:
         topn = topn[:amount]
     return topn

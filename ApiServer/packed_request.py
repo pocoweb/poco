@@ -56,12 +56,12 @@ _abbr_map = {"vi_": {"action_name": 'V',
                     },
                "rmi": {"action_name": 'RItem',
                       "full_name": "removeItem",
-                      "index": 8,
+                      "index": 9,
                       "i": "item_id"
                    },
                "rcv": {"action_name": 'RecVAV',
                        "full_name": 'getAlsoViewed',
-                       "index": 9,
+                       "index": 10,
                        "u": "user_id",
                        "i": "item_id",
                        "c": "include_item_info",
@@ -69,7 +69,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    },
                "rcb": {"action_name": 'RecBAB',
                        "full_name": "getAlsoBought",
-                       "index": 10,
+                       "index": 11,
                        "u": "user_id",
                        "i": "item_id",
                        "c": "include_item_info",
@@ -77,7 +77,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    },
                 "rct": {"action_name": 'RecBTG',
                         "full_name": "getBoughtTogether",
-                        "index": 11,
+                        "index": 12,
                        "u": "user_id",
                        "i": "item_id",
                        "c": "include_item_info",
@@ -85,7 +85,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    },
                 "rcu": {"action_name": 'RecVUB',
                         "full_name": "getUltimatelyBought",
-                        "index": 12,
+                        "index": 13,
                        "u": "user_id",
                        "i": "item_id",
                        "c": "include_item_info",
@@ -93,7 +93,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    },
                 "rch": {"action_name": 'RecBOBH',
                         "full_name": "getByBrowsingHistory",
-                        "index": 13,
+                        "index": 14,
                       "u": "user_id",
                       "h": "browsing_history",
                       "c": "include_item_info",
@@ -101,16 +101,17 @@ _abbr_map = {"vi_": {"action_name": 'V',
                    },
                 "rcp": {"action_name": "RecPH",
                         "full_name": "getByPurchasingHistory",
-                        "index": 14,
+                        "index": 15,
                         "u": "user_id",
                         "c": "include_item_info",
                         "a": "amount"},
-                #"rcc": {"action_name": "RecSC",
-                #        "full_name": "getByShoppingCart",
-                #        "index": 15,
-                #        "u": "user_id",
-                #        "c": "include_item_info",
-                #        "a": "amount"}
+                "rcc": {"action_name": "RecSC",
+                        "full_name": "getByShoppingCart",
+                        "index": 16,
+                        "u": "user_id",
+                        "s": "shopping_cart",
+                        "c": "include_item_info",
+                        "a": "amount"}
              }
 
 def generateALL_ATTR_NAMES_js():
@@ -156,7 +157,7 @@ def createActionName2Mask():
         for attr_abbr in _abbr_map[request_type].keys():
             action_name = _abbr_map[request_type]["action_name"]
             index = _abbr_map[request_type]["index"]
-            mask_array = ["0"] * 16
+            mask_array = ["0"] * 24
             mask_array[-index] = "1"
             mask = int("".join(mask_array), 2)
             action_name2mask[action_name] = mask
@@ -171,7 +172,7 @@ def createMask2ActionName():
         for attr_abbr in _abbr_map[request_type].keys():
             action_name = _abbr_map[request_type]["action_name"]
             index = _abbr_map[request_type]["index"]
-            mask_array = ["0"] * 16
+            mask_array = ["0"] * 24
             mask_array[-index] = "1"
             mask = int("".join(mask_array), 2)
             mask2action_name[mask] = action_name

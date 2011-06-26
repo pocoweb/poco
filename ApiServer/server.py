@@ -485,11 +485,44 @@ class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
             amount = int(args["amount"])
         except ValueError:
             raise ArgumentError("amount should be an integer.")
-        return mongo_client.recommend_based_on_browsing_history(site_id, "V", browsing_history, amount)
+        return mongo_client.recommend_based_on_some_items(site_id, "V", browsing_history, amount)
 
 
 class GetByBrowsingHistoryHandler(SingleRequestHandler):
     processor_class = GetByBrowsingHistoryProcessor
+
+
+class GetByShoppingCartProcessor(BaseRecommendationProcessor):
+    action_name = "RecSC"
+    ap = ArgumentProcessor(
+    (
+     ("user_id", True),
+     ("shopping_cart", False),
+     ("include_item_info", False), # no, not include; yes, include
+     ("amount", True),
+    ))
+
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log["shopping_cart"] = args["shopping_cart"].split(",")
+        return log
+
+    def getTopN(self, site_id, args):
+        shopping_cart = args["shopping_cart"]
+        if shopping_cart == None:
+            shopping_cart = []
+        else:
+            shopping_cart = shopping_cart.split(",")
+        try:
+            amount = int(args["amount"])
+        except ValueError:
+            raise ArgumentError("amount should be an integer.")
+        return mongo_client.recommend_based_on_some_items(site_id, "BuyTogether", 
+                shopping_cart, amount)
+
+
+class GetByShoppingCartHandler(SingleRequestHandler):
+    processor_class = GetByShoppingCartProcessor
 
 
 class GetByPurchasingHistoryProcessor(BaseRecommendationProcessor):
@@ -656,6 +689,7 @@ handlers = [
     (r"/1.0/getBoughtTogether", GetBoughtTogetherHandler),
     (r"/1.0/getUltimatelyBought", GetUltimatelyBoughtHandler),
     (r"/1.0/getByPurchasingHistory", GetByPurchasingHistoryHandler),
+    (r"/1.0/getByShoppingCart", GetByShoppingCartHandler),
     # TODO: and based on cart content
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
