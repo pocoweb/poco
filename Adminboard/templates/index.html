@@ -29,6 +29,7 @@
                         "</a>&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
                         html += "<ul>"
                         html += "<li>Name: " + site.site_name + "</li>";
+                        html += "<li>Items Count: " + site.items_count + "</li>";
                         if (typeof(site.disabledFlows) != "undefined") {
                             html += "<li>Disabled Calculation Flows: " 
                             $.each(site.disabledFlows, function(idx, item) {

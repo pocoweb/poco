@@ -73,6 +73,9 @@ def getSiteInfos():
             request_timestamp = manual_calculation_request["request_timestamp"]
             sci["request_waiting_time"] = convertSecondsAsHoursMinutesSeconds(time.time() - request_timestamp)
 
+        c_items = getSiteDBCollection(connection, site["site_id"], "items")
+        sci["items_count"] = c_items.find().count()
+
         result.append(sci)
 
     return result
