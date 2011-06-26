@@ -517,7 +517,7 @@ class GetByShoppingCartProcessor(BaseRecommendationProcessor):
             amount = int(args["amount"])
         except ValueError:
             raise ArgumentError("amount should be an integer.")
-        return mongo_client.recommend_based_on_some_items(site_id, "BuyTogether", 
+        return mongo_client.recommend_based_on_shopping_cart(site_id, args["user_id"], 
                 shopping_cart, amount)
 
 
@@ -690,7 +690,6 @@ handlers = [
     (r"/1.0/getUltimatelyBought", GetUltimatelyBoughtHandler),
     (r"/1.0/getByPurchasingHistory", GetByPurchasingHistoryHandler),
     (r"/1.0/getByShoppingCart", GetByShoppingCartHandler),
-    # TODO: and based on cart content
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]

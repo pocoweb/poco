@@ -482,6 +482,13 @@ class GetByShoppingCartTest(BaseRecommendationTest):
         self.updateItem("11")
 
     def test_GetByShoppingCart(self):
+        # let's buy item with id 11.
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "order_content": "15,2.5,1"},
+                 return_tuijianbaoid=True)
+
+
         result = api_access("/getByShoppingCart", 
                 {"api_key": API_KEY, "user_id": "ha",
                  "shopping_cart": "1,2",
@@ -547,6 +554,31 @@ class GetByPurchasingHistoryTest(BaseRecommendationTest):
              "user_id": "ha",
              "amount": "3"})
 
+        # let's buy item with id 11.
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "order_content": "11,2.5,1"},
+                 return_tuijianbaoid=True)
+
+        # now, item(11) should not be in the result
+        result = api_access("/getByPurchasingHistory", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+        self.assertEquals(result["topn"], 
+                [
+                {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'},
+                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.98209999999999997, 'item_link': 'http://example.com/item?id=8'}
+                 ])
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecPH",
+             "req_id": req_id,
+             "user_id": "ha",
+             "amount": "3"})
 
 
 class AddShopCartTest(BaseTestCase):

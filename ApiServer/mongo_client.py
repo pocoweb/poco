@@ -36,15 +36,20 @@ def recommend_viewed_also_view(site_id, similarity_type, item_id, amount):
     return topn
 
 
+def getPurchasingHistory(site_id, user_id):
+    c_purchasing_history = getSiteDBCollection(connection, site_id, "purchasing_history")
+    ph_in_db = c_purchasing_history.find_one({"user_id": user_id})
+    if ph_in_db is None:
+        ph_in_db = {"user_id": user_id, "purchasing_history": []}
+    return ph_in_db
+
+
 MAX_PURCHASING_HISTORY_AMOUNT = 100
 # ASSUME use will not purchase so quickly that the order of two purchasing will be reversed.
 # ASSUMING purchasing speed is far slower than page view.
 # there is a small chance that the "purchasing_history" will not 100% correctly reflect the raw_log
 def updateUserPurchasingHistory(site_id, user_id):
-    c_purchasing_history = getSiteDBCollection(connection, site_id, "purchasing_history")
-    ph_in_db = c_purchasing_history.find_one({"user_id": user_id})
-    if ph_in_db is None:
-        ph_in_db = {"user_id": user_id, "purchasing_history": []}
+    ph_in_db = getPurchasingHistory(site_id, user_id)
     c_raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
     cursor = c_raw_logs.find({"user_id": user_id, "behavior": "PLO"}).sort("timestamp", -1).limit(MAX_PURCHASING_HISTORY_AMOUNT)
     is_items_enough = False
@@ -62,6 +67,7 @@ def updateUserPurchasingHistory(site_id, user_id):
         if is_items_enough:
             break
     ph_in_db["purchasing_history"] = purchasing_history
+    c_purchasing_history = getSiteDBCollection(connection, site_id, "purchasing_history")
     c_purchasing_history.save(ph_in_db)
 
 
@@ -75,8 +81,6 @@ def get_purchasing_history(site_id, user_id):
 
 def recommend_based_on_purchasing_history(site_id, user_id, amount):
     purchasing_history = get_purchasing_history(site_id, user_id)["purchasing_history"]
-    if len(purchasing_history) > 15:
-        purchasing_history = purchasing_history[:15]
     topn = calc_weighted_top_list_method1(site_id, "PLO", purchasing_history) 
     if len(topn) > amount:
         topn = topn[:amount]
@@ -209,17 +213,19 @@ def convertTopNFormat(site_id, req_id, topn, include_item_info=True):
     return result
 
 
-def calc_weighted_top_list_method1(site_id, similarity_type, browsing_history):
-    if len(browsing_history) > 15:
-        recent_history = browsing_history[:15]
+def calc_weighted_top_list_method1(site_id, similarity_type, items_list, extra_excludes_list=[]):
+    if len(items_list) > 15:
+        recent_history = items_list[:15]
     else:
-        recent_history = browsing_history
+        recent_history = items_list
+
+    excludes_set = set(items_list + extra_excludes_list)
 
     # calculate weighted top list from recent browsing history
     rec_map = {}
     for recommended_items in getSimilaritiesForItems(site_id, similarity_type, recent_history):
         for rec_item, score in recommended_items:
-            if rec_item not in browsing_history:
+            if rec_item not in excludes_set:
                 rec_map.setdefault(rec_item, [0,0])
                 rec_map[rec_item][0] += float(score)
                 rec_map[rec_item][1] += 1
@@ -231,8 +237,20 @@ def calc_weighted_top_list_method1(site_id, similarity_type, browsing_history):
     return [rec_tuple for rec_tuple in rec_tuples]
 
 
-def recommend_based_on_some_items(site_id, similarity_type, browsing_history, amount):
-    topn = calc_weighted_top_list_method1(site_id, similarity_type, browsing_history)
+def recommend_based_on_some_items(site_id, similarity_type, items_list, amount):
+    topn = calc_weighted_top_list_method1(site_id, similarity_type, items_list)
+    if len(topn) > amount:
+        topn = topn[:amount]
+    return topn
+
+
+def recommend_based_on_shopping_cart(site_id, user_id, shopping_cart, amount):
+    if user_id == "null":
+        purchasing_history = []
+    else:
+        purchasing_history = getPurchasingHistory(site_id, user_id)["purchasing_history"]
+    topn = calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
+                extra_excludes_list=purchasing_history)
     if len(topn) > amount:
         topn = topn[:amount]
     return topn
