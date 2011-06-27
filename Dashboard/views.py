@@ -32,9 +32,16 @@ def getSiteStatistics(site_id, days=7):
     return result
 
 
+def login_required(callable):
+    def method(request):
+        if not request.session.has_key("user_name"):
+            return redirect("/login")
+        return callable(request)
+    return method
+
+
+@login_required
 def index(request):
-    if not request.session.has_key("user_name"):
-        return redirect("/login")
     user_name = request.session["user_name"]
     connection = getConnection()
     c_users = connection["tjb-db"]["users"]
@@ -46,6 +53,12 @@ def index(request):
     return render_to_response("index.html", {"sites": sites, "user_name": user_name})
 
 
+#@login_required
+#def site_item_list(request):
+#    pass
+
+
+# Authentication System
 def logout(request):
     del request.session["user_name"]
     return redirect("/")
