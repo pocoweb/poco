@@ -444,7 +444,7 @@ class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
     )
 
     def getRecommendationLog(self, args, req_id, recommended_items):
-        log = BaseRecommendationProcessor.getRecommendationLog(args, req_id, recommended_items)
+        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["item_id"] = args["item_id"]
         return log
 
