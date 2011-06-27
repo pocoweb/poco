@@ -1,0 +1,20 @@
+<html>
+   <head>
+      <title>{% if is_add_site %}Add Site{% else %}Edit Site{% end %} | Admin Board</title>
+      <script type="text/javascript" src="/static/jquery-1.6.1.min.js"></script>
+   </head>
+   <body>
+        <form action="{% if is_add_site %}/add_site{% else %}/edit_site{% end %}" 
+              method="POST">
+            {% if is_add_site %} Site ID: <input type="text" name="site_id" value=""><br />
+            {% else %} <input type="hidden" name="site_id" value="{{ data.get('site_id', '') }}"> 
+            Site ID: {{ data['site_id'] }} <br/>
+            {% end %}
+            Site Name: <input type="text" name="site_name" value="{{ data.get('site_name', '') }}"><br />
+            {% if not is_add_site %} API Key: {{ data['api_key'] }} <br /> {% end %}
+            Calculation Interval: <input type="text" name="calc_interval" value="{{ int(data.get('calc_interval', '43200')) }}"><br />
+            Disabled Flows: <input type="text" name="disabledFlowsFormatted" value="{{ data.get('disabledFlowsFormatted','') }}"><br />
+            <input type="submit" name="submit" value="Save">
+        </form>
+   </body>
+</html>

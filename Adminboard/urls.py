@@ -18,14 +18,14 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', 'Adminboard_DJG.views.index'),
-    url(r'^ajax/calcAsap$', 'Adminboard_DJG.views.ajax_calc_asap'),
-    url(r'^ajax/loadData$', 'Adminboard_DJG.views.ajax_load_data'),
-    url(r'add_site', 'Adminboard_DJG.views.add_site'),
-    url(r'edit_site','Adminboard_DJG.views.edit_site'),
-    url(r'^login$', 'Adminboard_DJG.views.login'),
-    url(r'^logout$', 'Adminboard_DJG.views.logout'),
-    url(r'^s/jquery-1.6.1.min.js$', 'Adminboard_DJG.views.serve_jquery'),
+    url(r'^$', 'Adminboard.views.index'),
+    url(r'^ajax/calcAsap$', 'Adminboard.views.ajax_calc_asap'),
+    url(r'^ajax/loadData$', 'Adminboard.views.ajax_load_data'),
+    url(r'add_site', 'Adminboard.views.add_site'),
+    url(r'edit_site','Adminboard.views.edit_site'),
+    url(r'^login$', 'Adminboard.views.login'),
+    url(r'^logout$', 'Adminboard.views.logout'),
+    url(r'^s/jquery-1.6.1.min.js$', 'Adminboard.views.serve_jquery'),
     #(r'^static/(?P<path>.*)$', 'django.views.static.serve',
     #  {'document_root': os.path.join(os.path.dirname(__file__), 'static').replace('\\','/')})
     )

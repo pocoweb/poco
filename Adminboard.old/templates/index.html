@@ -1,12 +1,12 @@
 <html>
    <head>
       <title>Admin Board</title>
-      <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
+      <script type="text/javascript" src="/static/jquery-1.6.1.min.js"></script>
    </head>
    <body>
    <h1>Admin Board</h1>
-   <p>User Name: {{ user_name }} <a href="/logout">Logout</a></p>
    <a href="/add_site">Add Site</a>
+   <!--<span id="refreshingStatus">Idle</span>-->
     <script type="text/javascript">
         function calcAsap(site_id) {
             $.getJSON("/ajax/calcAsap", {site_id: site_id},
@@ -19,6 +19,7 @@
         var refreshing = false;
         function refreshData() {
             if (refreshing) return;
+            //document.getElementById("refreshingStatus").innerHTML = "refreshing";
             refreshing = true;
             $.getJSON("/ajax/loadData", {},
                 function(data) {
@@ -67,6 +68,7 @@
                     });
                     $("#sites-container").html(html);
                     refreshing = false;
+                    //document.getElementById("refreshingStatus").innerHTML = "Idle";
                 });
         };
         refreshData();
