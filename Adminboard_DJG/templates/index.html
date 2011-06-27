@@ -1,0 +1,79 @@
+<html>
+   <head>
+      <title>Admin Board</title>
+      <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
+   </head>
+   <body>
+   <h1>Admin Board</h1>
+   <p>User Name: {{ user_name }} <a href="/logout">Logout</a></p>
+   <a href="/add_site">Add Site</a>
+    <script type="text/javascript">
+        function calcAsap(site_id) {
+            $.getJSON("/ajax/calcAsap", {site_id: site_id},
+                function(data) {
+                    reloadPage();
+                });
+        };
+
+
+        var refreshing = false;
+        function refreshData() {
+            if (refreshing) return;
+            refreshing = true;
+            $.getJSON("/ajax/loadData", {},
+                function(data) {
+                    var html = "";
+                    $.each(data, function(idx, site) {
+                        html += "<li><a href='/edit_site?site_id=" + site.site_id + "'>" + site.site_id + 
+                        "</a>&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
+                        html += "<ul>"
+                        html += "<li>Name: " + site.site_name + "</li>";
+                        html += "<li>Items Count: " + site.items_count + "</li>";
+                        if (typeof(site.disabledFlows) != "undefined") {
+                            html += "<li>Disabled Calculation Flows: " 
+                            $.each(site.disabledFlows, function(idx, item) {
+                                html += item + "&nbsp;&nbsp;"; 
+                            });
+                            html += "</li>";
+                        }
+                        if (site.status != "NEVER_CALC") {
+                            html += "<li>Last Calculation ID:&nbsp;" + site.last_calculation_id + "</li>";
+                        };
+                        html += "<li>Status:&nbsp;";
+                        if (site.status == "NEVER_CALC") {html += '<span style="color: gray">'}
+                        else if (site.status == "SUCCESSFUL") {html += '<span style="color:green">'}
+                        else if (site.status == "FAILED") {html += '<span style="color: red">'}
+                        else if (site.status == "RUNNING") {html += '<span style="color: yellow">'};
+                        html += site.status;
+                        html += "</span>(";
+                        if (site.status == "SUCCESSFUL" || site.status == "FAILED") {
+                            html += site.since_last + "&nbsp;ago. " + site.time_spent + "&nbsp;spent.";
+                        }
+                        else if (site.status == "RUNNING") {
+                            html += site.time_spent + "&nbsp;since the beginning of calculation.";
+                        };
+                        html += ")";
+                        html += "</li>";
+
+                        if (typeof(site.est_next_run) != "undefined") {
+                            html += "<li>Estimated Next Calculation: " + site.est_next_run + "&nbsp;later</li>";
+                        }
+
+                        if (typeof(site.request_waiting_time) != "undefined") {
+                            html += "<li>Pending calculation request(waited " + site.request_waiting_time + ")</li>";
+                        }
+
+                        html += "</ul>"
+                    });
+                    $("#sites-container").html(html);
+                    refreshing = false;
+                });
+        };
+        refreshData();
+        setInterval("refreshData()", 1000);
+    </script>
+    <ul id="sites-container">
+    </ul>
+   </body>
+</html>
+

@@ -43,7 +43,7 @@ def index(request):
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
     for site in sites:
         site["statistics"] = getSiteStatistics(site["site_id"])
-    return render_to_response("index.html", {"sites": sites})
+    return render_to_response("index.html", {"sites": sites, "user_name": user_name})
 
 
 def logout(request):

@@ -55,3 +55,19 @@ class UploadItemSimilarities:
 
         if len(self.last_rows) != 0:
             self.updateSimOneRow()
+
+
+def convertSecondsAsHoursMinutesSeconds(seconds):
+    seconds = int(seconds)
+    hours = seconds / 3600
+    a = seconds % 3600
+    minutes = a / 60
+    seconds_remain = a % 60
+    result_str = ""
+    if hours > 0:
+        result_str += "%s hours " % hours
+    if minutes > 0:
+        result_str += "%s minutes " % minutes
+    result_str += "%s seconds" % seconds_remain
+    return result_str
+
