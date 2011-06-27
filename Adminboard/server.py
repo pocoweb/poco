@@ -36,7 +36,8 @@ def getSiteInfos():
     sites = mongo_client.loadSites()
     result = []
     for site in sites:
-        sci = {"site_id": site["site_id"], "site_name": site["site_name"], "disabledFlows": site.get("disabledFlows", [])}
+        sci = {"site_id": site["site_id"], "site_name": site["site_name"], 
+               "disabledFlows": site.get("disabledFlows", [])}
         calculation_records = getSiteDBCollection(connection, site["site_id"], "calculation_records")
         records = [row for row in calculation_records.find().sort("begin_timestamp", -1).limit(1)]
         if records == []:
