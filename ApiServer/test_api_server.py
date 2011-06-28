@@ -25,9 +25,10 @@ SERVER_PORT = 15588
 
 import re
 def api_access(path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoid=False, 
-            assert_returns_tuijianbaoid=True, version="1.0"):
+            assert_returns_tuijianbaoid=True, version="1.0", extra_headers={}):
     params_str = urllib.urlencode(params)
     headers = {}
+    headers.update(extra_headers)
     if tuijianbaoid <> None:
         headers["Cookie"] = "tuijianbaoid=%s" % tuijianbaoid
     conn = httplib.HTTPConnection("%s:%s" % (SERVER_NAME, SERVER_PORT))
@@ -119,14 +120,13 @@ class BaseTestCase(unittest.TestCase):
         self.assertEquals(len(self.readCollectionLines("purchasing_history")), count)
 
 
-
-class ViewItemTest(BaseTestCase):
+class RefererRecordingTest(BaseTestCase):
     def test_viewItem1(self):
         self.assertCurrentLinesCount(0)
         item_id, user_id = generate_uid(), generate_uid()
         result, response_tuijianbaoid = api_access("/viewItem",
             {"api_key": API_KEY, "item_id": item_id, "user_id": user_id},
-            return_tuijianbaoid=True)
+            return_tuijianbaoid=True, extra_headers={"Referer": "http://blah"})
         self.assertEquals(result, {"code": 0})
         self.assertCurrentLinesCount(1)
         last_line = self.readLastLine()
@@ -134,6 +134,7 @@ class ViewItemTest(BaseTestCase):
         self.assertEquals(tjbid, response_tuijianbaoid)
         self.assertSomeKeys(last_line, 
                 {"behavior": "V", "user_id": user_id,
+                 "referer": "http://blah",
                  "item_id": item_id})
         
         item_id, user_id = generate_uid(), generate_uid()
@@ -145,6 +146,39 @@ class ViewItemTest(BaseTestCase):
         last_line = self.readLastLine()
         self.assertSomeKeys(last_line,
             {"behavior": "V", "user_id": user_id,
+             "referer": None,
+             "tjbid": tjbid, "item_id": item_id})
+
+
+
+class ViewItemTest(BaseTestCase):
+    def test_viewItem1(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        result, response_tuijianbaoid = api_access("/viewItem",
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id},
+            return_tuijianbaoid=True, extra_headers={"Referer": "http://blah"})
+        self.assertEquals(result, {"code": 0})
+        self.assertCurrentLinesCount(1)
+        last_line = self.readLastLine()
+        tjbid = last_line["tjbid"]
+        self.assertEquals(tjbid, response_tuijianbaoid)
+        self.assertSomeKeys(last_line, 
+                {"behavior": "V", "user_id": user_id,
+                 "referer": "http://blah",
+                 "item_id": item_id})
+        
+        item_id, user_id = generate_uid(), generate_uid()
+        result = api_access("/viewItem",
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id},
+            tuijianbaoid=tjbid,
+            extra_headers={"Referer": "http://just"})
+        self.assertEquals(result, {"code": 0})
+        self.assertCurrentLinesCount(2)
+        last_line = self.readLastLine()
+        self.assertSomeKeys(last_line,
+            {"behavior": "V", "user_id": user_id,
+             "referer": "http://just",
              "tjbid": tjbid, "item_id": item_id})
 
     def test_wrongArguments(self):
@@ -181,6 +215,36 @@ class ViewItemTest(BaseTestCase):
              as_json=False)
         self.assertEquals(result, "blah({\"code\": 2})")
         self.assertCurrentLinesCount(0)
+
+    def test_user_id_item_id_validation(self):
+        self.assertCurrentLinesCount(0)
+        result = api_access("/viewItem",
+            {"api_key": API_KEY, "item_id": "Ka KA", "user_id": "hi"},
+            extra_headers={"Referer": "http://just"})
+        self.assertEquals(result, {'code': 1, 'err_msg': 'invalid item_id or user_id'})
+        self.assertCurrentLinesCount(1)
+        last_line = self.readLastLine()
+        self.assertSomeKeys(last_line,
+        {"behavior": "ERROR"})
+        self.assertSomeKeys(last_line["content"],
+                {'item_id': 'Ka KA', 'user_id': 'hi', 
+                 'referer': 'http://just', 
+                 'behavior': 'V'})
+
+        self.assertCurrentLinesCount(1)
+        result = api_access("/viewItem",
+            {"api_key": API_KEY, "item_id": "1", "user_id": "hey ya"},
+            extra_headers={"Referer": "http://just1"})
+        self.assertEquals(result, {'code': 1, 'err_msg': 'invalid item_id or user_id'})
+        self.assertCurrentLinesCount(2)
+        last_line = self.readLastLine()
+        self.assertSomeKeys(last_line,
+        {"behavior": "ERROR"})
+        self.assertSomeKeys(last_line["content"],
+                {'item_id': '1', 'user_id': 'hey ya', 
+                 'referer': 'http://just1', 
+                 'behavior': 'V'})
+
 
 
 class FavoriteItemTest(BaseTestCase):
@@ -677,6 +741,27 @@ class PlaceOrderTest(BaseTestCase):
 
 import packed_request
 class PackedRequestTest(BaseTestCase):
+    def testRecordReferer(self):
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
+        pr.addRequest("V", {"user_id": "guaye", "item_id": "35"})
+        url_args = pr.getUrlArgs(API_KEY)
+        url_args["callback"] = "callback"
+        result, response_tuijianbaoid = api_access("/packedRequest", 
+                url_args, as_json=False, return_tuijianbaoid=True,
+                extra_headers={"Referer": "http://joe"})
+
+        self.assertCurrentLinesCount(2)
+        # TODO: check logs, also "action"
+        self.assertSomeKeys(self.readLineMatch({"behavior": "RSC"}),
+                {'user_id': 'guagua', 'behavior': 'RSC', 'item_id': '25',
+                 'referer': 'http://joe'})
+        self.assertSomeKeys(self.readLineMatch({"behavior": "V"}),
+                {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35',
+                 'referer': 'http://joe'})
+
+
     def testUpdateItem(self):
         self.assertCurrentLinesCount(0)
         pr = packed_request.PackedRequest()

@@ -111,16 +111,20 @@ class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             return {"code": 1, "err_msg": err_msg}
         else:
             args["tuijianbaoid"] = self.tuijianbaoid
+            referer = self.request.headers.get('Referer')
+            args["referer"] = referer
             return processor.process(site_id, args)
 
 
 
 class ActionProcessor:
     action_name = None
-    def logAction(self, site_id, action_content, tjb_id_required=True):
+    def logAction(self, site_id, args, action_content, tjb_id_required=True):
         assert self.action_name != None
         if tjb_id_required:
-            assert action_content.has_key("tjbid")
+            assert args.has_key("tuijianbaoid")
+            action_content["tjbid"] = args["tuijianbaoid"]
+        action_content["referer"] = args.get("referer", None)
         action_content["behavior"] = self.action_name
         logWriter.writeEntry(site_id,
             action_content)
@@ -156,9 +160,8 @@ class ViewItemProcessor(ActionProcessor):
 
     def process(self, site_id, args):
         self._validateInput(site_id, args)
-        self.logAction(site_id,
+        self.logAction(site_id, args,
                 {"user_id": args["user_id"],
-                 "tjbid": args["tuijianbaoid"],
                  "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -179,9 +182,8 @@ class AddFavoriteProcessor(ActionProcessor):
         )
     )
     def process(self, site_id, args):
-        self.logAction(site_id,
+        self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -197,9 +199,8 @@ class RemoveFavoriteProcessor(ActionProcessor):
         )
     )
     def process(self, site_id, args):
-        self.logAction(site_id, 
+        self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -217,9 +218,8 @@ class RateItemProcessor(ActionProcessor):
         )
     )
     def process(self, site_id, args):
-        self.logAction(site_id, 
+        self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"],
                          "score": args["score"]})
         return {"code": 0}
@@ -241,9 +241,8 @@ class AddOrderItemProcessor(ActionProcessor):
         )
     )
     def process(self, site_id, args):
-        self.logAction(site_id,
+        self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -261,9 +260,8 @@ class RemoveOrderItemProcessor(ActionProcessor):
     )
 
     def process(self, site_id, args):
-        self.logAction(site_id,
+        self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
-                         "tjbid": args["tuijianbaoid"], 
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -291,9 +289,8 @@ class PlaceOrderProcessor(ActionProcessor):
         return result
 
     def process(self, site_id, args):
-        self.logAction(site_id,
+        self.logAction(site_id, args,
                        {"user_id": args["user_id"], 
-                        "tjbid": args["tuijianbaoid"],
                         "order_content": self._convertOrderContent(args["order_content"])})
         mongo_client.updateUserPurchasingHistory(site_id=site_id, user_id=args["user_id"])
         return {"code": 0}
@@ -396,7 +393,7 @@ class BaseRecommendationProcessor(ActionProcessor):
         topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
-        self.logAction(site_id, self.getRecommendationLog(args, req_id, recommended_items))
+        self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
