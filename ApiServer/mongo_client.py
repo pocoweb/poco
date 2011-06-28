@@ -22,7 +22,7 @@ def getCachedVAV(site_id, history_item):
     return cache[(site_id, history_item)]
 
 
-def recommend_viewed_also_view(site_id, similarity_type, item_id, amount):
+def recommend_viewed_also_view(connection, site_id, similarity_type, item_id, amount):
     item_similarities = getSiteDBCollection(connection, site_id, "item_similarities_%s" % similarity_type)
     result = item_similarities.find_one({"item_id": item_id})
     if result is not None:
@@ -194,7 +194,7 @@ def getRedirectUrlFor(url, site_id, item_id, req_id):
     return full_url
 
 
-def convertTopNFormat(site_id, req_id, topn, include_item_info=True):
+def convertTopNFormat(site_id, req_id, topn, include_item_info=True, url_converter=getRedirectUrlFor):
     items_collection = getSiteDBCollection(connection, site_id, "items")
     result = []
     for topn_row in topn:
@@ -205,7 +205,7 @@ def convertTopNFormat(site_id, req_id, topn, include_item_info=True):
             del item_in_db["_id"]
             del item_in_db["available"]
             item_in_db["score"] = topn_row[1]
-            item_in_db["item_link"] = getRedirectUrlFor(item_in_db["item_link"], site_id, 
+            item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
                                             item_in_db["item_id"], req_id)
             result.append(item_in_db)
         else:

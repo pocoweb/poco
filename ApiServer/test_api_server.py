@@ -18,44 +18,13 @@ import items_for_test
 import pymongo
 
 from common.utils import getSiteDBCollection
+from common.utils import APIAccess
 
 
 SERVER_NAME = "127.0.0.1"
 SERVER_PORT = 15588
 
-import re
-def api_access(path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoid=False, 
-            assert_returns_tuijianbaoid=True, version="1.0", extra_headers={}):
-    params_str = urllib.urlencode(params)
-    headers = {}
-    headers.update(extra_headers)
-    if tuijianbaoid <> None:
-        headers["Cookie"] = "tuijianbaoid=%s" % tuijianbaoid
-    conn = httplib.HTTPConnection("%s:%s" % (SERVER_NAME, SERVER_PORT))
-    #print "GET", path, params_str, headers
-    #if tuijianbaoid <> None:
-    #    conn.putheader("Cookie", "tuijianbaoid=%s" % tuijianbaoid)
-    conn.request("GET", "/%s" % version + path + "?" + params_str, headers=headers)
-    response = conn.getresponse()
-    result = response.read()
-    response_cookie = response.getheader("set-cookie")
-    if response_cookie is not None:
-        response_tuijianbaoid = re.match(r"tuijianbaoid=([a-z0-9\-]+);", response_cookie).groups()[0]
-    else:
-        response_tuijianbaoid = None
-    if assert_returns_tuijianbaoid and tuijianbaoid is None:
-        assert response_tuijianbaoid is not None, "response: %s" % result
-    if as_json:
-        result_obj = json.loads(result)
-        body = result_obj
-    else:
-        body = result
-
-    if return_tuijianbaoid:
-        return body, response_tuijianbaoid
-    else:
-        return body
-
+api_access = APIAccess(SERVER_NAME, SERVER_PORT)
 
 
 def generate_uid():

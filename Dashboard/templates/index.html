@@ -15,6 +15,7 @@
 
 {% for site in sites %}
 <h2>{{site.site_name}}</h2>
+收录{{site.items_count}}件商品，<a href="/site_items_list?site_id={{site.site_id}}">查看详情</a>
 <table>
 <tr><th>时间段</th><th>商品浏览数</th><th>商品浏览人次</th><th>订单数</th><th>推荐请求数</th><th>推荐点击数</th></tr>
 

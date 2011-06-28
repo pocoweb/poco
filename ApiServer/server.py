@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, "../")
 import tornado.ioloop
 import tornado.web
+import pymongo
 import simplejson as json
 import copy
 import re
@@ -18,6 +19,8 @@ import getopt
 
 import mongo_client
 
+def getConnection():
+    return pymongo.Connection(settings.mongodb_host)
 
 # jquery serialize()  http://api.jquery.com/serialize/
 # http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
@@ -414,8 +417,9 @@ class BaseSimilarityProcessor(BaseRecommendationProcessor):
         return log
 
     def getTopN(self, site_id, args):
-        return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"], 
-                        int(args["amount"]))
+        connection = getConnection()
+        return mongo_client.recommend_viewed_also_view(connection, site_id, 
+                self.similarity_type, args["item_id"], int(args["amount"]))
 
 
 class GetAlsoViewedProcessor(BaseSimilarityProcessor):

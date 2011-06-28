@@ -16,5 +16,7 @@ urlpatterns = patterns('',
     # url(r'^admin/', include(admin.site.urls)),
     url(r'^$', 'Dashboard.views.index', name='index'),
     url(r'^login$', 'Dashboard.views.login'),
-    url(r'^logout$', 'Dashboard.views.logout')
+    url(r'^logout$', 'Dashboard.views.logout'),
+    url(r'^site_items_list$', 'Dashboard.views.site_items_list'),
+    url(r'^show_item$', 'Dashboard.views.show_item')
 )

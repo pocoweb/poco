@@ -8,6 +8,8 @@ from django.template import RequestContext
 import pymongo
 from common.utils import getSiteDBCollection
 
+from ApiServer import mongo_client
+
 import settings
 
 
@@ -28,7 +30,6 @@ def getSiteStatistics(site_id, days=7):
         else:
             row["is_available"] = True
         result.append(row)
-    print result
     return result
 
 
@@ -49,13 +50,46 @@ def index(request):
     user = c_users.find_one({"user_name": user_name})
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
     for site in sites:
+        site["items_count"] = getItemsAndCount(connection, site["site_id"])[1]
         site["statistics"] = getSiteStatistics(site["site_id"])
     return render_to_response("index.html", {"sites": sites, "user_name": user_name})
 
 
-#@login_required
-#def site_item_list(request):
-#    pass
+def getItemsAndCount(connection, site_id):
+    c_items = getSiteDBCollection(connection, site_id, "items")
+    items_cur = c_items.find({"available": True})
+    items_count = items_cur.count()
+    return items_cur, items_count
+
+
+@login_required
+def site_items_list(request):
+    site_id = request.GET["site_id"]
+    connection = getConnection()
+    site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
+    items_cur, items_count = getItemsAndCount(connection, site_id)
+    return render_to_response("site_items_list.html", 
+            {"site": site, "items_count": items_count,
+             "user_name": request.session["user_name"],
+             "items": items_cur})
+
+#from common.utils import APIAccess
+#api_access = APIAccess(settings.api_server_name, settings.api_server_port)
+
+@login_required
+def show_item(request):
+    site_id = request.GET["site_id"]
+    item_id = request.GET["item_id"]
+    connection = getConnection()
+    site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
+    c_items = getSiteDBCollection(connection, site_id, "items")
+    item_in_db = c_items.find_one({"item_id": item_id})
+    topn = mongo_client.recommend_viewed_also_view(connection, site_id, "V", item_id, 15)
+    def url_converter(url, site_id, item_id, req_id):
+        return "/show_item?site_id=%s&item_id=%s" % (site_id, item_id)
+    topn = mongo_client.convertTopNFormat(site_id, "null", topn, url_converter=url_converter)
+    return render_to_response("show_item.html",
+        {"item": item_in_db, "user_name": request.session["user_name"], "getAlsoViewed": topn})
 
 
 # Authentication System
