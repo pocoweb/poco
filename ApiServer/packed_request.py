@@ -236,6 +236,17 @@ class PackedRequest:
         return api_prefix + "/1.0/packedRequest?" + urllib.urlencode(url_args)
 
 
+def parseMask(mask_str):
+    result = []
+    mask_set = int(mask_str, 16)
+    for mask in MASK2ACTION_NAME.keys():
+        if mask & mask_set != 0:
+            action_name = MASK2ACTION_NAME[mask]
+            full_name = ACTION_NAME2FULL_NAME[action_name]
+            result.append(full_name)
+    return result
+
+
 if __name__ == "__main__":
     pr = PackedRequest()
     #pr.addSharedParams("user_id", "U335")
