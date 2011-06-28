@@ -132,6 +132,7 @@ class ActionProcessor:
         pass
 
 
+import re
 class ViewItemProcessor(ActionProcessor):
     action_name = "V"
     ap = ArgumentProcessor(
@@ -140,14 +141,26 @@ class ViewItemProcessor(ActionProcessor):
         )
     )
 
+    def _validateInput(self, site_id, args):
+        if re.match("[0-9a-zA-Z_-]+$", args["item_id"]) is None \
+            or re.match("[0-9a-zA-Z_-]+$", args["user_id"]) is None:
+            logWriter.writeEntry(site_id, 
+                {"behavior": "ERROR", 
+                 "content": {"behavior": "V",
+                  "user_id": args["user_id"],
+                  "tjbid": args["tuijianbaoid"],
+                  "item_id": args["item_id"],
+                  "referer": args.get("referer", None)}
+                })
+            raise ArgumentError("invalid item_id or user_id")
+
     def process(self, site_id, args):
+        self._validateInput(site_id, args)
         self.logAction(site_id,
                 {"user_id": args["user_id"],
                  "tjbid": args["tuijianbaoid"],
                  "item_id": args["item_id"]})
         return {"code": 0}
-
-
 
 
 class ViewItemHandler(SingleRequestHandler):
@@ -651,7 +664,7 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
 
         return result
 
-    def redirectRequest(self, site_id, processor_class, request_args):
+    def redirectRequest(self, site_id, referer, processor_class, request_args):
         request_args["site_id"] = site_id
         processor = processor_class()
         err_msg, processed_args = processor.processArgs(request_args)
@@ -659,16 +672,18 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             return {"code": 1, "err_msg": err_msg}
         else:
             processed_args["tuijianbaoid"] = self.tuijianbaoid
+            processed_args["referer"] = referer
             result = processor.process(site_id, processed_args)
             return result
 
     def process(self, site_id, args):
         requests = self.extractRequests(args)
         response = {"code": 0, "responses": {}}
+        referer = self.request.headers.get('Referer')
         for processor_class, full_name in requests.keys():
             request_args = requests[(processor_class, full_name)]
             response["responses"][full_name] = \
-                self.redirectRequest(site_id, processor_class, request_args)
+                self.redirectRequest(site_id, referer, processor_class, request_args)
         return response
 
 
