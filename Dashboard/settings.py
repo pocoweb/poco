@@ -125,6 +125,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+    'gunicorn',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -152,13 +153,9 @@ LOGGING = {
 
 
 mongodb_host = "127.0.0.1"
-api_server_name = None
-api_server_port = None
 
 try:
     from local_settings import *
 except ImportError:
     from Dashboard.local_settings import *
 
-assert api_server_name is not None
-assert api_server_port is not None

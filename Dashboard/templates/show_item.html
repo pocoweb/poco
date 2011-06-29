@@ -21,7 +21,7 @@
 看了本商品的用户还看了：
 <ol>
 {% for topn_item in getAlsoViewed %}
-    <li><a href="{{topn_item.item_link}}">{{topn_item.item_name}}</a></li>
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
 {% endfor %}
 </ol>
 
