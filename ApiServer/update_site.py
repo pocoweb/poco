@@ -8,7 +8,9 @@ from common.utils import getSiteDBCollection, getSiteDB
 
 import settings
 
-import mongo_client
+from mongo_client import MongoClient
+
+mongo_client = MongoClient(pymongo.Connection(settings.mongodb_host))
 
 parser = OptionParser()
 parser.add_option("-r", "--reset_db", dest="reset_db", help="reset all database of this site(use with caution)",

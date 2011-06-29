@@ -15,12 +15,15 @@ import signal
 import uuid
 import settings
 import getopt
+import urllib
  
 
-import mongo_client
+from mongo_client import MongoClient
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
+
+mongo_client = MongoClient(getConnection())
 
 # jquery serialize()  http://api.jquery.com/serialize/
 # http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
@@ -389,11 +392,19 @@ class BaseRecommendationProcessor(ActionProcessor):
     def _extractRecommendedItems(self, topn):
         return [topn_row["item_id"] for topn_row in topn]
 
+    def getRedirectUrlFor(self, url, site_id, item_id, req_id):
+        api_key = mongo_client.getSiteID2ApiKey()[site_id]
+        param_str = urllib.urlencode({"url": url, "api_key": api_key, "item_id": item_id,
+                          "req_id": req_id})
+        full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
+        return full_url
+
     def process(self, site_id, args):
         topn = self.getTopN(site_id, args)
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = generateReqId()
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info)
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info,
+                url_converter=self.getRedirectUrlFor)
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
@@ -418,7 +429,7 @@ class BaseSimilarityProcessor(BaseRecommendationProcessor):
 
     def getTopN(self, site_id, args):
         connection = getConnection()
-        return mongo_client.recommend_viewed_also_view(connection, site_id, 
+        return mongo_client.recommend_viewed_also_view(site_id, 
                 self.similarity_type, args["item_id"], int(args["amount"]))
 
 

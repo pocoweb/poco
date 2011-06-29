@@ -3,7 +3,13 @@ import sys
 sys.path.insert(0, "../")
 sys.path.insert(0, "../../")
 import csv
-import mongo_client
+import pymongo
+
+import settings
+
+from mongo_client import MongoClient
+
+mongo_client = MongoClient(pymongo.Connection(settings.mongodb_host))
 
 
 site_id = sys.argv[1]

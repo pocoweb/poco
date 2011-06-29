@@ -17,6 +17,8 @@ import items_for_test
 
 import pymongo
 
+from mongo_client import MongoClient
+
 from common.utils import getSiteDBCollection
 from common.utils import APIAccess
 
@@ -32,6 +34,11 @@ def generate_uid():
 
 
 SITE_ID = "tester"
+
+def getConnection():
+    return pymongo.Connection(settings.mongodb_host)
+
+mongo_client = MongoClient(getConnection())
 
 def getApiKey(site_id):
     connection = pymongo.Connection(settings.mongodb_host)
@@ -254,7 +261,7 @@ class RateItemTest(BaseTestCase):
 
 
 
-import mongo_client
+
 
 class UpdateItemTest(BaseTestCase):
     def test_updateItem(self):

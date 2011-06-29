@@ -8,13 +8,15 @@ from django.template import RequestContext
 import pymongo
 from common.utils import getSiteDBCollection
 
-from ApiServer import mongo_client
+from ApiServer.mongo_client import MongoClient
 
 import settings
 
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
+
+mongo_client = MongoClient(getConnection())
 
 
 def getSiteStatistics(site_id, days=7):
@@ -84,7 +86,7 @@ def show_item(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
-    topn = mongo_client.recommend_viewed_also_view(connection, site_id, "V", item_id, 15)
+    topn = mongo_client.recommend_viewed_also_view(site_id, "V", item_id, 15)
     def url_converter(url, site_id, item_id, req_id):
         return "/show_item?site_id=%s&item_id=%s" % (site_id, item_id)
     topn = mongo_client.convertTopNFormat(site_id, "null", topn, url_converter=url_converter)

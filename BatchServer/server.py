@@ -8,7 +8,7 @@ import uuid
 import os
 import os.path
 import settings
-from ApiServer import mongo_client
+from ApiServer.mongo_client import MongoClient
 from common.utils import getSiteDBCollection
 
 # TODO: use hamake?
@@ -20,6 +20,9 @@ logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
                     datefmt="%Y-%m-%d %I:%M:%S")
 
 logger = logging.getLogger("Batch Server")
+
+
+mongo_client = MongoClient(pymongo.Connection(settings.mongodb_host))
 
 
 class ShellExecutionError(Exception):

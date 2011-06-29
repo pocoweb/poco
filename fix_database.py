@@ -27,6 +27,24 @@ for site in connection["tjb-db"]["sites"].find():
                 {"$set": {"tjbid": row["tuijianbaoid"]}})
 
 
+# Fix Purchasing History
+print "Fix Purchasing History"
+from ApiServer.mongo_client import MongoClient
+mongo_client = MongoClient(connection)
+for site in connection["tjb-db"]["sites"].find():
+    site_id = site["site_id"]
+    print "Work on ", site_id
+    raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
+    user_ids = {}
+    for raw_log in raw_logs.find({"behavior": "PLO"}):
+        if raw_log["user_id"] != "null":
+            user_ids[raw_log["user_id"]] = 1
+    print "%s users to update" % len(user_ids)
+    for user_id in user_ids.keys():
+        mongo_client.updateUserPurchasingHistory(site_id, user_id)
+    print "updated for %s" % site_id
+
+
 # Fix sites
 from Adminboard.site_utils import generateApiKey
 sites = connection["tjb-db"]["sites"]
