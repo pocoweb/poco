@@ -14,7 +14,7 @@ import simplejson as json
 from common.utils import getSiteDBCollection
 from common.utils import convertSecondsAsHoursMinutesSeconds
 
-from ApiServer import mongo_client
+from ApiServer.mongo_client import MongoClient
 
 from site_utils import generateApiKey
 import settings
@@ -22,6 +22,9 @@ import settings
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
+
+
+mongo_client = MongoClient(getConnection())
 
 
 def getSiteInfos():
