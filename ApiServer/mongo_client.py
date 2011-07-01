@@ -11,33 +11,23 @@ from common.utils import sign
 import settings
 
 
-#cache = {}
-#def getCachedVAV(site_id, history_item):
-#    global cache
-#    if not cache.has_key((site_id, history_item)):
-#        cache[(site_id, history_item)] = recommend_viewed_also_view(site_id, str(history_item), 15)
-#    return cache[(site_id, history_item)]
-
 class UpdateSiteError(Exception):
     pass
+
 
 class MongoClient:
     def __init__(self, connection):
         self.connection = connection
 
 
-    def recommend_viewed_also_view(self, site_id, similarity_type, item_id, amount):
+    def recommend_viewed_also_view(self, site_id, similarity_type, item_id):
         item_similarities = getSiteDBCollection(self.connection, site_id, 
                 "item_similarities_%s" % similarity_type)
         result = item_similarities.find_one({"item_id": item_id})
         if result is not None:
-            most_similar_items = result["mostSimilarItems"]
+            topn = result["mostSimilarItems"]
         else:
-            most_similar_items = []
-        if len(most_similar_items) > amount:
-            topn = most_similar_items[:amount]
-        else:
-            topn = most_similar_items
+            topn = []
         return topn
 
 
@@ -78,26 +68,20 @@ class MongoClient:
         c_purchasing_history.save(ph_in_db)
 
 
-    def recommend_based_on_purchasing_history(self, site_id, user_id, amount):
+    def recommend_based_on_purchasing_history(self, site_id, user_id):
         purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
         topn = self.calc_weighted_top_list_method1(site_id, "PLO", purchasing_history) 
-        if len(topn) > amount:
-            topn = topn[:amount]
         return topn
 
 
-    def recommend_viewed_ultimately_buy(self, site_id, item_id, amount):
+    def recommend_viewed_ultimately_buy(self, site_id, item_id):
         viewed_ultimately_buys = getSiteDBCollection(self.connection, site_id, "viewed_ultimately_buys")
         result = viewed_ultimately_buys.find_one({"item_id": item_id})
         if result is not None:
             vubs = result["viewedUltimatelyBuys"]
         else:
             vubs = []
-        if len(vubs) > amount:
-            topn = vubs[:amount]
-        else:
-            topn = vubs
-        return [(topn_item["item_id"], topn_item["percentage"]) for topn_item in topn]
+        return [(vubs_item["item_id"], vubs_item["percentage"]) for vubs_item in vubs]
 
 
     def getSimilaritiesForItems(self, site_id, similarity_type, item_ids):
@@ -185,18 +169,17 @@ class MongoClient:
         c_items = getSiteDBCollection(self.connection, site_id, "items")
         return c_items.find_one({"item_id": item_id})
 
-
-    def convertTopNFormat(self, site_id, req_id, topn, include_item_info=True, 
+    def convertTopNFormat(self, site_id, req_id, topn, amount, include_item_info=True, 
             url_converter=None):
         if url_converter is None:
             url_converter = self.getRedirectUrlFor
         c_items_collection = getSiteDBCollection(self.connection, site_id, "items")
         result = []
         for topn_row in topn:
-            if include_item_info:
-                item_in_db = c_items_collection.find_one({"item_id": topn_row[0]})
-                if item_in_db is None or item_in_db["available"] == False:
+            item_in_db = c_items_collection.find_one({"item_id": topn_row[0]})
+            if item_in_db is None or item_in_db["available"] == False:
                     continue
+            if include_item_info:
                 del item_in_db["_id"]
                 del item_in_db["available"]
                 item_in_db["score"] = topn_row[1]
@@ -205,6 +188,8 @@ class MongoClient:
                 result.append(item_in_db)
             else:
                 result.append({"item_id": topn_row[0], "score": topn_row[1]})
+            if len(result) == amount:
+                break
         return result
 
 
@@ -233,22 +218,18 @@ class MongoClient:
         return [rec_tuple for rec_tuple in rec_tuples]
 
 
-    def recommend_based_on_some_items(self, site_id, similarity_type, items_list, amount):
+    def recommend_based_on_some_items(self, site_id, similarity_type, items_list):
         topn = self.calc_weighted_top_list_method1(site_id, similarity_type, items_list)
-        if len(topn) > amount:
-            topn = topn[:amount]
         return topn
 
 
-    def recommend_based_on_shopping_cart(self, site_id, user_id, shopping_cart, amount):
+    def recommend_based_on_shopping_cart(self, site_id, user_id, shopping_cart):
         if user_id == "null":
             purchasing_history = []
         else:
             purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
         topn = self.calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
                     extra_excludes_list=purchasing_history)
-        if len(topn) > amount:
-            topn = topn[:amount]
         return topn
 
 

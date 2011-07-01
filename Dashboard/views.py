@@ -86,10 +86,10 @@ def show_item(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
-    topn = mongo_client.recommend_viewed_also_view(site_id, "V", item_id, 15)
+    topn = mongo_client.recommend_viewed_also_view(site_id, "V", item_id)
     def url_converter(url, site_id, item_id, req_id):
         return "/show_item?site_id=%s&item_id=%s" % (site_id, item_id)
-    topn = mongo_client.convertTopNFormat(site_id, "null", topn, url_converter=url_converter)
+    topn = mongo_client.convertTopNFormat(site_id, "null", topn, 15, url_converter=url_converter)
     for topn_item in topn:
         topn_item["score"] = float(topn_item["score"])
     return render_to_response("show_item.html",

@@ -370,10 +370,6 @@ class RemoveItemHandler(APIHandler):
         return self.processor.process(site_id, args)
 
 
-def generateReqId():
-    return str(uuid.uuid4())
-
-
 class BaseRecommendationProcessor(ActionProcessor):
     # args should have "user_id", "tuijianbaoid"
     def getRecommendationLog(self, args, req_id, recommended_items):
@@ -389,6 +385,9 @@ class BaseRecommendationProcessor(ActionProcessor):
     def postprocessTopN(self, topn):
         pass
 
+    def generateReqId(self):
+        return str(uuid.uuid4())
+
     def _extractRecommendedItems(self, topn):
         return [topn_row["item_id"] for topn_row in topn]
 
@@ -400,10 +399,14 @@ class BaseRecommendationProcessor(ActionProcessor):
         return full_url
 
     def process(self, site_id, args):
-        topn = self.getTopN(site_id, args)
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
-        req_id = generateReqId()
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, include_item_info,
+        try:
+            amount = int(args["amount"])
+        except ValueError:
+            raise ArgumentError("amount should be an integer.")
+        req_id = self.generateReqId()
+        topn = self.getTopN(site_id, args)
+        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, amount, include_item_info,
                 url_converter=self.getRedirectUrlFor)
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
@@ -429,8 +432,7 @@ class BaseSimilarityProcessor(BaseRecommendationProcessor):
 
     def getTopN(self, site_id, args):
         connection = getConnection()
-        return mongo_client.recommend_viewed_also_view(site_id, 
-                self.similarity_type, args["item_id"], int(args["amount"]))
+        return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"])
 
 
 class GetAlsoViewedProcessor(BaseSimilarityProcessor):
@@ -474,7 +476,7 @@ class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
         return log
 
     def getTopN(self, site_id, args):
-        return mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"], int(args["amount"]))
+        return mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"])
 
     def postprocessTopN(self, topn):
         for topn_item in topn:
@@ -506,11 +508,7 @@ class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
             browsing_history = []
         else:
             browsing_history = browsing_history.split(",")
-        try:
-            amount = int(args["amount"])
-        except ValueError:
-            raise ArgumentError("amount should be an integer.")
-        return mongo_client.recommend_based_on_some_items(site_id, "V", browsing_history, amount)
+        return mongo_client.recommend_based_on_some_items(site_id, "V", browsing_history)
 
 
 class GetByBrowsingHistoryHandler(SingleRequestHandler):
@@ -538,12 +536,8 @@ class GetByShoppingCartProcessor(BaseRecommendationProcessor):
             shopping_cart = []
         else:
             shopping_cart = shopping_cart.split(",")
-        try:
-            amount = int(args["amount"])
-        except ValueError:
-            raise ArgumentError("amount should be an integer.")
-        return mongo_client.recommend_based_on_shopping_cart(site_id, args["user_id"], 
-                shopping_cart, amount)
+
+        return mongo_client.recommend_based_on_shopping_cart(site_id, args["user_id"], shopping_cart)
 
 
 class GetByShoppingCartHandler(SingleRequestHandler):
@@ -563,8 +557,7 @@ class GetByPurchasingHistoryProcessor(BaseRecommendationProcessor):
         if user_id == "null":
             return []
         else:
-            amount = int(args["amount"])
-            return mongo_client.recommend_based_on_purchasing_history(site_id, user_id, amount)
+            return mongo_client.recommend_based_on_purchasing_history(site_id, user_id)
 
 
 class GetByPurchasingHistoryHandler(SingleRequestHandler):

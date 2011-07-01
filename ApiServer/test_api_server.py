@@ -585,7 +585,8 @@ class GetByPurchasingHistoryTest(BaseRecommendationTest):
         self.assertEquals(result["topn"], 
                 [
                  {'item_name': 'Meditation', 'item_id': '11', 'score': 0.99980000000000002, 'item_link': 'http://example.com/item?id=11'},
-                {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}
+                {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'},
+                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.98209999999999997, 'item_link': 'http://example.com/item?id=8'}
                  ])
         req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
@@ -611,7 +612,8 @@ class GetByPurchasingHistoryTest(BaseRecommendationTest):
         self.assertEquals(result["topn"], 
                 [
                 {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'},
-                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.98209999999999997, 'item_link': 'http://example.com/item?id=8'}
+                {'item_name': 'Best Books', 'item_id': '8', 'score': 0.98209999999999997, 'item_link': 'http://example.com/item?id=8'},
+                {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98009999999999997, 'item_link': 'http://example.com/item?id=15'}
                  ])
         req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
