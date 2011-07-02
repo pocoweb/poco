@@ -99,13 +99,19 @@ def show_item(request):
         {"item": item_in_db, "user_name": request.session["user_name"], "getAlsoViewed": topn})
 
 
+def loadCategoryGroupsSrc(site_id):
+    connection = getConnection()
+    site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
+    return site.get("category_groups_src", "")
+
 from common.utils import updateCategoryGroups
 @login_required
 def update_category_groups(request):
     if request.method == "GET":
         site_id = request.GET["site_id"]
+        category_groups_src = loadCategoryGroupsSrc(site_id)
         return render_to_response("update_category_groups.html",
-                {"site_id": site_id})
+                {"site_id": site_id, "category_groups_src": category_groups_src})
 
 
 #from django.views.decorators.csrf import csrf_exempt
