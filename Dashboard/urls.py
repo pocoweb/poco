@@ -18,5 +18,8 @@ urlpatterns = patterns('',
     url(r'^login$', 'Dashboard.views.login'),
     url(r'^logout$', 'Dashboard.views.logout'),
     url(r'^site_items_list$', 'Dashboard.views.site_items_list'),
-    url(r'^show_item$', 'Dashboard.views.show_item')
+    url(r'^show_item$', 'Dashboard.views.show_item'),
+    url(r'^update_category_groups$', 'Dashboard.views.update_category_groups'),
+    url(r'^ajax/update_category_groups$', 'Dashboard.views.ajax_update_category_groups'),
+    url(r'^s/jquery-1.6.1.min.js$', 'Adminboard.views.serve_jquery')
 )

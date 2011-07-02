@@ -33,20 +33,24 @@ def updateCategoryGroups(connection, site_id, category_groups_src):
         for line in category_groups_src.split("\n"):
             line = line.strip()
             if line != "":
-                category_group, categories_str = line.strip().split(":")
-                categories_str = categories_str.strip()
-                if categories_str == "":
-                    categories = []
+                splitted = line.strip().split(":")
+                if len(splitted) != 2:
+                    return False, "INVALID_FORMAT"
                 else:
-                    categories = categories_str.split(",")
-                for category in categories:
-                    category_groups[category] = category_group
+                    category_group, categories_str = splitted
+                    categories_str = categories_str.strip()
+                    if categories_str == "":
+                        categories = []
+                    else:
+                        categories = categories_str.split(",")
+                    for category in categories:
+                        category_groups[category] = category_group
         c_sites.update({"site_id": site["site_id"]}, 
                 {"$set": {"category_groups": category_groups,
                           "category_groups_src": category_groups_src}})
-        return True
+        return True, ""
     else:
-        return False
+        return False, "INVALID_SITE"
 
 
 class UploadItemSimilarities:

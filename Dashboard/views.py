@@ -2,11 +2,14 @@ import sys
 sys.path.insert(0, "../")
 import hashlib
 import datetime
+from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.shortcuts import redirect
 from django.template import RequestContext
 import pymongo
 from common.utils import getSiteDBCollection
+
+import simplejson as json
 
 from ApiServer.mongo_client import MongoClient
 
@@ -96,12 +99,27 @@ def show_item(request):
         {"item": item_in_db, "user_name": request.session["user_name"], "getAlsoViewed": topn})
 
 
+from common.utils import updateCategoryGroups
 @login_required
 def update_category_groups(request):
     if request.method == "GET":
         site_id = request.GET["site_id"]
-    elif request.method == "POST":
-        pass
+        return render_to_response("update_category_groups.html",
+                {"site_id": site_id})
+
+
+#from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+#@csrf_exempt
+def ajax_update_category_groups(request):
+    if request.method == "GET":
+        site_id = request.GET["site_id"]
+        category_groups_src = request.GET["category_groups_src"]
+        connection = getConnection()
+        is_succ, msg = updateCategoryGroups(connection, site_id, category_groups_src)
+        result = {"is_succ": is_succ, "msg": msg}
+        return HttpResponse(json.dumps(result))
 
 
 # Authentication System
@@ -138,3 +156,7 @@ def _getCurrentUser(request):
     else:
         return None
 
+
+def serve_jquery(request):
+    file_path = os.path.join(os.path.dirname(__file__), 'static/jquery-1.6.1.min.js')
+    return HttpResponse(open(file_path, "r").read())
