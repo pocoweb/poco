@@ -17,8 +17,12 @@ import settings
 import getopt
 import urllib
  
+from common.utils import smart_split
 
 from mongo_client import MongoClient
+from mongo_client import SimpleRecommendationResultFilter
+from mongo_client import SameGroupRecommendationResultFilter
+
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
@@ -333,7 +337,9 @@ class UpdateItemProcessor(ActionProcessor):
             if args["market_price"] is None:
                 del args["market_price"]
             if args["categories"] is None:
-                del args["categories"]
+                args["categories"] = []
+            else:
+                args["categories"] = smart_split(args["categories"], ",")
             mongo_client.updateItem(site_id, args)
             return {"code": 0}
 
@@ -398,6 +404,9 @@ class BaseRecommendationProcessor(ActionProcessor):
         full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
         return full_url
 
+    def getRecommendationResultFilter(self, site_id, args):
+        raise NotImplemented
+
     def process(self, site_id, args):
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         try:
@@ -406,8 +415,9 @@ class BaseRecommendationProcessor(ActionProcessor):
             raise ArgumentError("amount should be an integer.")
         req_id = self.generateReqId()
         topn = self.getTopN(site_id, args)
-        topn = mongo_client.convertTopNFormat(site_id, req_id, topn, amount, include_item_info,
-                url_converter=self.getRedirectUrlFor)
+        result_filter = self.getRecommendationResultFilter(site_id, args)
+        topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
+                    amount, include_item_info, url_converter=self.getRedirectUrlFor)
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
@@ -439,6 +449,10 @@ class GetAlsoViewedProcessor(BaseSimilarityProcessor):
     action_name = "RecVAV"
     similarity_type = "V"
 
+    def getRecommendationResultFilter(self, site_id, args):
+        return SameGroupRecommendationResultFilter(mongo_client, site_id, args["item_id"])
+
+
 class GetAlsoViewedHandler(SingleRequestHandler):
     processor_class = GetAlsoViewedProcessor
 
@@ -446,6 +460,9 @@ class GetAlsoViewedHandler(SingleRequestHandler):
 class GetAlsoBoughtProcessor(BaseSimilarityProcessor):
     action_name = "RecBAB"
     similarity_type = "PLO"
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SameGroupRecommendationResultFilter(mongo_client, site_id, args["item_id"])
 
 
 class GetAlsoBoughtHandler(SingleRequestHandler):
@@ -455,6 +472,10 @@ class GetAlsoBoughtHandler(SingleRequestHandler):
 class GetBoughtTogetherProcessor(BaseSimilarityProcessor):
     action_name = "RecBTG"
     similarity_type = "BuyTogether"
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
+
 
 class GetBoughtTogetherHandler(SingleRequestHandler):
     processor_class = GetBoughtTogetherProcessor
@@ -469,6 +490,9 @@ class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
          ("amount", True),
         )
     )
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SameGroupRecommendationResultFilter(mongo_client, site_id, args["item_id"])
 
     def getRecommendationLog(self, args, req_id, recommended_items):
         log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
@@ -496,6 +520,9 @@ class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
      ("include_item_info", False), # no, not include; yes, include
      ("amount", True),
     ))
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
 
     def getRecommendationLog(self, args, req_id, recommended_items):
         log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
@@ -525,6 +552,9 @@ class GetByShoppingCartProcessor(BaseRecommendationProcessor):
      ("amount", True),
     ))
 
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
+
     def getRecommendationLog(self, args, req_id, recommended_items):
         log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["shopping_cart"] = args["shopping_cart"].split(",")
@@ -551,6 +581,9 @@ class GetByPurchasingHistoryProcessor(BaseRecommendationProcessor):
      ("include_item_info", False), # no, not include; yes, include
      ("amount", True),
     ))
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
 
     def getTopN(self, site_id, args):
         user_id = args["user_id"]

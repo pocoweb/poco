@@ -1,6 +1,7 @@
 import sys
 import pymongo
 from common.utils import getSiteDBCollection
+from common.utils import smart_split
 
 
 if len(sys.argv) != 2:
@@ -13,7 +14,7 @@ else:
 connection = pymongo.Connection(mongodb_host)
 
 
-# Fix raw_logs
+print "Fix Raw Logs"
 for site in connection["tjb-db"]["sites"].find():
     site_id = site["site_id"]
     print "Work on %s" % site_id
@@ -25,9 +26,9 @@ for site in connection["tjb-db"]["sites"].find():
         if row.has_key("tuijianbaoid"):
             raw_logs.update(row,
                 {"$set": {"tjbid": row["tuijianbaoid"]}})
+print "=======================\n"
 
 
-# Fix Purchasing History
 print "Fix Purchasing History"
 from ApiServer.mongo_client import MongoClient
 mongo_client = MongoClient(connection)
@@ -43,9 +44,26 @@ for site in connection["tjb-db"]["sites"].find():
     for user_id in user_ids.keys():
         mongo_client.updateUserPurchasingHistory(site_id, user_id)
     print "updated for %s" % site_id
+print "=======================\n"
 
 
-# Fix sites
+print "Fix item categories"
+for site in connection["tjb-db"]["sites"].find():
+    site_id = site["site_id"]
+    print "Work on %s" % site_id
+    c_items = getSiteDBCollection(connection, site_id, "items")
+    for item_row in c_items.find():
+        categories = item_row.get("categories", None)
+        if isinstance(categories, basestring):
+            c_items.update({"item_id": item_row["item_id"]}, 
+                    {"$set": {"categories": smart_split(categories, ",")}})
+        elif categories is None:
+            c_items.update({"item_id": item_row["item_id"]}, 
+                    {"$set": {"categories": []}})
+print "=======================\n"
+
+
+print "Fix sites"
 from Adminboard.site_utils import generateApiKey
 sites = connection["tjb-db"]["sites"]
 for site in sites.find():
@@ -60,3 +78,4 @@ for site in sites.find():
     if not site.has_key("disabledFlows"):
         sites.update({"site_id": site["site_id"]},
                     {"$set": {"disabledFlows": []}})
+print "=======================\n"

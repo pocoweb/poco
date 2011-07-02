@@ -15,6 +15,39 @@ class UpdateSiteError(Exception):
     pass
 
 
+class SimpleRecommendationResultFilter:
+    def is_allowed(self, item_dict):
+        return item_dict["available"]
+
+class SameGroupRecommendationResultFilter:
+    def __init__(self, mongo_client, site_id, item_id):
+        self.mongo_client = mongo_client
+        self.site_id = site_id
+        self.item_id = item_id
+        category_groups = mongo_client.getCategoryGroups(site_id)
+        allowed_category_groups = []
+        item = mongo_client.getItem(site_id, item_id)
+        if item is not None:
+            for category in item["categories"]:
+                category_group = category_groups[category]
+                allowed_category_groups.append(category_group)
+            self.allowed_category_groups = set(allowed_category_groups)
+        else:
+            self.allowed_category_groups = set([])
+        
+    def is_allowed(self, item_dict):
+        if not item_dict["available"]:
+            return False
+        category_groups = self.mongo_client.getCategoryGroups(self.site_id)
+        if len(item_dict["categories"]) == 0:
+            return True
+        else:
+            for category in item_dict["categories"]:
+                if category_groups[category] in self.allowed_category_groups:
+                    return True
+            return False
+
+
 class MongoClient:
     def __init__(self, connection):
         self.connection = connection
@@ -169,19 +202,39 @@ class MongoClient:
         c_items = getSiteDBCollection(self.connection, site_id, "items")
         return c_items.find_one({"item_id": item_id})
 
-    def convertTopNFormat(self, site_id, req_id, topn, amount, include_item_info=True, 
+    def reloadCategoryGroups(self, site_id):
+        now = time.time()
+        c_sites = self.connection["tjb-db"]["sites"]
+        site = c_sites.find_one({"site_id": site_id})
+        self.SITE_ID2CATEGORY_GROUPS[site_id] = (site.get("category_groups", None), now)
+
+
+    SITE_ID2CATEGORY_GROUPS = {}
+    def getCategoryGroups(self, site_id):
+        # TODO: use callLater to update allowed_cross_category
+        allowed_cross_category, last_update_ts = self.SITE_ID2CATEGORY_GROUPS.get(site_id, (None, None))
+        now = time.time()
+        if not self.SITE_ID2CATEGORY_GROUPS.has_key(site_id) \
+            or self.SITE_ID2CATEGORY_GROUPS[site_id][1] - now > 10:
+            self.reloadCategoryGroups(site_id)
+        return self.SITE_ID2CATEGORY_GROUPS[site_id][0]
+
+
+    def convertTopNFormat(self, site_id, req_id, result_filter, topn, amount, include_item_info=True, 
             url_converter=None):
         if url_converter is None:
             url_converter = self.getRedirectUrlFor
         c_items_collection = getSiteDBCollection(self.connection, site_id, "items")
         result = []
+        
         for topn_row in topn:
             item_in_db = c_items_collection.find_one({"item_id": topn_row[0]})
-            if item_in_db is None or item_in_db["available"] == False:
+            if item_in_db is None or not result_filter.is_allowed(item_in_db):
                     continue
             if include_item_info:
                 del item_in_db["_id"]
                 del item_in_db["available"]
+                del item_in_db["categories"]
                 item_in_db["score"] = topn_row[1]
                 item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
                                                 item_in_db["item_id"], req_id)

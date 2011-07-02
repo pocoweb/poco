@@ -25,6 +25,30 @@ def updateCollectionRecord(collection, key_name, key_value, initial_dict, conten
     collection.save(record_in_db)
 
 
+def updateCategoryGroups(connection, site_id, category_groups_src):
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"site_id": site_id})
+    if site is not None:
+        category_groups = {}
+        for line in category_groups_src.split("\n"):
+            line = line.strip()
+            if line != "":
+                category_group, categories_str = line.strip().split(":")
+                categories_str = categories_str.strip()
+                if categories_str == "":
+                    categories = []
+                else:
+                    categories = categories_str.split(",")
+                for category in categories:
+                    category_groups[category] = category_group
+        c_sites.update({"site_id": site["site_id"]}, 
+                {"$set": {"category_groups": category_groups,
+                          "category_groups_src": category_groups_src}})
+        return True
+    else:
+        return False
+
+
 class UploadItemSimilarities:
     def __init__(self, connection, site_id, type="V"):
         self.connection = connection
@@ -111,3 +135,10 @@ class APIAccess:
         else:
             return body
 
+
+def smart_split(string, delimiter):
+    string = string.strip()
+    if string == "":
+        return []
+    else:
+        return string.split(delimiter)

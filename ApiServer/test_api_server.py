@@ -52,10 +52,22 @@ class BaseTestCase(unittest.TestCase):
         self.connection = pymongo.Connection(settings.mongodb_host)
         self.cleanUpRawLogs()
 
-    def updateItem(self, item_id):
-        result = api_access("/updateItem", items_for_test.items[item_id],
+    def updateItem(self, item_id, categories=""):
+        import copy
+        the_item = copy.copy(items_for_test.items[item_id])
+        the_item["categories"] = categories
+        result = api_access("/updateItem", the_item,
                     assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
+
+    def removeItem(self, item_id):
+        result = api_access("/removeItem", {"api_key": API_KEY, "item_id": item_id},
+                    assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+
+    def updateCategoryGroups(self, category_groups_src):
+        from common.utils import updateCategoryGroups
+        updateCategoryGroups(self.connection, SITE_ID, category_groups_src)
 
     def cleanUpRawLogs(self):
         getSiteDBCollection(self.connection, SITE_ID, "raw_logs").drop()
@@ -278,7 +290,8 @@ class UpdateItemTest(BaseTestCase):
                 {"available": True,
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
-                 "item_name": "Harry Potter I"})
+                 "item_name": "Harry Potter I",
+                 "categories": []})
 
         # update an already existed item
         result = api_access("/updateItem",
@@ -295,7 +308,8 @@ class UpdateItemTest(BaseTestCase):
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
                  "item_name": "Harry Potter II",
-                 "price": "25.0"})
+                 "price": "25.0",
+                 "categories": []})
 
         # update an already existed item again
         result = api_access("/updateItem",
@@ -310,7 +324,8 @@ class UpdateItemTest(BaseTestCase):
                 {"available": True,
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
-                 "item_name": "Harry Potter II"})
+                 "item_name": "Harry Potter II",
+                 "categories": []})
 
     def testUpdateItemWithOptionalParams(self):
         item_id = generate_uid()
@@ -328,7 +343,8 @@ class UpdateItemTest(BaseTestCase):
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
                  "item_name": "Harry Potter I",
-                 "price": "15.0"})
+                 "price": "15.0",
+                 "categories": []})
 
 
 class RemoveItemTest(BaseTestCase):
@@ -346,7 +362,8 @@ class RemoveItemTest(BaseTestCase):
                 {"available": True,
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
-                 "item_name": "Harry Potter I"})
+                 "item_name": "Harry Potter I",
+                 "categories": []})
 
         # remove the existed item
         result = api_access("/removeItem",
@@ -359,7 +376,8 @@ class RemoveItemTest(BaseTestCase):
                 {"available": False,
                  "item_id": item_id, 
                  "item_link": "http://example.com/item?id=%s" % item_id,
-                 "item_name": "Harry Potter I"})
+                 "item_name": "Harry Potter I",
+                 "categories": []})
 
 
 class BaseRecommendationTest(BaseTestCase):
@@ -378,11 +396,54 @@ class BaseRecommendationTest(BaseTestCase):
 class GetByAlsoViewedTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
+        self.updateItem("1")
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
         self.updateItem("11")
         self.updateItem("15")
+
+    def test_SomeItemUnavailable(self):
+        self.removeItem("2")
+        result = api_access("/getAlsoViewed", 
+                            {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
+                    "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [
+                 {'item_id': '3', 'score': 0.99880000000000002},
+                 {'item_id': '8', 'score': 0.99209999999999998},
+                 {'item_id': '11', 'score': 0.98880000000000001},
+                 {'item_id': '15', 'score': 0.98709999999999998}
+                 ]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "1",
+             "amount": "4"})
+
+    def test_same_group_only(self):
+        self.updateItem("1", "CAT1")
+        self.updateItem("2", "CAT2")
+        self.updateItem("3", "CAT1")
+        self.updateItem("8", "CAT2")
+        self.updateItem("11", "CAT3")
+        self.updateCategoryGroups("books:CAT1,CAT2\n"
+                    "adult:CAT3\n")
+
+        # item 11 should not be recommended
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_id': '3', 'score': 0.99880000000000002}, 
+                 {'item_id': '2', 'score': 0.99329999999999996}, 
+                 {'item_id': '8', 'score': 0.99209999999999998}, 
+                 {'item_id': '15', 'score': 0.98709999999999998}]})
+
 
     def test_recommendViewedAlsoView(self):
         result = api_access("/getAlsoViewed", 
@@ -511,6 +572,24 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
              "user_id": "ha",
              "browsing_history": ["1", "2"],
              "amount": "3"})
+
+        self.removeItem("3")
+
+        result = api_access("/getByBrowsingHistory", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "browsing_history": "1,2",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+        self.assertEquals(result["topn"], 
+                [ {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
+                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
+                 {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
+                 ])
+
+
 
 
 class GetByShoppingCartTest(BaseRecommendationTest):
@@ -756,7 +835,8 @@ class PackedRequestTest(BaseTestCase):
                 {'item_name': 'Something', 
                  'item_id': '35', 
                  'available': True, 
-                 'item_link': 'http://example.com/item?id=35'})
+                 'item_link': 'http://example.com/item?id=35',
+                 'categories': []})
 
     def testWithCallback(self):
         self.assertCurrentLinesCount(0)

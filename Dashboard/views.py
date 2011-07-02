@@ -96,6 +96,14 @@ def show_item(request):
         {"item": item_in_db, "user_name": request.session["user_name"], "getAlsoViewed": topn})
 
 
+@login_required
+def update_category_groups(request):
+    if request.method == "GET":
+        site_id = request.GET["site_id"]
+    elif request.method == "POST":
+        pass
+
+
 # Authentication System
 def logout(request):
     del request.session["user_name"]

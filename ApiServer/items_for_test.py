@@ -1,6 +1,9 @@
 SITE_ID = "tester"
 
 items = {
+            "1": {"site_id": SITE_ID, "item_id": "1",
+                  "item_link": "http://example.com/item?id=1",
+                  "item_name": "Turk"},
             "3": {"site_id": SITE_ID, "item_id": "3", 
              "item_link": "http://example.com/item?id=3",
              "item_name": "Harry Potter I"},
