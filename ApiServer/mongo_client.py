@@ -35,25 +35,17 @@ class SameGroupRecommendationResultFilter:
             self.allowed_categories = set(item["categories"])
             self.allowed_category_groups = set(allowed_category_groups)
         else:
-            self.allowed_categories = set([])
+            self.allowed_categories = set(item["categories"])
             self.allowed_category_groups = set([])
         
     def is_allowed(self, item_dict):
-        #if self.site_id == "xshetuan_com" and self.item_id == "476":
-        #    _track = True
-        #else:
-        #    _track = False
         if not item_dict["available"]:
             return False
-        #print "X_TRACK:1"
         category_groups = self.mongo_client.getCategoryGroups(self.site_id)
         if len(item_dict["categories"]) == 0:
-            #print "X_TRACK:2"
             return True
         else:
-            #print "X_TRACK:3"
             for category in item_dict["categories"]:
-                #print "X_TRACK:4:%s, %s" % (category, self.allowed_categories)
                 if category_groups is not None and category_groups[category] in self.allowed_category_groups:
                     return True
                 elif category in self.allowed_categories:
