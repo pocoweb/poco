@@ -526,7 +526,12 @@ class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
 
     def getRecommendationLog(self, args, req_id, recommended_items):
         log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
-        log["browsing_history"] = args["browsing_history"].split(",")
+        browsing_history = args["browsing_history"]
+        if browsing_history == None:
+            browsing_history = []
+        else:
+            browsing_history = browsing_history.split(",")
+        log["browsing_history"] = browsing_history
         return log
 
     def getTopN(self, site_id, args):
