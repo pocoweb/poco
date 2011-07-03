@@ -29,17 +29,14 @@ class SameGroupRecommendationResultFilter:
         category_groups = mongo_client.getCategoryGroups(site_id)
         allowed_category_groups = []
         item = mongo_client.getItem(site_id, item_id)
-        if category_groups is not None and item is not None:
+        if item is not None:
             for category in item["categories"]:
                 category_group = category_groups.get(category, None)
                 allowed_category_groups.append(category_group)
             self.allowed_categories = set(item["categories"])
             self.allowed_category_groups = set(allowed_category_groups)
         else:
-            if item is not None:
-                self.allowed_categories = set(item["categories"])
-            else:
-                self.allowed_categories = set([])
+            self.allowed_categories = set([])
             self.allowed_category_groups = set([])
         
     def is_allowed(self, item_dict):
@@ -217,7 +214,7 @@ class MongoClient:
         now = time.time()
         c_sites = self.connection["tjb-db"]["sites"]
         site = c_sites.find_one({"site_id": site_id})
-        self.SITE_ID2CATEGORY_GROUPS[site_id] = (site.get("category_groups", None), now)
+        self.SITE_ID2CATEGORY_GROUPS[site_id] = (site.get("category_groups", {}), now)
 
 
     SITE_ID2CATEGORY_GROUPS = {}
