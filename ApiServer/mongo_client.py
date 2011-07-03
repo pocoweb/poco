@@ -19,6 +19,7 @@ class SimpleRecommendationResultFilter:
     def is_allowed(self, item_dict):
         return item_dict["available"]
 
+# Now we intepret items which do not belong to any group in a default group.
 class SameGroupRecommendationResultFilter:
     def __init__(self, mongo_client, site_id, item_id):
         self.mongo_client = mongo_client
@@ -30,12 +31,15 @@ class SameGroupRecommendationResultFilter:
         item = mongo_client.getItem(site_id, item_id)
         if category_groups is not None and item is not None:
             for category in item["categories"]:
-                category_group = category_groups[category]
+                category_group = category_groups.get(category, None)
                 allowed_category_groups.append(category_group)
             self.allowed_categories = set(item["categories"])
             self.allowed_category_groups = set(allowed_category_groups)
         else:
-            self.allowed_categories = set(item["categories"])
+            if item is not None:
+                self.allowed_categories = set(item["categories"])
+            else:
+                self.allowed_categories = set([])
             self.allowed_category_groups = set([])
         
     def is_allowed(self, item_dict):
@@ -46,8 +50,10 @@ class SameGroupRecommendationResultFilter:
             return True
         else:
             for category in item_dict["categories"]:
-                if category_groups is not None and category_groups[category] in self.allowed_category_groups:
-                    return True
+                if category_groups is not None:
+                    item_category_group = category_groups.get(category, None)
+                    if item_category_group in self.allowed_category_groups:
+                        return True
                 elif category in self.allowed_categories:
                     return True
             return False
