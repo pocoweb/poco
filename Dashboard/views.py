@@ -34,6 +34,7 @@ def getSiteStatistics(site_id, days=7):
             row = {"date": the_date_str, "is_available": False}
         else:
             row["is_available"] = True
+	    row["PV_UV"] = "%.2f" % (float(row["PV_V"]) / float(row["UV_V"]))
         result.append(row)
     return result
 
