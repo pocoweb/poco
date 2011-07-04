@@ -40,7 +40,8 @@ _abbr_map = {"vi_": {"action_name": 'V',
                       "full_name": "placeOrder",
                       "index": 7,
                       "u": "user_id",
-                      "o": "order_content"
+                      "o": "order_content",
+                      "i": "order_id"
                     },
               "upi": {"action_name": 'UItem',
                       "full_name": "updateItem",
@@ -123,8 +124,10 @@ def generateALL_ATTR_NAMES_js():
                 attr_names[_abbr_map[request_type][attr_abbr]] = 1
 
     result = "ALL_ATTR_NAMES = {\n"
+    kv_pairs = []
     for attr_name in attr_names.keys():
-        result += "    '%s': 1,\n" % (attr_name)
+        kv_pairs.append("    '%s': 1" % (attr_name))
+    result += ",\n".join(kv_pairs)
     result += "}\n"
 
     return result
@@ -133,19 +136,23 @@ def generateALL_ATTR_NAMES_js():
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
     result = "FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
+    kv_pairs = []
     for request_type in _abbr_map.keys():
         for attr_abbr in _abbr_map[request_type].keys():
             if len(attr_abbr) < 2:
-                result += '    "' + _abbr_map[request_type]["full_name"] + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '",\n'
+                kv_pairs.append('    "' + _abbr_map[request_type]["full_name"] + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '"')
+    result += ",\n".join(kv_pairs)
     result += "}\n"
     return result
 
 def generateFULL_NAME2MASK_js():
     result = "FULL_NAME2MASK = {\n"
     global _abbr_map
+    kv_pairs = []
     for request_type in _abbr_map.keys():
         index = _abbr_map[request_type]["index"]
-        result += '    "' + _abbr_map[request_type]["full_name"] + '" : ' + str(2 ** (index - 1)) + ',\n'
+        kv_pairs.append('    "' + _abbr_map[request_type]["full_name"] + '" : ' + str(2 ** (index - 1)))
+    result += ",\n".join(kv_pairs)
     result += "}\n"
     return result
 

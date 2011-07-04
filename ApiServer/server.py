@@ -293,6 +293,7 @@ class PlaceOrderProcessor(ActionProcessor):
          ("user_id", True),
          # order_content Format: item_id,price,amount|item_id,price,amount
          ("order_content", True), 
+         ("order_id", False)
         )
     )
 
@@ -306,7 +307,8 @@ class PlaceOrderProcessor(ActionProcessor):
 
     def process(self, site_id, args):
         self.logAction(site_id, args,
-                       {"user_id": args["user_id"], 
+                       {"user_id":  args["user_id"], 
+                        "order_id": args["order_id"],
                         "order_content": self._convertOrderContent(args["order_content"])})
         mongo_client.updateUserPurchasingHistory(site_id=site_id, user_id=args["user_id"])
         return {"code": 0}
