@@ -137,6 +137,17 @@ class RefererRecordingTest(BaseTestCase):
              "referer": None,
              "tjbid": tjbid, "item_id": item_id})
 
+class NotLogActionTest(BaseTestCase):
+    def test(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        result, response_tuijianbaoid = api_access("/viewItem",
+            {"api_key": API_KEY, "item_id": item_id, "user_id": user_id,
+             "not_log_action": "yes"},
+            return_tuijianbaoid=True, extra_headers={"Referer": "http://blah"})
+        self.assertEquals(result, {"code": 0})
+        self.assertCurrentLinesCount(0)
+
 
 
 class ViewItemTest(BaseTestCase):

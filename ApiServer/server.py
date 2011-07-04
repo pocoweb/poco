@@ -115,7 +115,8 @@ class TjbIdEnabledHandlerMixin:
 class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     processor_class = None
     def process(self, site_id, args):
-        processor = self.processor_class()
+        not_log_action = args.has_key("not_log_action")
+        processor = self.processor_class(not_log_action)
         err_msg, args = processor.processArgs(args)
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
@@ -129,15 +130,20 @@ class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
 
 class ActionProcessor:
     action_name = None
+
+    def __init__(self, not_log_action=False):
+        self.not_log_action = not_log_action
+
     def logAction(self, site_id, args, action_content, tjb_id_required=True):
-        assert self.action_name != None
-        if tjb_id_required:
-            assert args.has_key("tuijianbaoid")
-            action_content["tjbid"] = args["tuijianbaoid"]
-        action_content["referer"] = args.get("referer", None)
-        action_content["behavior"] = self.action_name
-        logWriter.writeEntry(site_id,
-            action_content)
+        if not self.not_log_action:
+            assert self.action_name != None
+            if tjb_id_required:
+                assert args.has_key("tuijianbaoid")
+                action_content["tjbid"] = args["tuijianbaoid"]
+            action_content["referer"] = args.get("referer", None)
+            action_content["behavior"] = self.action_name
+            logWriter.writeEntry(site_id,
+                action_content)
 
     def processArgs(self, args):
         return self.ap.processArgs(args)
