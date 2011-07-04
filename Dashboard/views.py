@@ -193,7 +193,7 @@ def _getCurrentUser(request):
     else:
         return None
 
-
+import os.path
 def serve_jquery(request):
     file_path = os.path.join(os.path.dirname(__file__), 'static/jquery-1.6.1.min.js')
     return HttpResponse(open(file_path, "r").read())
