@@ -743,6 +743,28 @@ class PlaceOrderTest(BaseTestCase):
         BaseTestCase.setUp(self)
         self.cleanUpPurchasingHistory()
 
+    def test_placeOrderWithOrderId(self):
+        self.assertPurchasingHistoryCount(0)
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "guagua",
+                 "order_content": "3,2.5,1|5,1.3,2",
+                 "order_id": "ORDER_ID"},
+                 return_tuijianbaoid=True)
+        self.assertEquals(result, {"code": 0})
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "PLO",
+             "user_id": "guagua",
+             "tjbid": response_tuijianbaoid,
+             "order_content": [{"item_id": "3", "price": "2.5", "amount": "1"},
+                               {"item_id": "5", "price": "1.3", "amount": "2"}
+                               ],
+             "order_id": "ORDER_ID"})
+        self.assertPurchasingHistoryCount(1)
+        self.assertSomeKeys(self.readLastLine("purchasing_history"), 
+                {"purchasing_history": ['3', '5'],
+                 "user_id": "guagua"})
+
+
     def test_PlaceOrder(self):
         self.assertPurchasingHistoryCount(0)
         result, response_tuijianbaoid = api_access("/placeOrder", 
@@ -756,7 +778,8 @@ class PlaceOrderTest(BaseTestCase):
              "tjbid": response_tuijianbaoid,
              "order_content": [{"item_id": "3", "price": "2.5", "amount": "1"},
                                {"item_id": "5", "price": "1.3", "amount": "2"}
-                               ]
+                               ],
+             "order_id": None
             })
         self.assertPurchasingHistoryCount(1)
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
