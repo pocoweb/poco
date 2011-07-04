@@ -26,6 +26,9 @@ for site in connection["tjb-db"]["sites"].find():
         if row.has_key("tuijianbaoid"):
             raw_logs.update(row,
                 {"$set": {"tjbid": row["tuijianbaoid"]}})
+        if not row.has_key("order_id"):
+            raw_logs.update(row,
+                {"$set": {"order_id": None}})
 print "=======================\n"
 
 
