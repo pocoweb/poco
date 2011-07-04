@@ -18,9 +18,30 @@
     <li>商品价格：{{item.price}}</li>
 </ul>
 
-看了本商品的用户还看了：
+看了本商品的顾客还看了：
 <ol>
 {% for topn_item in getAlsoViewed %}
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+{% endfor %}
+</ol>
+
+买了本商品的顾客还买了：
+<ol>
+{% for topn_item in getAlsoBought %}
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+{% endfor %}
+</ol>
+
+经常和本商品一起买的：
+<ol>
+{% for topn_item in getBoughtTogether %}
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+{% endfor %}
+</ol>
+
+看了本商品最终购买：
+<ol>
+{% for topn_item in getUltimatelyBought %}
     <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
 {% endfor %}
 </ol>

@@ -78,8 +78,39 @@ def site_items_list(request):
              "user_name": request.session["user_name"],
              "items": items_cur})
 
-#from common.utils import APIAccess
-#api_access = APIAccess(settings.api_server_name, settings.api_server_port)
+
+import cgi
+import urlparse
+from common.utils import APIAccess
+api_access = APIAccess(settings.api_server_name, settings.api_server_port)
+
+
+def _getItemIdFromRedirectUrl(redirect_url):
+    parsed_qs = cgi.parse_qs(urlparse.urlparse(redirect_url).query)
+    item_id = parsed_qs["item_id"][0]
+    return item_id
+
+
+def _getTopnByAPI(site, path, item_id, amount):
+    result = api_access("/%s" % path,
+               {"api_key": site["api_key"],
+                "item_id": item_id,
+                "user_id": "null",
+                "amount": amount,
+                "not_log_action": "yes",
+                "include_item_info": "yes"}
+               )
+    if result["code"] == 0:
+        topn = result["topn"]
+        for topn_item in topn:
+            topn_item["item_link"] = "/show_item?site_id=%s&item_id=%s" % (site["site_id"], _getItemIdFromRedirectUrl(topn_item["item_link"]))
+        return topn
+
+def _getUltimatelyBought(site, item_id, amount):
+    topn = _getTopnByAPI(site, "getUltimatelyBought", item_id, 15)
+    for topn_item in topn:
+        topn_item["score"] = "%.1f%%" % (topn_item["score"] * 100)
+    return topn
 
 @login_required
 def show_item(request):
@@ -89,14 +120,13 @@ def show_item(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
-    topn = mongo_client.recommend_viewed_also_view(site_id, "V", item_id)
-    def url_converter(url, site_id, item_id, req_id):
-        return "/show_item?site_id=%s&item_id=%s" % (site_id, item_id)
-    topn = mongo_client.convertTopNFormat(site_id, "null", topn, 15, url_converter=url_converter)
-    for topn_item in topn:
-        topn_item["score"] = float(topn_item["score"])
     return render_to_response("show_item.html",
-        {"item": item_in_db, "user_name": request.session["user_name"], "getAlsoViewed": topn})
+        {"item": item_in_db, "user_name": request.session["user_name"], 
+         "getAlsoViewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
+         "getAlsoBought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
+         "getBoughtTogether": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),
+         "getUltimatelyBought": _getUltimatelyBought(site, item_id, 15)
+         })
 
 
 def loadCategoryGroupsSrc(site_id):
