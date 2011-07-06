@@ -14,6 +14,9 @@
             {% if not is_add_site %} API Key: {{ data.api_key }} <br /> {% endif %}
             Calculation Interval: <input type="text" name="calc_interval" value="{{ data.calc_interval }}"><br />
             Disabled Flows: <input type="text" name="disabledFlowsFormatted" value="{{ data.disabledFlowsFormatted }}"><br />
+            Algorithm Type: <input type="radio" name="algorithm_type" value="amc" {% if data.algorithm_type == "amc" %}checked{% endif %} /> Amazon Counting
+                            <input type="radio" name="algorithm_type" value="llh" {% if data.algorithm_type == "llh" %}checked{% endif %} /> Logilikelihood
+            <br />
             <input type="submit" name="submit" value="Save">
             {% csrf_token %}
         </form>

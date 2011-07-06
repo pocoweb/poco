@@ -81,4 +81,7 @@ for site in sites.find():
     if not site.has_key("disabledFlows"):
         sites.update({"site_id": site["site_id"]},
                     {"$set": {"disabledFlows": []}})
+    if not site.has_key("algorithm_type"):
+        sites.update({"site_id": site["site_id"]},
+                    {"$set": {"algorithm_type": "llh"}})
 print "=======================\n"

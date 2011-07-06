@@ -165,10 +165,13 @@ class BaseSimilarityCalcFlow(BaseFlow):
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
         self.jobs += self.getExtractUserItemMatrixJobs() + [self.do_sort_user_item_matrix,
+                      self.do_calc_item_prefer_count,
+                      self.do_calc_user_count,
                       self.do_emit_cooccurances,
                       self.do_sort_cooccurances,
                       self.do_count_cooccurances,
-                      self.do_format_item_similarities,
+                      self.do_format_cooccurances_counts,
+                      self.do_calc_item_similarities,
                       self.do_make_item_similarities_bi_directional,
                       self.do_sort_item_similarities_bi_directional,
                       self.do_extract_top_n,
@@ -179,6 +182,20 @@ class BaseSimilarityCalcFlow(BaseFlow):
         input_path  = os.path.join(self.work_dir, "user_item_matrix")
         output_path = os.path.join(self.work_dir, "user_item_matrix_sorted")
         self._exec_shell("sort %s > %s" % (input_path, output_path))
+
+
+    def do_calc_item_prefer_count(self):
+        if SITE["algorithm_type"] == "llh":
+            input_path  = os.path.join(self.work_dir, "user_item_matrix_sorted")
+            output_path = os.path.join(self.work_dir, "item_prefer_count")
+            self._exec_shell("cut -d , -f 2 %s | sort | uniq -c > %s" % (input_path, output_path))
+
+
+    def do_calc_user_count(self):
+        if SITE["algorithm_type"] == "llh":
+            input_path  = os.path.join(self.work_dir, "user_item_matrix_sorted")
+            output_path = os.path.join(self.work_dir, "user_count")
+            self._exec_shell("cut -d , -f 1 %s | uniq | wc -l > %s" % (input_path, output_path))
 
 
     def do_emit_cooccurances(self):
@@ -196,16 +213,28 @@ class BaseSimilarityCalcFlow(BaseFlow):
 
     def do_count_cooccurances(self):
         input_path  = os.path.join(self.work_dir, "cooccurances_sorted")
-        output_path = os.path.join(self.work_dir, "item_similarities_raw")
+        output_path = os.path.join(self.work_dir, "cooccurances_counts_raw")
         self._exec_shell("uniq -c %s > %s" % (input_path, output_path))
 
 
-    def do_format_item_similarities(self):
+    def do_format_cooccurances_counts(self):
         from similarity_calculation.amazon.format_item_similarities import format_item_similarities
-        input_path  = os.path.join(self.work_dir, "item_similarities_raw")
-        output_path = os.path.join(self.work_dir, "item_similarities_formatted")
+        input_path  = os.path.join(self.work_dir, "cooccurances_counts_raw")
+        output_path = os.path.join(self.work_dir, "cooccurances_counts_formatted")
         format_item_similarities(input_path, output_path)
 
+    def do_calc_item_similarities(self):
+        if SITE["algorithm_type"] == "llh":
+            from similarity_calculation.loglikelihood.calc_loglikelihood import calc_loglikelihood
+            cooccurances_counts_path = os.path.join(self.work_dir, "cooccurances_counts_formatted")
+            user_counts_path = os.path.join(self.work_dir, "user_count")
+            item_prefer_count_path = os.path.join(self.work_dir, "item_prefer_count")
+            output_path = os.path.join(self.work_dir, "item_similarities_formatted")
+            calc_loglikelihood(cooccurances_counts_path, user_counts_path, item_prefer_count_path, output_path)
+        else:
+            input_path = os.path.join(self.work_dir,  "cooccurances_counts_formatted")
+            output_path = os.path.join(self.work_dir, "item_similarities_formatted")
+            self._exec_shell("mv %s %s" % (input_path, output_path))
 
     def do_make_item_similarities_bi_directional(self):
         from similarity_calculation.make_similarities_bidirectional import make_similarities_bidirectional
@@ -400,17 +429,6 @@ viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
 viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 
-#finish_flow = FinishFlow()
-#finish_flow.dependOn(similarity_calc_flow)
-
-# TODO: use calculation_id in logs.
-
-
-# CALCULATION_RECORD = {"id": "", "begin_timestamp": "", "end_timestamp": "", "is_successful": "",
-#                        "flows": {
-#                               "<flow_name>": {"begin_timestamp": "", "end_timestamp": "", "is_successful": <>, "failed_job_name": ""}
-#                         }
-#                      }
 
 def createCalculationRecord(site_id):
     connection = pymongo.Connection(settings.mongodb_host)
@@ -509,10 +527,12 @@ def workOnSite(site, is_manual_calculation=False):
     now = time.time()
     if is_manual_calculation or site.get("last_update_ts", None) is None \
         or now - site.get("last_update_ts") > site["calc_interval"]:
+        global SITE
         global SITE_ID
         global DISABLEDFLOWS
         global CALCULATION_ID
         global CALC_SUCC
+        SITE = site
         SITE_ID = site["site_id"]
         DISABLEDFLOWS = site.get("disabledFlows", [])
         CALC_SUCC = True
