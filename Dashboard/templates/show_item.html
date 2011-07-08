@@ -10,7 +10,7 @@
 </style>
 </head>
 <body>
-<h1>Dash Board</h1>
+<h1>Dashboard</h1>
 <p>用户名： {{ user_name }} <a href="/logout">登出</a></p>
 
 <ul>
@@ -21,21 +21,21 @@
 看了本商品的顾客还看了：
 <ol>
 {% for topn_item in getAlsoViewed %}
-    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a></li>
 {% endfor %}
 </ol>
 
 买了本商品的顾客还买了：
 <ol>
 {% for topn_item in getAlsoBought %}
-    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a></li>
 {% endfor %}
 </ol>
 
 经常和本商品一起买的：
 <ol>
 {% for topn_item in getBoughtTogether %}
-    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+    <li><a style="{% if topn_item.score > 4.0 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a></li>
 {% endfor %}
 </ol>
 

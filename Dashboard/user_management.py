@@ -79,6 +79,13 @@ def cmd_updateSite():
     sites = _inputSites()
     users.update({"user_name": user["user_name"]}, {"$set": {"sites": sites}})
 
+def cmd_addSite():
+    user = _enterExistedUser()
+    sites = user["sites"]
+    sites = sites + _inputSites()
+    sites = list(set(sites))
+    sites.sort()
+    users.update({"user_name": user["user_name"]}, {"$set": {"sites": sites}})
 
 def cmd_showUserInfo():
     user = _enterExistedUser()
@@ -88,7 +95,8 @@ while True:
     print "1. create New User"
     print "2. generate New Password"
     print "3. update managed sites"
-    print "4. show user info"
+    print "4. add managed sites"
+    print "5. show user info"
     cmd = raw_input("enter a number:").strip()
     if cmd == "1":
         cmd_createNewUser()
@@ -97,4 +105,6 @@ while True:
     elif cmd == "3":
         cmd_updateSite()
     elif cmd == "4":
+        cmd_addSite()   
+    elif cmd == "5":
         cmd_showUserInfo()
