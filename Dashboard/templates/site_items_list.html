@@ -1,23 +1,13 @@
-<html>
-<head>
-<style>
-    td.num {
-        text-align: right;
-    }
-    td.na {
-        text-align: right;
-    }
-</style>
-</head>
-<body>
-<h1>Dash Board</h1>
-<p>用户名： {{ user_name }} <a href="/logout">登出</a></p>
-<h2>Site: {{ site.site_name }} (已收录{{items_count}}件商品)</h2>
-<table>
-<tr><th>商品名称</th><th>价格</th></tr>
-{% for item in items %}
-    <tr><td><a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}">{{item.item_name}}</a></td><td>{{item.price}}</td></tr>
-{% endfor %}
-</table>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block breadscrumb %}<a href="/">首页</a> &gt;&gt; {{site.site_name}}商品列表{% endblock %}
+
+{% block content-area %}
+    <p>共收录{{items_count}}件商品</p>
+    <table>
+    <tr><th>商品名称</th><th>价格</th></tr>
+    {% for item in items %}
+        <tr><td><a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}">{{item.item_name}}</a></td><td>{{item.price}}</td></tr>
+    {% endfor %}
+    </table>
+{% endblock %}

@@ -1,0 +1,20 @@
+<html>
+<head>
+<style>
+{% block style %} {% endblock %}
+</style>
+<title>{{page_name}} | Dashboard</title>
+{% block head %}
+{% endblock %}
+</head>
+<body>
+<h1>{{page_name}}</h1>
+<div>{% block breadscrumb %}{% endblock %}</div>
+<p>用户名： {{ user_name }} <a href="/logout">登出</a></p>
+
+<div id="content-area">
+{% block content-area %}{% endblock content-area %}
+</div>
+
+</body>
+</html>

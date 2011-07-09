@@ -1,42 +1,38 @@
-<html>
-<head>
-<style>
+{% extends "base.html" %}
+
+{% block style %}
     td.num {
         text-align: right;
     }
     td.na {
         text-align: right;
     }
-</style>
-</head>
-<body>
-<h1>Dashboard</h1>
-<p>用户名： {{ user_name }} <a href="/logout">登出</a></p>
+{% endblock %}
 
-{% for site in sites %}
-<h2>{{site.site_name}}</h2>
-收录{{site.items_count}}件商品，<a href="/site_items_list?site_id={{site.site_id}}">查看详情</a><br/>
-<a href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
-<table>
-<tr><th>时间段</th><th>商品PV</th><th>商品UV</th><th>PV/UV</th><th>订单数</th><th>推荐请求数</th><th>推荐点击数</th></tr>
+{% block content-area %}
+    {% for site in sites %}
+    <h2>{{site.site_name}}</h2>
+    收录{{site.items_count}}件商品，<a href="/site_items_list?site_id={{site.site_id}}">查看详情</a><br/>
+    <a href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
+    <table>
+    <tr><th>时间段</th><th>商品PV</th><th>商品UV</th><th>PV/UV</th><th>订单数</th>
+        <th>推荐请求数</th><th>推荐点击数</th></tr>
+        {% for stat_row in site.statistics %}
+        {% if stat_row.is_available %}
+            <tr>
+        <td>{{stat_row.date}}</td>
+        <td class="num">{{stat_row.PV_V}}</td>
+        <td class="num">{{stat_row.UV_V}}</td>
+        <td class="num">{{stat_row.PV_UV}}</td>
+        <td class="num">{{stat_row.PV_PLO}}</td>
+        <td class="num">{{stat_row.PV_Rec}}</td>
+            <td class="num">{{stat_row.ClickRec}}</td>
+            </tr>
+        {% else %}
+            <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
+        {% endif %}
+        {% endfor %}
 
-    {% for stat_row in site.statistics %}
-    {% if stat_row.is_available %}
-        <tr>
-	<td>{{stat_row.date}}</td>
-	<td class="num">{{stat_row.PV_V}}</td>
-	<td class="num">{{stat_row.UV_V}}</td>
-	<td class="num">{{stat_row.PV_UV}}</td>
-	<td class="num">{{stat_row.PV_PLO}}</td>
-	<td class="num">{{stat_row.PV_Rec}}</td>
-        <td class="num">{{stat_row.ClickRec}}</td>
-        </tr>
-    {% else %}
-        <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
-    {% endif %}
+    </table>
     {% endfor %}
-
-</table>
-{% endfor %}
-</body>
-</html>
+{% endblock %}

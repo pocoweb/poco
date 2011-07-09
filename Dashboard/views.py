@@ -1,3 +1,4 @@
+# coding=utf-8
 import sys
 sys.path.insert(0, "../")
 import hashlib
@@ -61,7 +62,8 @@ def index(request):
     for site in sites:
         site["items_count"] = getItemsAndCount(connection, site["site_id"])[1]
         site["statistics"] = getSiteStatistics(site["site_id"])
-    return render_to_response("index.html", {"sites": sites, "user_name": user_name})
+    return render_to_response("index.html", 
+            {"page_name": "首页", "sites": sites, "user_name": user_name})
 
 
 def getItemsAndCount(connection, site_id):
@@ -78,7 +80,8 @@ def site_items_list(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     items_cur, items_count = getItemsAndCount(connection, site_id)
     return render_to_response("site_items_list.html", 
-            {"site": site, "items_count": items_count,
+            {"page_name": u"%s商品列表" % site["site_name"],
+             "site": site, "items_count": items_count,
              "user_name": request.session["user_name"],
              "items": items_cur})
 
@@ -125,7 +128,9 @@ def show_item(request):
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
     return render_to_response("show_item.html",
-        {"item": item_in_db, "user_name": request.session["user_name"], 
+        {"page_name": item_in_db["item_name"],
+         "site": site,
+         "item": item_in_db, "user_name": request.session["user_name"], 
          "getAlsoViewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
          "getAlsoBought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
          "getBoughtTogether": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),
@@ -142,10 +147,14 @@ from common.utils import updateCategoryGroups
 @login_required
 def update_category_groups(request):
     if request.method == "GET":
+        connection = getConnection()
         site_id = request.GET["site_id"]
+        site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         category_groups_src = loadCategoryGroupsSrc(site_id)
         return render_to_response("update_category_groups.html",
-                {"site_id": site_id, "category_groups_src": category_groups_src})
+                {"site_id": site_id, "category_groups_src": category_groups_src,
+                 "user_name": request.session["user_name"],
+                 "page_name": u"编辑%s分类组别" % site["site_name"]})
 
 
 #from django.views.decorators.csrf import csrf_exempt
