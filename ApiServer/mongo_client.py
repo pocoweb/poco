@@ -8,8 +8,6 @@ from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
 from common.utils import sign
 
-import settings
-
 
 class UpdateSiteError(Exception):
     pass
