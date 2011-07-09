@@ -92,7 +92,7 @@ class PreprocessingFlow(BaseFlow):
         from preprocessing import backfiller
         last_ts = None # FIXME: load correct last_ts from somewhere
         connection = pymongo.Connection(settings.mongodb_host)
-        bf = backfiller.BackFiller(connection, SITE_ID, last_ts, 
+        bf = backfiller.BackFiller(connection, SITE_ID, last_ts,
                     os.path.join(settings.work_dir, "reversed_backfilled_raw_logs"))
         last_ts = bf.start() # FIXME: save last_ts somewhere 
 
@@ -115,6 +115,7 @@ class StatisticsFlow(BaseFlow):
                       self.do_count_behavior_by_unique_visitor,
                       self.do_upload_count_behavior_by_unique_visitor]
 
+    # Begin Count Behaviors
     def do_behavior_date_row(self):
         from statistics import behavior_date_row
         input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
@@ -132,7 +133,9 @@ class StatisticsFlow(BaseFlow):
         from statistics import upload_count_behaviors
         input_path  = os.path.join(self.work_dir, "count_by_behavior_date")
         upload_count_behaviors.upload_count_behaviors(connection, SITE_ID, input_path)
+    # End Count Behaviors
 
+    # Begin Count "behavior by unique visitor"
     def do_extract_behavior_date_tjbid(self):
         from statistics import extract_behavior_date_tjbid
         input_path  = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
@@ -154,7 +157,14 @@ class StatisticsFlow(BaseFlow):
         connection = pymongo.Connection(settings.mongodb_host)
         from statistics import upload_count_behaviors_by_unique_visitors
         input_path  = os.path.join(self.work_dir, "unique_visit_by_behavior_date")
-        upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)        
+        upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
+    # End Count "behavior by unique visitor"
+
+    # Begin Count "daily item pv coverage"
+    #def do_calc_daily_item_pv_coverage(self):
+    #    from statistics.calc_daily_item_pv_coverage import calc_daily_item_pv_coverage
+    #
+    # End Count   "daily item pv coverage"
 
 
 class BaseSimilarityCalcFlow(BaseFlow):

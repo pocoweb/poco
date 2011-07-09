@@ -1,0 +1,19 @@
+
+== Configure Hive ==
+Currently, we use standalone hadoop, so we need to do following configuration:
+environment variables:
+    HIVE_HOME, HADOOP_HOME
+
+Hadoop:
+    make sure it is configured as in standalone mode.
+    mapred.job.tracker=local
+    mapred.local.dir
+
+Hive configuration:
+    and how to make it use another tmp dir instead of /tmp?
+    hive.metastore.warehouse.dir
+
+== Start Hive Server ==
+<hive installation>/bin/hive --service hiveserver
+
+put "<hive installation>/lib/py" on the python path.

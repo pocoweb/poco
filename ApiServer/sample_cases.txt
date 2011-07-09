@@ -1,3 +1,8 @@
+curl 'http://localhost:6671/1.0/getAlsoViewed?user_id=null&item_id=1110&api_key=196655ab&amount=5&include_item_info=yes&not_log_action=yes'
+
+curl 'http://api.tuijianbao.net/1.0/getAlsoViewed?user_id=null&item_id=1110&api_key=196655ab&amount=5&include_item_info=yes&not_log_action=yes'
+
+
 curl 'http://127.0.0.1:5588/tui/viewItem?site_id=demo1&user_id=jfdkfjlsfjdslfjsdklfjdslk&item_id=kdjflksjfkldsj'
 
 ab -n 5000 -c 50 -C "tuijianbaoid=9ca7fd21-9f5a-4d47-8a03-c697d126e0f5" 'http://127.0.0.1:5588/tui/viewItem?site_id=demo1&user_id=jfdkfjlsfjdslfjsdklfjdslk&item_id=kdjflksjfkldsj'
