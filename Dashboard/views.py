@@ -60,30 +60,40 @@ def index(request):
     user = c_users.find_one({"user_name": user_name})
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
     for site in sites:
-        site["items_count"] = getItemsAndCount(connection, site["site_id"])[1]
+        site["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
         site["statistics"] = getSiteStatistics(site["site_id"])
     return render_to_response("index.html", 
             {"page_name": "首页", "sites": sites, "user_name": user_name})
 
 
-def getItemsAndCount(connection, site_id):
+# TODO: let's use ranged query later.  as described here: http://stackoverflow.com/questions/5049992/mongodb-paging
+# For now, we use skip + limit
+PAGE_SIZE = 50
+def getItemsAndCount(connection, site_id, page_num):
     c_items = getSiteDBCollection(connection, site_id, "items")
-    items_cur = c_items.find({"available": True})
+    items_cur = c_items.find({"available": True}).sort("item_name", 1)
     items_count = items_cur.count()
+    items_cur.skip((page_num - 1) * PAGE_SIZE).limit(PAGE_SIZE)
     return items_cur, items_count
 
 
 @login_required
 def site_items_list(request):
     site_id = request.GET["site_id"]
+    page_num = int(request.GET.get("page_num", "1"))
     connection = getConnection()
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
-    items_cur, items_count = getItemsAndCount(connection, site_id)
+    items_cur, items_count = getItemsAndCount(connection, site_id, page_num)
+    max_page_num = items_count / PAGE_SIZE
+    if items_count % PAGE_SIZE > 0:
+        max_page_num += 1
     return render_to_response("site_items_list.html", 
             {"page_name": u"%s商品列表" % site["site_name"],
              "site": site, "items_count": items_count,
              "user_name": request.session["user_name"],
-             "items": items_cur})
+             "items": items_cur,
+             "page_num": page_num,
+             "page_nums": xrange(1, max_page_num + 1)})
 
 
 import cgi
