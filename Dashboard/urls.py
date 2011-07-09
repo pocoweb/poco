@@ -1,4 +1,6 @@
 from django.conf.urls.defaults import patterns, include, url
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
@@ -21,5 +23,6 @@ urlpatterns = patterns('',
     url(r'^show_item$', 'Dashboard.views.show_item'),
     url(r'^update_category_groups$', 'Dashboard.views.update_category_groups'),
     url(r'^ajax/update_category_groups$', 'Dashboard.views.ajax_update_category_groups'),
-    url(r'^s/jquery-1.6.1.min.js$', 'Dashboard.views.serve_jquery')
 )
+
+urlpatterns += staticfiles_urlpatterns()

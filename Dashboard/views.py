@@ -63,7 +63,8 @@ def index(request):
         site["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
         site["statistics"] = getSiteStatistics(site["site_id"])
     return render_to_response("index.html", 
-            {"page_name": "首页", "sites": sites, "user_name": user_name})
+            {"page_name": "首页", "sites": sites, "user_name": user_name},
+            context_instance=RequestContext(request))
 
 
 # TODO: let's use ranged query later.  as described here: http://stackoverflow.com/questions/5049992/mongodb-paging
@@ -93,7 +94,8 @@ def site_items_list(request):
              "user_name": request.session["user_name"],
              "items": items_cur,
              "page_num": page_num,
-             "page_nums": xrange(1, max_page_num + 1)})
+             "page_nums": xrange(1, max_page_num + 1)},
+             context_instance=RequestContext(request))
 
 
 import cgi
@@ -145,7 +147,8 @@ def show_item(request):
          "getAlsoBought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
          "getBoughtTogether": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),
          "getUltimatelyBought": _getUltimatelyBought(site, item_id, 15)
-         })
+         },
+         context_instance=RequestContext(request))
 
 
 def loadCategoryGroupsSrc(site_id):
@@ -164,7 +167,8 @@ def update_category_groups(request):
         return render_to_response("update_category_groups.html",
                 {"site_id": site_id, "category_groups_src": category_groups_src,
                  "user_name": request.session["user_name"],
-                 "page_name": u"编辑%s分类组别" % site["site_name"]})
+                 "page_name": u"编辑%s分类组别" % site["site_name"]},
+                 context_instance=RequestContext(request))
 
 
 #from django.views.decorators.csrf import csrf_exempt
@@ -215,7 +219,3 @@ def _getCurrentUser(request):
     else:
         return None
 
-import os.path
-def serve_jquery(request):
-    file_path = os.path.join(os.path.dirname(__file__), 'static/jquery-1.6.1.min.js')
-    return HttpResponse(open(file_path, "r").read())
