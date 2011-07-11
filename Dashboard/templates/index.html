@@ -13,28 +13,43 @@
 <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="{{STATIC_URL}}flot-0.7/excanvas.min.js"></script><![endif]-->
 <script src="{{STATIC_URL}}flot/jquery.flot.js" type="text/javascript"></script>
 <script type="text/javascript">
+    function fillChart(site_id, statistics) {
+        var d1 = [];
+        var ticks = [];
+        $.each(statistics, function(idx, stat_row) {
+            d1.push([idx, stat_row.PV_V]);
+            ticks.push([idx, stat_row["date"]]);
+        });
+            
+        var options = {
+            lines: {show: true},
+            points: {show: true },
+            xaxis: {
+                ticks: ticks,
+            }
+        };
+
+        $.plot($("#chart-" + site_id), [d1], options);
+    };
+
+    function updateSiteStatistics(site_ids_array) {
+        var site_ids_str = site_ids_array.join(',');
+        $.getJSON("/ajax/get_site_statistics", {"site_ids_str": site_ids_str},
+                function(data, textStatus, jqXHR) {
+                    $.each(data, function(idx, site_data) {
+                        $("#items-count-" + site_data.site_id).html(site_data["items_count"]);
+                        fillChart(site_data.site_id, site_data.statistics);
+                    });
+                }
+            );
+    };
+    
     $(function() {
         $("#accordion").accordion();
         {% for site in sites %}
             $("#sitetab-{{site.site_id}}").tabs();
         {% endfor %}
         
-        var d1;
-        {% for site in sites %}
-            d1 = [];
-            /*{% for stat_row in site.statistics %}
-                d1.push(["{{stat_row.date}}", {{stat_row.PV_V}}]);
-            {% endfor %} */
-            d1 = [[0,1], [1,2], [2,3], [3,4]];
-            var options = {
-                lines: {show: true},
-                points: {show: true },
-                xaxis: {
-                    ticks: [[0, "A"], [1, "B"], [2, "C"], [3, "D"]]
-                }
-            };
-            $.plot($("#chart-{{site.site_id}}"), [d1], options);
-        {% endfor %}
     });
 </script>
 {% endblock %}
@@ -44,12 +59,12 @@
     {% for site in sites %}
     <h3><a href="#">{{site.site_name}}</a></h3>
     <div>
-        收录商品数：{{site.items_count}}
+        收录商品数：<span id="items-count-{{site.site_id}}">N/A</span>
         <div id="sitetab-{{site.site_id}}">
             <ul>
             <li><a href="#sitetab-{{site.site_id}}-chart">商品图表</a></li>
             <li><a href="#sitetab-{{site.site_id}}-2"> 查看商品列表</a></li>
-            <li><a href="#sitetab-{{site.site_id}}-3">编辑商品分类组别</a></li>              
+            <li><a href="#sitetab-{{site.site_id}}-3">编辑商品分类组别</a></li>
             </ul>
             <div id="sitetab-{{site.site_id}}-chart">
                 <table>

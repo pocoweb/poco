@@ -61,17 +61,20 @@ def index(request):
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
     for site in sites:
         site["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
-        site["statistics"] = getSiteStatistics(site["site_id"])
+        #site["statistics"] = getSiteStatistics(site["site_id"])
     return render_to_response("index.html", 
             {"page_name": "首页", "sites": sites, "user_name": user_name},
             context_instance=RequestContext(request))
 
 @login_required
 def ajax_get_site_statistics(request):
-    site_id = request.GET["site_id"]
-    result = {}
-    result["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
-    result["statistics"] = getSiteStatistics(site["site_id"])
+    site_ids_str = request.GET["site_ids_str"]
+    site_ids = site_ids_str.split(',')
+    result = []
+    for site_id in site_ids:
+        result.append({"site_id": site_id,
+                       "items_count": getItemsAndCount(connection, site_id, 0)[1],
+                       "statistics": getSiteStatistics(site_id)})
     return HttpResponse(json.dumps(result))
 
 
