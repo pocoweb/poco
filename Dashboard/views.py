@@ -66,6 +66,15 @@ def index(request):
             {"page_name": "首页", "sites": sites, "user_name": user_name},
             context_instance=RequestContext(request))
 
+@login_required
+def ajax_get_site_statistics(request):
+    site_id = request.GET["site_id"]
+    result = {}
+    result["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
+    result["statistics"] = getSiteStatistics(site["site_id"])
+    return HttpResponse(json.dumps(result))
+
+
 
 # TODO: let's use ranged query later.  as described here: http://stackoverflow.com/questions/5049992/mongodb-paging
 # For now, we use skip + limit

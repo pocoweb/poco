@@ -9,30 +9,76 @@
     }
 {% endblock %}
 
-{% block content-area %}
-    {% for site in sites %}
-    <h2>{{site.site_name}}</h2>
-    收录{{site.items_count}}件商品，<a href="/site_items_list?site_id={{site.site_id}}">查看详情</a><br/>
-    <a href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
-    <table>
-    <tr><th>时间段</th><th>商品PV</th><th>商品UV</th><th>PV/UV</th><th>订单数</th>
-        <th>推荐请求数</th><th>推荐点击数</th></tr>
-        {% for stat_row in site.statistics %}
-        {% if stat_row.is_available %}
-            <tr>
-        <td>{{stat_row.date}}</td>
-        <td class="num">{{stat_row.PV_V}}</td>
-        <td class="num">{{stat_row.UV_V}}</td>
-        <td class="num">{{stat_row.PV_UV}}</td>
-        <td class="num">{{stat_row.PV_PLO}}</td>
-        <td class="num">{{stat_row.PV_Rec}}</td>
-            <td class="num">{{stat_row.ClickRec}}</td>
-            </tr>
-        {% else %}
-            <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
-        {% endif %}
+{% block head %}
+<!--[if lte IE 8]><script language="javascript" type="text/javascript" src="{{STATIC_URL}}flot-0.7/excanvas.min.js"></script><![endif]-->
+<script src="{{STATIC_URL}}flot/jquery.flot.js" type="text/javascript"></script>
+<script type="text/javascript">
+    $(function() {
+        $("#accordion").accordion();
+        {% for site in sites %}
+            $("#sitetab-{{site.site_id}}").tabs();
         {% endfor %}
+        
+        var d1;
+        {% for site in sites %}
+            d1 = [];
+            /*{% for stat_row in site.statistics %}
+                d1.push(["{{stat_row.date}}", {{stat_row.PV_V}}]);
+            {% endfor %} */
+            d1 = [[0,1], [1,2], [2,3], [3,4]];
+            var options = {
+                lines: {show: true},
+                points: {show: true },
+                xaxis: {
+                    ticks: [[0, "A"], [1, "B"], [2, "C"], [3, "D"]]
+                }
+            };
+            $.plot($("#chart-{{site.site_id}}"), [d1], options);
+        {% endfor %}
+    });
+</script>
+{% endblock %}
 
-    </table>
+{% block content-area %}
+<div id="accordion">
+    {% for site in sites %}
+    <h3><a href="#">{{site.site_name}}</a></h3>
+    <div>
+        收录商品数：{{site.items_count}}
+        <div id="sitetab-{{site.site_id}}">
+            <ul>
+            <li><a href="#sitetab-{{site.site_id}}-chart">商品图表</a></li>
+            <li><a href="#sitetab-{{site.site_id}}-2"> 查看商品列表</a></li>
+            <li><a href="#sitetab-{{site.site_id}}-3">编辑商品分类组别</a></li>              
+            </ul>
+            <div id="sitetab-{{site.site_id}}-chart">
+                <table>
+                <tr><th>时间段</th><th>商品PV</th><th>商品UV</th><th>PV/UV</th><th>订单数</th>
+                    <th>推荐请求数</th><th>推荐点击数</th></tr>
+                    {% for stat_row in site.statistics %}
+                    {% if stat_row.is_available %}
+                        <tr>
+                    <td>{{stat_row.date}}</td>
+                    <td class="num">{{stat_row.PV_V}}</td>
+                    <td class="num">{{stat_row.UV_V}}</td>
+                    <td class="num">{{stat_row.PV_UV}}</td>
+                    <td class="num">{{stat_row.PV_PLO}}</td>
+                    <td class="num">{{stat_row.PV_Rec}}</td>
+                        <td class="num">{{stat_row.ClickRec}}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
+                    {% endif %}
+                    {% endfor %}
+                </table>
+                <div id="chart-{{site.site_id}}" style="width:600px;height:300px;"></div>
+            </div>
+            <div id="sitetab-{{site.site_id}}-2">
+            </div>
+            <div id="sitetab-{{site.site_id}}-3">
+            </div>
+        </div>
+    </div>
     {% endfor %}
+</div>
 {% endblock %}

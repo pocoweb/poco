@@ -14,14 +14,14 @@
     </script>
 {% endblock %}
 
-{% block content-area %}
-    <form id="form" method="POST" action="/update_category_groups">
-        商品分类组别：<br/>
-        <div id="msg"></div>
-        <textarea id="category_groups_src" cols="40" rows="20" name="category_groups_src">{{category_groups_src}}</textarea><br/>
-        <input id="site_id" name="site_id" type="hidden" value="{{site_id}}" />
-        <input name="save" type="submit" value="保存" />
-    </form>
+{% block content-area %}       
+<div>商品分类组别：</div>
+<div id="msg"></div>
+<form id="form" method="POST" action="/update_category_groups">
+    <textarea id="category_groups_src" cols="40" rows="20" name="category_groups_src">{{category_groups_src}}</textarea><br/>
+    <input id="site_id" name="site_id" type="hidden" value="{{site_id}}" />
+    <input name="save" type="submit" value="保存" />
+</form>
 
     <script type="text/javascript">
         $("form").submit(function() {
