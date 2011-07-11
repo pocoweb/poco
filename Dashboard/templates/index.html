@@ -258,6 +258,8 @@ function renderChart_rec(site_id, data) {
     <h3><a href="#">{{site.site_name}}</a></h3>
     <div>
         收录商品数：<span id="items-count-{{site.site_id}}">N/A</span>
+                    <a href="/site_items_list?site_id={{site.site_id}}">查看商品列表</a>
+                    <a href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
         <div id="sitetab-{{site.site_id}}">
             <ul>
             <li><a href="#sitetab-{{site.site_id}}-chart">商品图表</a></li>
