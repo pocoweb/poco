@@ -11,30 +11,59 @@
 
 {% block head %}
 <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="{{STATIC_URL}}flot-0.7/excanvas.min.js"></script><![endif]-->
-<script src="{{STATIC_URL}}flot/jquery.flot.js" type="text/javascript"></script>
+<script src="{{STATIC_URL}}flot-0.7/jquery.flot.js" type="text/javascript"></script>
 <script type="text/javascript">
     function fillChart(site_id, statistics) {
-        var d1 = [];
+        var d_pv_v = [];
+        var d_uv_v = [];
+        var d_pv_uv = [];
+        var d_pv_plo = [];
+        var d_pv_rec = [];
+        var d_clickrec = [];
         var ticks = [];
         $.each(statistics, function(idx, stat_row) {
-            d1.push([idx, stat_row.PV_V]);
-            ticks.push([idx, stat_row["date"]]);
+            d_pv_v.push([idx, stat_row.PV_V]);
+            d_uv_v.push([idx, stat_row.UV_V]);
+            d_pv_uv.push([idx, stat_row.PV_UV]);
+            d_pv_plo.push([idx, stat_row.PV_PLO]);
+            d_pv_rec.push([idx, stat_row.PV_Rec]);
+            d_clickrec.push([idx, stat_row.ClickRec]);
+            ticks.push([idx, stat_row["date"].substring(5)]);
         });
-            
+        
+        function timesFormatter(v, axis) {
+            return "" + Math.round(v) + "次";
+        }
+
         var options = {
             lines: {show: true},
             points: {show: true },
+            //bars: {show: true},
             xaxis: {
                 ticks: ticks,
-            }
+            },
+            yaxes: [ {min: 0, tickFormatter: timesFormatter, alignTicksWithAxis: null},
+                     {min: 0, position: "right", alignTicksWithAxis: 1}
+                ]
         };
 
-        $.plot($("#chart-" + site_id), [d1], options);
+        $.plot($("#chart-" + site_id), 
+               [{label: '商品PV', data: d_pv_v, yaxis: 1},
+                {label: '商品UV', data: d_uv_v, yaxis: 1},
+                {label: 'PV/UV',  data: d_pv_uv, yaxis: 2},
+                {label: '订单数', data: d_pv_plo, yaxis: 1}
+               ], 
+               options);
+
+        $.plot($("#chart-" + site_id + "-rec"),
+               [{label: '推荐请求数', data: d_pv_rec},
+                {label: '推荐点击数', data: d_clickrec}],
+               options);
     };
 
-    function updateSiteStatistics(site_ids_array) {
-        var site_ids_str = site_ids_array.join(',');
-        $.getJSON("/ajax/get_site_statistics", {"site_ids_str": site_ids_str},
+    function updateSiteStatistics() {
+        //var site_ids_str = site_ids_array.join(',');
+        $.getJSON("/ajax/get_site_statistics", {},
                 function(data, textStatus, jqXHR) {
                     $.each(data, function(idx, site_data) {
                         $("#items-count-" + site_data.site_id).html(site_data["items_count"]);
@@ -50,6 +79,7 @@
             $("#sitetab-{{site.site_id}}").tabs();
         {% endfor %}
         
+        updateSiteStatistics();
     });
 </script>
 {% endblock %}
@@ -67,26 +97,8 @@
             <li><a href="#sitetab-{{site.site_id}}-3">编辑商品分类组别</a></li>
             </ul>
             <div id="sitetab-{{site.site_id}}-chart">
-                <table>
-                <tr><th>时间段</th><th>商品PV</th><th>商品UV</th><th>PV/UV</th><th>订单数</th>
-                    <th>推荐请求数</th><th>推荐点击数</th></tr>
-                    {% for stat_row in site.statistics %}
-                    {% if stat_row.is_available %}
-                        <tr>
-                    <td>{{stat_row.date}}</td>
-                    <td class="num">{{stat_row.PV_V}}</td>
-                    <td class="num">{{stat_row.UV_V}}</td>
-                    <td class="num">{{stat_row.PV_UV}}</td>
-                    <td class="num">{{stat_row.PV_PLO}}</td>
-                    <td class="num">{{stat_row.PV_Rec}}</td>
-                        <td class="num">{{stat_row.ClickRec}}</td>
-                        </tr>
-                    {% else %}
-                        <tr><td>{{stat_row.date}}</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td><td class="na">--</td></tr>
-                    {% endif %}
-                    {% endfor %}
-                </table>
-                <div id="chart-{{site.site_id}}" style="width:600px;height:300px;"></div>
+                <div id="chart-{{site.site_id}}" style="width:800px;height:300px;"></div>
+                <div id="chart-{{site.site_id}}-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
             </div>
             <div id="sitetab-{{site.site_id}}-2">
             </div>

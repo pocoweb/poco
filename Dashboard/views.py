@@ -23,17 +23,18 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=7):
+def getSiteStatistics(site_id, days=14):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
-    for day_delta in range(0, days):
+    for day_delta in range(days, -1, -1):
         the_date = today_date - datetime.timedelta(days=day_delta)
         the_date_str = the_date.strftime("%Y-%m-%d")
         row = c_statistics.find_one({"date": the_date_str})
         if row is None:
             row = {"date": the_date_str, "is_available": False}
         else:
+            del row["_id"]
             row["is_available"] = True
             uv_v = float(row["UV_V"])
             pv_v = float(row["PV_V"])
@@ -51,27 +52,31 @@ def login_required(callable):
     return method
 
 
-@login_required
-def index(request):
-    user_name = request.session["user_name"]
+def _getUserSites(user_name):
     connection = getConnection()
     c_users = connection["tjb-db"]["users"]
     c_sites = connection["tjb-db"]["sites"]
     user = c_users.find_one({"user_name": user_name})
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
-    for site in sites:
-        site["items_count"] = getItemsAndCount(connection, site["site_id"], 0)[1]
-        #site["statistics"] = getSiteStatistics(site["site_id"])
+    return sites
+
+
+@login_required
+def index(request):
+    user_name = request.session["user_name"]
+    sites = _getUserSites(user_name)
     return render_to_response("index.html", 
             {"page_name": "首页", "sites": sites, "user_name": user_name},
             context_instance=RequestContext(request))
 
 @login_required
 def ajax_get_site_statistics(request):
-    site_ids_str = request.GET["site_ids_str"]
-    site_ids = site_ids_str.split(',')
+    connection = getConnection()
+    user_name = request.session["user_name"]
+    sites = _getUserSites(user_name)
     result = []
-    for site_id in site_ids:
+    for site in sites:
+        site_id = site["site_id"]
         result.append({"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)[1],
                        "statistics": getSiteStatistics(site_id)})
