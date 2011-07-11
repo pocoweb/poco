@@ -23,7 +23,7 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=14):
+def getSiteStatistics(site_id, days=10):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
@@ -39,7 +39,7 @@ def getSiteStatistics(site_id, days=14):
             uv_v = float(row["UV_V"])
             pv_v = float(row["PV_V"])
             pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
-            row["PV_UV"] = "%.2f" % pv_uv
+            row["PV_UV"] = float("%.2f" % pv_uv)
         result.append(row)
     return result
 

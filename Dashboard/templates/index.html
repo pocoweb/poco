@@ -10,64 +10,232 @@
 {% endblock %}
 
 {% block head %}
-<!--[if lte IE 8]><script language="javascript" type="text/javascript" src="{{STATIC_URL}}flot-0.7/excanvas.min.js"></script><![endif]-->
-<script src="{{STATIC_URL}}flot-0.7/jquery.flot.js" type="text/javascript"></script>
+<script src="{{STATIC_URL}}highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
+<script type="text/javascript" src="{{STATIC_URL}}highcharts-2.1.6/js/modules/exporting.js"></script>
+
 <script type="text/javascript">
-    function fillChart(site_id, statistics) {
-        var d_pv_v = [];
-        var d_uv_v = [];
-        var d_pv_uv = [];
-        var d_pv_plo = [];
-        var d_pv_rec = [];
-        var d_clickrec = [];
-        var ticks = [];
-        $.each(statistics, function(idx, stat_row) {
-            d_pv_v.push([idx, stat_row.PV_V]);
-            d_uv_v.push([idx, stat_row.UV_V]);
-            d_pv_uv.push([idx, stat_row.PV_UV]);
-            d_pv_plo.push([idx, stat_row.PV_PLO]);
-            d_pv_rec.push([idx, stat_row.PV_Rec]);
-            d_clickrec.push([idx, stat_row.ClickRec]);
-            ticks.push([idx, stat_row["date"].substring(5)]);
-        });
-        
-        function timesFormatter(v, axis) {
-            return "" + Math.round(v) + "次";
-        }
-
-        var options = {
-            lines: {show: true},
-            points: {show: true },
-            //bars: {show: true},
-            xaxis: {
-                ticks: ticks,
+function renderChart_1(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-" + site_id + "-1",
+                marginRight: 30,
+                marginBottom: 30,
             },
-            yaxes: [ {min: 0, tickFormatter: timesFormatter, alignTicksWithAxis: null},
-                     {min: 0, position: "right", alignTicksWithAxis: 1}
+            title: {
+                text: "商品PV和UV图",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '次数'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    },
+                    {
+                        title: {
+                            text: '比率'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '次';
+                }
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -10,
+                y: 100,
+                borderWidth: 0
+            },
+            series: [{"name": "商品PV",
+                      "data": data.pv_v,
+                      "type": "column",
+                      "dataLabels": {
+                        enabled: true,
+                        }
+                      },
+                     {"name": "商品UV",
+                      "data": data.uv_v,
+                      "type": "column",
+                      "dataLabels": {
+                        enabled: true,
+                        }
+                      },
+                     {"name": "PV/UV",
+                      "data": data.pv_uv,
+                      "type": "spline",
+                      yAxis: 1
+                     }
                 ]
-        };
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
 
-        $.plot($("#chart-" + site_id), 
-               [{label: '商品PV', data: d_pv_v, yaxis: 1},
-                {label: '商品UV', data: d_uv_v, yaxis: 1},
-                {label: 'PV/UV',  data: d_pv_uv, yaxis: 2},
-                {label: '订单数', data: d_pv_plo, yaxis: 1}
-               ], 
-               options);
+function renderChart_plo(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-" + site_id + "-plo",
+                marginRight: 30,
+                marginBottom: 30,
+            },
+            title: {
+                text: "商品订单数",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '订单数'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    } 
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '单';
+                }
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -10,
+                y: 100,
+                borderWidth: 0
+            },
+            series: [{
+                       "name": "订单数",
+                       "data": data.pv_plo,
+                       "type": "column"
+                     }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
 
-        $.plot($("#chart-" + site_id + "-rec"),
-               [{label: '推荐请求数', data: d_pv_rec},
-                {label: '推荐点击数', data: d_clickrec}],
-               options);
+function renderChart_rec(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-" + site_id + "-rec",
+                marginRight: 30,
+                marginBottom: 30,
+            },
+            title: {
+                text: "商品推荐统计",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '次数'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    } 
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '次';
+                }
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'top',
+                x: -10,
+                y: 100,
+                borderWidth: 0
+            },
+            series: [{
+                       "name": "推荐请求数",
+                       "data": data.pv_rec,
+                       "type": "column"
+                     },
+                     {
+                       "name": "推荐点击数",
+                       "data": data.clickrec,
+                       "type": "column"
+                     }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+
+</script>
+
+<script type="text/javascript">
+    function fillCharts(site_id, statistics) {
+        var d = {};
+        d.pv_v = [];
+        d.uv_v = [];
+        d.pv_uv = [];
+        d.pv_plo = [];
+        d.pv_rec = [];
+        d.clickrec = [];
+        d.categories = [];
+        //alert(JSON.stringify(statistics));
+        $.each(statistics, function(idx, stat_row) {
+            if (stat_row.is_available) {
+                d.pv_v.push(stat_row.PV_V);
+                d.uv_v.push(stat_row.UV_V);
+                d.pv_uv.push(stat_row.PV_UV);
+                d.pv_plo.push(stat_row.PV_PLO);
+                d.pv_rec.push(stat_row.PV_Rec);
+                d.clickrec.push(stat_row.ClickRec);
+                d.categories.push(stat_row["date"].substring(5));
+            }
+
+        });
+        renderChart_1(site_id, d);
+        renderChart_plo(site_id, d);
+        renderChart_rec(site_id, d);
+
     };
 
     function updateSiteStatistics() {
-        //var site_ids_str = site_ids_array.join(',');
         $.getJSON("/ajax/get_site_statistics", {},
                 function(data, textStatus, jqXHR) {
                     $.each(data, function(idx, site_data) {
                         $("#items-count-" + site_data.site_id).html(site_data["items_count"]);
-                        fillChart(site_data.site_id, site_data.statistics);
+                        fillCharts(site_data.site_id, site_data.statistics);
                     });
                 }
             );
@@ -97,8 +265,10 @@
             <li><a href="#sitetab-{{site.site_id}}-3">编辑商品分类组别</a></li>
             </ul>
             <div id="sitetab-{{site.site_id}}-chart">
-                <div id="chart-{{site.site_id}}" style="width:800px;height:300px;"></div>
-                <div id="chart-{{site.site_id}}-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+                <div id="chart-{{site.site_id}}-1" style="width:750px;height:300px;"></div>
+                <div id="chart-{{site.site_id}}-plo" style="width:750px;height:300px;"></div>
+                <div id="chart-{{site.site_id}}-rec" 
+                        style="width:750px;height:300px; margin-top: 30px;"></div>
             </div>
             <div id="sitetab-{{site.site_id}}-2">
             </div>
