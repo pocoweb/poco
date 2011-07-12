@@ -60,6 +60,11 @@ def _getUserSites(user_name):
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
     return sites
 
+def _getUserSiteIds(user_name):
+    connection = getConnection()
+    c_users = connection["tjb-db"]["users"]
+    user = c_users.find_one({"user_name": user_name})
+    return user["sites"]
 
 @login_required
 def index(request):
@@ -69,18 +74,22 @@ def index(request):
             {"page_name": "首页", "sites": sites, "user_name": user_name},
             context_instance=RequestContext(request))
 
+
+# FIXME: should use a better way to to access restriction
 @login_required
 def ajax_get_site_statistics(request):
-    connection = getConnection()
+    site_id = request.GET.get("site_id", None)
     user_name = request.session["user_name"]
-    sites = _getUserSites(user_name)
-    result = []
-    for site in sites:
-        site_id = site["site_id"]
-        result.append({"site_id": site_id,
+    user_site_ids = _getUserSiteIds(user_name)
+    if site_id in user_site_ids:
+        result = {"code": 0}
+        connection = getConnection()
+        result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)[1],
-                       "statistics": getSiteStatistics(site_id)})
-    return HttpResponse(json.dumps(result))
+                       "statistics": getSiteStatistics(site_id)}
+        return HttpResponse(json.dumps(result))
+    else:
+        return HttpResponse(json.dumps({"code": 1}))
 
 
 
