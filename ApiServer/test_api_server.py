@@ -52,6 +52,9 @@ class BaseTestCase(unittest.TestCase):
         self.connection = pymongo.Connection(settings.mongodb_host)
         self.cleanUpRawLogs()
 
+    def tearDown(self):
+        self.cleanUpItems()
+
     def updateItem(self, item_id, categories=""):
         import copy
         the_item = copy.copy(items_for_test.items[item_id])
@@ -65,16 +68,16 @@ class BaseTestCase(unittest.TestCase):
                     assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
 
+    def cleanUpItems(self):
+        getSiteDBCollection(self.connection, SITE_ID, "items").drop()
+
     def updateCategoryGroups(self, category_groups_src):
         from common.utils import updateCategoryGroups
         updateCategoryGroups(self.connection, SITE_ID, category_groups_src)
 
     def cleanUpRawLogs(self):
         getSiteDBCollection(self.connection, SITE_ID, "raw_logs").drop()
-        raw_logs = getSiteDBCollection(self.connection, SITE_ID, "raw_logs")
-        for doc in raw_logs.find():
-            raw_logs.remove(doc)
-        pass
+
 
     def readCollectionLines(self, collection_name):
         return [line for line in getSiteDBCollection(self.connection, SITE_ID, collection_name).find()]
@@ -562,6 +565,7 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
         self.updateItem("2")
         self.updateItem("8")
         self.updateItem("11")
+        self.updateItem("15")
 
     def test_RecommendBasedOnBrowsingHistory(self):
         result = api_access("/getByBrowsingHistory", 
@@ -647,6 +651,7 @@ class GetByPurchasingHistoryTest(BaseRecommendationTest):
         self.updateItem("2")
         self.updateItem("8")
         self.updateItem("11")
+        self.updateItem("15")
         self.cleanUpPurchasingHistory()
 
     def test_RecommendGetByPurchasingHistory(self):
@@ -832,6 +837,18 @@ class PlaceOrderTest(BaseTestCase):
 
 import packed_request
 class PackedRequestTest(BaseTestCase):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("1")
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.updateItem("17")
+        self.updateItem("21")
+        self.updateItem("29")
+
     def testRecordReferer(self):
         self.assertCurrentLinesCount(0)
         pr = packed_request.PackedRequest()
@@ -852,6 +869,25 @@ class PackedRequestTest(BaseTestCase):
                 {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35',
                  'referer': 'http://joe'})
 
+
+    def testSeveralRecommendation(self):
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 3})
+        pr.addRequest("RecVAV", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 5})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
+                [{'item_id': '3', 'score': 0.99770000000000003}, 
+                 {'item_id': '2', 'score': 0.99329999999999996}, 
+                 {'item_id': '8', 'score': 0.99250000000000005}])
+        self.assertEquals(result["responses"]["getAlsoViewed"]["topn"],
+                [{'item_id': '11', 'score': 0.98880000000000001},
+                 {'item_id': '15', 'score': 0.98709999999999998},
+                 {'item_id': '17', 'score': 0.97209999999999996}, 
+                 {'item_id': '21', 'score': 0.95109999999999995}, 
+                 {'item_id': '29', 'score': 0.94110000000000005}])
 
     def testUpdateItem(self):
         self.assertCurrentLinesCount(0)

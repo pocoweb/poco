@@ -415,7 +415,11 @@ class BaseRecommendationProcessor(ActionProcessor):
     def getRecommendationResultFilter(self, site_id, args):
         raise NotImplemented
 
+    def getExcludedRecommendationItems(self):
+        return getattr(self, "excluded_recommendation_items", set([]))
+
     def process(self, site_id, args):
+        self.recommended_items = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         try:
             amount = int(args["amount"])
@@ -425,10 +429,12 @@ class BaseRecommendationProcessor(ActionProcessor):
         topn = self.getTopN(site_id, args)
         result_filter = self.getRecommendationResultFilter(site_id, args)
         topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
-                    amount, include_item_info, url_converter=self.getRedirectUrlFor)
+                    amount, include_item_info, url_converter=self.getRedirectUrlFor,
+                    excluded_recommendation_items=self.getExcludedRecommendationItems())
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
+        self.recommended_items = recommended_items
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
@@ -678,7 +684,7 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     def extractRequests(self, args):
         global ABBR_NAME2RELATED_INFO
         args = copy.copy(args)
-        result = {}
+        processor_class2request_info = {}
         shared_params = {}
         remain_args = {}
 
@@ -702,17 +708,30 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
                 action_name = MASK2ACTION_NAME[mask]
                 full_name = ACTION_NAME2FULL_NAME[action_name]
                 processor_class = ACTION_NAME2PROCESSOR_CLASS[action_name]
-                result[(processor_class, full_name)] = copy.copy(shared_params)
+                processor_class2request_info[processor_class] = {"full_name": full_name,
+                                                "processor_class": processor_class,
+                                                "args": copy.copy(shared_params)}
 
         for key in remain_args.keys():
             _processor, full_name, request_type, attr_name = ABBR_NAME2RELATED_INFO.get(key, (None, None, None, None))
             if _processor is None:
                 raise ArgumentError("invalid param:%s" % key)
             else:
-                if not result.has_key((_processor, full_name)):
+                if not processor_class2request_info.has_key(_processor):
                     raise ArgumentError("argument %s not covered by mask_set." % key)
-                result[(_processor, full_name)][attr_name] = args[key]
+                processor_class2request_info[_processor]["args"][attr_name] = args[key]
 
+        result = []
+        def moveRequestInfo2Result(processor_class):
+            if processor_class2request_info.has_key(processor_class):
+                result.append(processor_class2request_info[processor_class])
+                del processor_class2request_info[processor_class]
+        moveRequestInfo2Result(GetBoughtTogetherProcessor)
+        moveRequestInfo2Result(GetAlsoBoughtProcessor)
+        moveRequestInfo2Result(GetUltimatelyBoughtProcessor)
+        moveRequestInfo2Result(GetAlsoViewedProcessor)
+        for processor_class in processor_class2request_info.keys():
+            result.append(processor_class2request_info[processor_class])
         return result
 
     def redirectRequest(self, site_id, referer, processor_class, request_args):
@@ -724,15 +743,23 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         else:
             processed_args["tuijianbaoid"] = self.tuijianbaoid
             processed_args["referer"] = referer
+            processor.excluded_recommendation_items = self.excluded_recommendation_items
             result = processor.process(site_id, processed_args)
+            if isinstance(processor, BaseRecommendationProcessor) \
+                and processor.recommended_items is not None:
+                self.excluded_recommendation_items |= set(processor.recommended_items)
             return result
 
+
     def process(self, site_id, args):
+        self.excluded_recommendation_items = set([])
         requests = self.extractRequests(args)
         response = {"code": 0, "responses": {}}
         referer = self.request.headers.get('Referer')
-        for processor_class, full_name in requests.keys():
-            request_args = requests[(processor_class, full_name)]
+        for request_info in requests:
+            full_name = request_info["full_name"]
+            request_args = request_info["args"]
+            processor_class = request_info["processor_class"]
             response["responses"][full_name] = \
                 self.redirectRequest(site_id, referer, processor_class, request_args)
         return response

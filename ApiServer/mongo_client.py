@@ -227,7 +227,7 @@ class MongoClient:
 
 
     def convertTopNFormat(self, site_id, req_id, result_filter, topn, amount, include_item_info=True, 
-            url_converter=None):
+            url_converter=None, excluded_recommendation_items=set([])):
         if url_converter is None:
             url_converter = self.getRedirectUrlFor
         c_items_collection = getSiteDBCollection(self.connection, site_id, "items")
@@ -235,7 +235,8 @@ class MongoClient:
         
         for topn_row in topn:
             item_in_db = c_items_collection.find_one({"item_id": topn_row[0]})
-            if item_in_db is None or not result_filter.is_allowed(item_in_db):
+            if item_in_db is None or not result_filter.is_allowed(item_in_db) \
+                or item_in_db["item_id"] in excluded_recommendation_items:
                     continue
             if include_item_info:
                 del item_in_db["_id"]
