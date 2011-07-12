@@ -85,7 +85,7 @@ def ajax_get_site_statistics(request):
         result = {"code": 0}
         connection = getConnection()
         result["site"] = {"site_id": site_id,
-                       "items_count": getItemsAndCount(connection, site_id, 0)[1],
+                       "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
                        "statistics": getSiteStatistics(site_id)}
         return HttpResponse(json.dumps(result))
     else:
@@ -101,7 +101,18 @@ def getItemsAndCount(connection, site_id, page_num):
     items_cur = c_items.find({"available": True}).sort("item_name", 1)
     items_count = items_cur.count()
     items_cur.skip((page_num - 1) * PAGE_SIZE).limit(PAGE_SIZE)
-    return items_cur, items_count
+    max_page_num = items_count / PAGE_SIZE
+    if items_count % PAGE_SIZE > 0:
+        max_page_num += 1
+    page_num_left = max(page_num - 4, 1)
+    page_num_right = min(max_page_num, page_num + (9 - (page_num - page_num_left)))
+    return {"items": items_cur, "items_count": items_count,
+            "page_nums": xrange(page_num_left, page_num_right + 1),
+            "page_num": page_num, "prev_page_num": max(1, page_num - 1),
+            "next_page_num": min(max_page_num, page_num + 1),
+            "max_page_num": max_page_num,
+            "curr_left_reached": page_num == 1,
+            "curr_right_reached": page_num == max_page_num}
 
 
 @login_required
@@ -110,17 +121,12 @@ def site_items_list(request):
     page_num = int(request.GET.get("page_num", "1"))
     connection = getConnection()
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
-    items_cur, items_count = getItemsAndCount(connection, site_id, page_num)
-    max_page_num = items_count / PAGE_SIZE
-    if items_count % PAGE_SIZE > 0:
-        max_page_num += 1
+    result = {"page_name": u"%s商品列表" % site["site_name"],
+             "site": site, 
+             "user_name": request.session["user_name"]}
+    result.update(getItemsAndCount(connection, site_id, page_num))
     return render_to_response("site_items_list.html", 
-            {"page_name": u"%s商品列表" % site["site_name"],
-             "site": site, "items_count": items_count,
-             "user_name": request.session["user_name"],
-             "items": items_cur,
-             "page_num": page_num,
-             "page_nums": xrange(1, max_page_num + 1)},
+            result,
              context_instance=RequestContext(request))
 
 

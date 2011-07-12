@@ -216,6 +216,7 @@ function renderChart_rec(site_id, data) {
         d.categories = [];
         //alert(JSON.stringify(statistics));
         $.each(statistics, function(idx, stat_row) {
+            d.categories.push(stat_row["date"].substring(5));
             if (stat_row.is_available) {
                 d.pv_v.push(stat_row.PV_V);
                 d.uv_v.push(stat_row.UV_V);
@@ -223,9 +224,15 @@ function renderChart_rec(site_id, data) {
                 d.pv_plo.push(stat_row.PV_PLO);
                 d.pv_rec.push(stat_row.PV_Rec);
                 d.clickrec.push(stat_row.ClickRec);
-                d.categories.push(stat_row["date"].substring(5));
             }
-
+            else {
+                d.pv_v.push(null);
+                d.uv_v.push(null);
+                d.pv_uv.push(null);
+                d.pv_plo.push(null);
+                d.pv_rec.push(null);
+                d.clickrec.push(null);
+            }
         });
         renderChart_1(site_id, d);
         renderChart_plo(site_id, d);

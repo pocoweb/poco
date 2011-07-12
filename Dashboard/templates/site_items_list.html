@@ -4,6 +4,10 @@
 
 {% block content-area %}
     <p>共收录{{items_count}}件商品</p>
+    {% if not curr_left_reached %} 
+    <a href="/site_items_list?site_id={{site.site_id}}&page_num=1">&lt;&lt;</a>&nbsp;
+    <a href="/site_items_list?site_id={{site.site_id}}&page_num={{prev_page_num}}">&lt;</a>
+    {% endif %}&nbsp;
     {% for pn in page_nums %}
     {% ifnotequal pn page_num %}
     <a href="/site_items_list?site_id={{site.site_id}}&page_num={{pn}}">{{pn}}</a>&nbsp;
@@ -11,6 +15,10 @@
     {{pn}}&nbsp;
     {% endifnotequal %}
     {% endfor %}
+    {% if not curr_right_reached %}
+        <a href="/site_items_list?site_id={{site.site_id}}&page_num={{next_page_num}}">&gt;</a>&nbsp;
+        <a href="/site_items_list?site_id={{site.site_id}}&page_num={{max_page_num}}">&gt;&gt;</a>
+    {% endif %}
     <table>
     <tr><th>商品名称</th><th>价格</th></tr>
     {% for item in items %}
