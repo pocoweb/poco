@@ -17,8 +17,6 @@
 # under the License.
 #
 
-import sys
-
 class TType:
   STOP   = 0
   VOID   = 1
@@ -55,14 +53,6 @@ class TException(Exception):
 
   """Base class for all thrift exceptions."""
 
-  # BaseException.message is deprecated in Python v[2.6,3.0)
-  if (2,6,0) <= sys.version_info < (3,0):
-    def _get_message(self):
-	    return self._message
-    def _set_message(self, message):
-	    self._message = message
-    message = property(_get_message, _set_message)
-
   def __init__(self, message=None):
     Exception.__init__(self, message)
     self.message = message
@@ -85,15 +75,15 @@ class TApplicationException(TException):
   def __str__(self):
     if self.message:
       return self.message
-    elif self.type == self.UNKNOWN_METHOD:
+    elif self.type == UNKNOWN_METHOD:
       return 'Unknown method'
-    elif self.type == self.INVALID_MESSAGE_TYPE:
+    elif self.type == INVALID_MESSAGE_TYPE:
       return 'Invalid message type'
-    elif self.type == self.WRONG_METHOD_NAME:
+    elif self.type == WRONG_METHOD_NAME:
       return 'Wrong method name'
-    elif self.type == self.BAD_SEQUENCE_ID:
+    elif self.type == BAD_SEQUENCE_ID:
       return 'Bad sequence ID'
-    elif self.type == self.MISSING_RESULT:
+    elif self.type == MISSING_RESULT:
       return 'Missing result'
     else:
       return 'Default (unknown) TApplicationException'

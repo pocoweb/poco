@@ -2,6 +2,7 @@
 import logging
 import sys
 sys.path.append("../")
+sys.path.append("../pylib")
 import time
 import pymongo
 import uuid
@@ -113,7 +114,8 @@ class StatisticsFlow(BaseFlow):
                       self.do_extract_behavior_date_tjbid,
                       self.do_sort_uniq_behavior_date_tjbid,
                       self.do_count_behavior_by_unique_visitor,
-                      self.do_upload_count_behavior_by_unique_visitor]
+                      self.do_upload_count_behavior_by_unique_visitor,
+                      self.do_hive_based_calculations]
 
     # Begin Count Behaviors
     def do_behavior_date_row(self):
@@ -160,11 +162,14 @@ class StatisticsFlow(BaseFlow):
         upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
     # End Count "behavior by unique visitor"
 
-    # Begin Count "daily item pv coverage"
-    #def do_calc_daily_item_pv_coverage(self):
-    #    from statistics.calc_daily_item_pv_coverage import calc_daily_item_pv_coverage
+    # Begin Hive Based Calculations
+    def do_hive_based_calculations(self):
+        from statistics.hive_based_calculations import hive_based_calculations
+        connection = pymongo.Connection(settings.mongodb_host)
+        backfilled_raw_logs_path = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
+        hive_based_calculations(connection, SITE_ID, self.work_dir, backfilled_raw_logs_path)
     #
-    # End Count   "daily item pv coverage"
+    # End Hive Based Calculations
 
 
 class BaseSimilarityCalcFlow(BaseFlow):

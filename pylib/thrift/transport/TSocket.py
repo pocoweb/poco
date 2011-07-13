@@ -21,7 +21,6 @@ from TTransport import *
 import os
 import errno
 import socket
-import sys
 
 class TSocketBase(TTransportBase):
   def _resolveAddr(self):
@@ -87,36 +86,23 @@ class TSocket(TSocketBase):
         message = 'Could not connect to socket %s' % self._unix_socket
       else:
         message = 'Could not connect to %s:%d' % (self.host, self.port)
-      raise TTransportException(type=TTransportException.NOT_OPEN, message=message)
+      raise TTransportException(TTransportException.NOT_OPEN, message)
 
   def read(self, sz):
-    try:
-      buff = self.handle.recv(sz)
-    except socket.error, e:
-      if (e.args[0] == errno.ECONNRESET and
-          (sys.platform == 'darwin' or sys.platform.startswith('freebsd'))):
-        # freebsd and Mach don't follow POSIX semantic of recv
-        # and fail with ECONNRESET if peer performed shutdown.
-        # See corresponding comment and code in TSocket::read()
-        # in lib/cpp/src/transport/TSocket.cpp.
-        self.close()
-        # Trigger the check to raise the END_OF_FILE exception below.
-        buff = ''
-      else:
-        raise
+    buff = self.handle.recv(sz)
     if len(buff) == 0:
-      raise TTransportException(type=TTransportException.END_OF_FILE, message='TSocket read 0 bytes')
+      raise TTransportException('TSocket read 0 bytes')
     return buff
 
   def write(self, buff):
     if not self.handle:
-      raise TTransportException(type=TTransportException.NOT_OPEN, message='Transport not open')
+      raise TTransportException(TTransportException.NOT_OPEN, 'Transport not open')
     sent = 0
     have = len(buff)
     while sent < have:
       plus = self.handle.send(buff)
       if plus == 0:
-        raise TTransportException(type=TTransportException.END_OF_FILE, message='TSocket sent 0 bytes')
+        raise TTransportException('TSocket sent 0 bytes')
       sent += plus
       buff = buff[plus:]
 

@@ -93,9 +93,8 @@ class TThreadedServer(TServer):
 
   """Threaded server that spawns a new thread per each connection."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args):
     TServer.__init__(self, *args)
-    self.daemon = kwargs.get("daemon", False)
 
   def serve(self):
     self.serverTransport.listen()
@@ -103,7 +102,6 @@ class TThreadedServer(TServer):
       try:
         client = self.serverTransport.accept()
         t = threading.Thread(target = self.handle, args=(client,))
-        t.setDaemon(self.daemon)
         t.start()
       except KeyboardInterrupt:
         raise
@@ -130,11 +128,10 @@ class TThreadPoolServer(TServer):
 
   """Server with a fixed size pool of threads which service requests."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args):
     TServer.__init__(self, *args)
     self.clients = Queue.Queue()
     self.threads = 10
-    self.daemon = kwargs.get("daemon", False)
 
   def setNumThreads(self, num):
     """Set the number of worker threads that should be created"""
@@ -171,7 +168,6 @@ class TThreadPoolServer(TServer):
     for i in range(self.threads):
       try:
         t = threading.Thread(target = self.serveThread)
-        t.setDaemon(self.daemon)
         t.start()
       except Exception, x:
         logging.exception(x)
