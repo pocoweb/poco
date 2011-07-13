@@ -201,6 +201,17 @@ class MongoClient:
         c_sites.save(site)
 
 
+    def updateCategory(self, site_id, category):
+        c_categories = getSiteDBCollection(self.connection, site_id, "categories")
+        cat_in_db = c_categories.find_one({"category_id": category["category_id"]})
+        if cat_in_db is None:
+            cat_in_db = {}
+        else:
+            cat_in_db = {"_id": cat_in_db["_id"]}
+        cat_in_db.update(category)
+        c_categories.save(cat_in_db)
+
+
     def updateItem(self, site_id, item):
         c_items = getSiteDBCollection(self.connection, site_id, "items")
         item_in_db = c_items.find_one({"item_id": item["item_id"]})

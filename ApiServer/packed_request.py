@@ -112,7 +112,14 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "u": "user_id",
                         "s": "shopping_cart",
                         "c": "include_item_info",
-                        "a": "amount"}
+                        "a": "amount"},
+                "upc": {"action_name": "UCat",
+                        "full_name": "updateCategory",
+                        "index": 17,
+                        "i": "category_id",
+                        "l": "category_link",
+                        "n": "category_name",
+                        "p": "parent_categories"}
              }
 
 def generateALL_ATTR_NAMES_js():
@@ -123,7 +130,7 @@ def generateALL_ATTR_NAMES_js():
             if len(attr_abbr) < 2:
                 attr_names[_abbr_map[request_type][attr_abbr]] = 1
 
-    result = "ALL_ATTR_NAMES = {\n"
+    result = "var ALL_ATTR_NAMES = {\n"
     kv_pairs = []
     for attr_name in attr_names.keys():
         kv_pairs.append("    '%s': 1" % (attr_name))
@@ -134,7 +141,7 @@ def generateALL_ATTR_NAMES_js():
 
 
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
-    result = "FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
+    result = "var FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
     kv_pairs = []
     for request_type in _abbr_map.keys():
@@ -146,7 +153,7 @@ def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
     return result
 
 def generateFULL_NAME2MASK_js():
-    result = "FULL_NAME2MASK = {\n"
+    result = "var FULL_NAME2MASK = {\n"
     global _abbr_map
     kv_pairs = []
     for request_type in _abbr_map.keys():

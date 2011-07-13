@@ -286,6 +286,57 @@ class RateItemTest(BaseTestCase):
              "score": "5"})
 
 
+class UpdateCategoryTest(BaseTestCase):
+    def cleanUpCategories(self):
+        getSiteDBCollection(self.connection, SITE_ID, "categories").drop()
+
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.cleanUpCategories()
+
+    def test_with_packedRequest(self):
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("UCat", {"category_id": "448", "category_link": "/cat/448",
+                               "category_name": "Eight", "parent_categories": "3,5"})
+        result, response_tuijianbaoid = api_access("/packedRequest", 
+                        pr.getUrlArgs(API_KEY), return_tuijianbaoid=True)
+        self.assertCurrentLinesCount(0)
+        full_name = packed_request.ACTION_NAME2FULL_NAME["UCat"]
+        self.assertEquals(result, {'code': 0, 'responses': {full_name: {'code': 0}}})
+        self.assertEqual(getSiteDBCollection(self.connection, SITE_ID, "categories").find().count(), 1)
+        self.assertSomeKeys(getSiteDBCollection(self.connection, SITE_ID, "categories").find_one(),
+                {"category_id": "448", "parent_categories": ["3", "5"], "category_link": "/cat/448",
+                 "category_name": "Eight"})
+
+
+    def test_updateCategory(self):
+        result = api_access("/updateCategory",
+                {"api_key": API_KEY, "category_id": "445", "category_link": "/cat/445",
+                 "category_name": "Five"},
+                assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        self.assertEqual(getSiteDBCollection(self.connection, SITE_ID, "categories").find().count(), 1)
+        self.assertSomeKeys(getSiteDBCollection(self.connection, SITE_ID, "categories").find_one(),
+                {"category_id": "445", "parent_categories": [], "category_link": "/cat/445",
+                 "category_name": "Five"})
+
+        result = api_access("/updateCategory",
+                {"api_key": API_KEY, "category_id": "446", "category_link": "/cat/446",
+                 "category_name": "Six"},
+                assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        self.assertEqual(getSiteDBCollection(self.connection, SITE_ID, "categories").find().count(), 2)
+        result = api_access("/updateCategory",
+                {"api_key": API_KEY, "category_id": "445", "category_link": "/cat/445",
+                 "category_name": "Five1", "parent_categories": "1,2"},
+                assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        self.assertEqual(getSiteDBCollection(self.connection, SITE_ID, "categories").find().count(), 2)
+        self.assertSomeKeys(getSiteDBCollection(self.connection, SITE_ID, "categories").\
+                find_one({"category_id": "445"}),
+                {"category_id": "445", "parent_categories": ["1", "2"], "category_link": "/cat/445",
+                 "category_name": "Five1"})
 
 
 

@@ -317,6 +317,38 @@ class PlaceOrderHandler(SingleRequestHandler):
     processor_class = PlaceOrderProcessor
 
 
+class UpdateCategoryProcessor(ActionProcessor):
+    action_name = "UCat"
+    ap = ArgumentProcessor(
+         (("category_id", True),
+         ("category_link", False),
+         ("category_name", True),
+         ("parent_categories", False)
+        )
+    )
+
+
+    def process(self, site_id, args):
+        err_msg, args = self.ap.processArgs(args)
+        if err_msg:
+            return {"code": 1, "err_msg": err_msg}
+        else:
+            if args["parent_categories"] is None:
+                args["parent_categories"] = []
+            else:
+                args["parent_categories"] = smart_split(args["parent_categories"], ",")
+        mongo_client.updateCategory(site_id, args)
+        return {"code": 0}
+
+
+class UpdateCategoryHandler(APIHandler):
+    processor = UpdateCategoryProcessor()
+
+    def process(self, site_id, args):
+        return self.processor.process(site_id, args)
+
+
+
 class UpdateItemProcessor(ActionProcessor):
     action_name = "UItem"
     ap = ArgumentProcessor(
@@ -773,6 +805,7 @@ handlers = [
     (r"/1.0/rateItem", RateItemHandler),
     (r"/1.0/removeItem", RemoveItemHandler),
     (r"/1.0/updateItem", UpdateItemHandler),
+    (r"/1.0/updateCategory", UpdateCategoryHandler),
     (r"/1.0/addOrderItem", AddOrderItemHandler),
     (r"/1.0/removeOrderItem", RemoveOrderItemHandler),
     (r"/1.0/placeOrder", PlaceOrderHandler),
