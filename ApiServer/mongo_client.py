@@ -142,8 +142,7 @@ class MongoClient:
 
 
     def getSimilaritiesForItems(self, site_id, similarity_type, item_ids):
-        c_item_similarities = getSiteDBCollection(self.connection, site_id, 
-                "item_similarities_%s" % similarity_type)
+        c_item_similarities = getSiteDBCollection(self.connection, site_id, "item_similarities_%s" % similarity_type)
         result = []
         for row in c_item_similarities.find({"item_id": {"$in": item_ids}}):
             most_similar_items = row["mostSimilarItems"]
