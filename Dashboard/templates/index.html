@@ -79,7 +79,7 @@ function renderChart_1(site_id, data) {
                         enabled: true,
                         }
                       },
-                     {"name": "PV/UV",
+                    {"name": "PV/UV",
                       "data": data.pv_uv,
                       "type": "spline",
                       yAxis: 1
@@ -90,11 +90,12 @@ function renderChart_1(site_id, data) {
     return chart;
 }
 
+
+{% if user.is_admin %}
 function renderChart_plo(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-plo",
-                marginRight: 30,
                 marginBottom: 30,
             },
             title: {
@@ -115,7 +116,16 @@ function renderChart_plo(site_id, data) {
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
                         }]
-                    } 
+                    },
+                    {
+                        title: {
+                            text: '比率'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
             ],
             tooltip: {
                 formatter: function() {
@@ -135,6 +145,12 @@ function renderChart_plo(site_id, data) {
                        "name": "订单数",
                        "data": data.pv_plo,
                        "type": "column"
+                     },
+
+                    {"name": "订单数/商品UV",
+                      "data": data.pv_plo_d_uv,
+                      "type": "spline",
+                      yAxis: 1
                      }
                 ]
     };
@@ -146,7 +162,6 @@ function renderChart_rec(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-rec",
-                marginRight: 30,
                 marginBottom: 30,
             },
             title: {
@@ -198,43 +213,18 @@ function renderChart_rec(site_id, data) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+{% endif %}
 
 
 </script>
 
 <script type="text/javascript">
     function fillCharts(site_id, statistics) {
-        var d = {};
-        d.pv_v = [];
-        d.uv_v = [];
-        d.pv_uv = [];
-        d.pv_plo = [];
-        d.pv_rec = [];
-        d.clickrec = [];
-        d.categories = [];
-        //alert(JSON.stringify(statistics));
-        $.each(statistics, function(idx, stat_row) {
-            d.categories.push(stat_row["date"].substring(5));
-            if (stat_row.is_available) {
-                d.pv_v.push(stat_row.PV_V);
-                d.uv_v.push(stat_row.UV_V);
-                d.pv_uv.push(stat_row.PV_UV);
-                d.pv_plo.push(stat_row.PV_PLO);
-                d.pv_rec.push(stat_row.PV_Rec);
-                d.clickrec.push(stat_row.ClickRec);
-            }
-            else {
-                d.pv_v.push(null);
-                d.uv_v.push(null);
-                d.pv_uv.push(null);
-                d.pv_plo.push(null);
-                d.pv_rec.push(null);
-                d.clickrec.push(null);
-            }
-        });
-        renderChart_1(site_id, d);
-        renderChart_plo(site_id, d);
-        renderChart_rec(site_id, d);
+        renderChart_1(site_id, statistics);
+        {% if user.is_admin %}
+            renderChart_plo(site_id, statistics);
+            renderChart_rec(site_id, statistics);
+        {% endif %}
 
     };
 
@@ -292,8 +282,10 @@ function renderChart_rec(site_id, data) {
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
     </div>
     <div id="chart-1" style="width:800px;height:300px;"></div>
-    <div id="chart-plo" style="width:800px;height:300px;"></div>
-    <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% if user.is_admin %}
+        <div id="chart-plo" style="width:800px;height:300px;"></div>
+        <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% endif %}
 
 </div>
 {% endblock %}
