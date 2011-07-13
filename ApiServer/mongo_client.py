@@ -58,6 +58,24 @@ class MongoClient:
     def __init__(self, connection):
         self.connection = connection
 
+    def toggle_black_list(self, site_id, item_id1, item_id2, is_on):
+        c_rec_black_lists = getSiteDBCollection(self.connection, site_id, "rec_black_lists")
+        rec_black_list = c_rec_black_lists.find_one({"item_id": item_id1})
+        if rec_black_list is None:
+            c_rec_black_lists.insert({"item_id": item_id1, "black_list": []})
+        if is_on:
+            c_rec_black_lists.update({"item_id": item_id1}, {"$addToSet": {"black_list": item_id2}})
+        else:
+            c_rec_black_lists.update({"item_id": item_id1}, {"$pull":  {"black_list": item_id2}})
+
+
+    def get_black_list(self, site_id, item_id):
+        c_rec_black_lists = getSiteDBCollection(self.connection, site_id, "rec_black_lists")
+        rec_black_list = c_rec_black_lists.find_one({"item_id": item_id})
+        if rec_black_list is None:
+            return []
+        else:
+            return rec_black_list["black_list"]
 
     def recommend_viewed_also_view(self, site_id, similarity_type, item_id):
         item_similarities = getSiteDBCollection(self.connection, site_id, 

@@ -217,6 +217,38 @@ def ajax_update_category_groups(request):
         return HttpResponse(json.dumps(result))
 
 
+@login_required
+def ajax_toggle_black_list(request):
+    if request.method == "GET":
+        site_id = request.GET["site_id"]
+        item_id1 = request.GET["item_id1"]
+        item_id2 = request.GET["item_id2"]
+        is_on = request.GET["is_on"] == "true"
+        mongo_client.toggle_black_list(site_id, item_id1, item_id2, is_on)
+        return HttpResponse(json.dumps({"code": 0}))
+
+
+def itemInfoListFromItemIdList(site_id, item_id_list):
+    c_items = getSiteDBCollection(getConnection(), site_id, "items")
+    item_info_list = [item for item in c_items.find({"item_id": {"$in": item_id_list}},
+                                  {"item_id": 1, "item_name": 1, "item_link": 1}
+                                  )]
+    for item_info in item_info_list:
+        del item_info["_id"]
+    return item_info_list
+
+
+@login_required
+def ajax_get_black_list(request):
+    if request.method == "GET":
+        site_id = request.GET["site_id"]
+        item_id = request.GET["item_id"]
+        black_list = itemInfoListFromItemIdList(site_id, 
+                        mongo_client.get_black_list(site_id, item_id))
+        result = {"code": 0, "black_list": black_list}
+        return HttpResponse(json.dumps(result))
+
+
 # Authentication System
 def logout(request):
     del request.session["user_name"]

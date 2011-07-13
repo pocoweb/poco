@@ -23,7 +23,9 @@ urlpatterns = patterns('',
     url(r'^show_item$', 'Dashboard.views.show_item'),
     url(r'^update_category_groups$', 'Dashboard.views.update_category_groups'),
     url(r'^ajax/update_category_groups$', 'Dashboard.views.ajax_update_category_groups'),
-    url(r'^ajax/get_site_statistics', 'Dashboard.views.ajax_get_site_statistics'),
+    url(r'^ajax/get_site_statistics$', 'Dashboard.views.ajax_get_site_statistics'),
+    url(r'^ajax/toggle_black_list$', 'Dashboard.views.ajax_toggle_black_list'),
+    url(r'^ajax/get_black_list$', 'Dashboard.views.ajax_get_black_list'),
 )
 
 urlpatterns += staticfiles_urlpatterns()

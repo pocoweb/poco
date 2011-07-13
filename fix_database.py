@@ -85,3 +85,5 @@ for site in sites.find():
         sites.update({"site_id": site["site_id"]},
                     {"$set": {"algorithm_type": "llh"}})
 print "=======================\n"
+
+

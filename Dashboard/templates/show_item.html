@@ -2,37 +2,127 @@
 {% block breadscrumb %}<a href="/">首页</a> &gt;&gt; <a href="/site_items_list?site_id={{site.site_id}}">{{site.site_name}}商品列表</a> &gt;&gt; <a href="/"></a>{% endblock %}
 
 {% block content-area %}
+<script type="text/javascript" src="{{STATIC_URL}}phpjs/sprintf.js"></script>
+<script>
+    function mark_li_item_black_listed(full_name, item_id, is_on) {
+            if (is_on) {
+                var li_item = $("#" + full_name + "-" + item_id);
+                if (li_item != null && typeof(li_item) != "undefined") {
+                    li_item.css("text-decoration", "line-through");
+                    li_item.css("font-style", "italic");
+                }
+                var a_item = $("#b_on_" + full_name + "-" + item_id);
+                if (a_item != null && typeof(a_item) != "undefined") {
+                    a_item.css("display", "none");
+                }
+            }
+            else {
+                var li_item = $("#" + full_name + "-" + item_id);
+                if (li_item != null && typeof(li_item) != "undefined") {
+                    li_item.css("text-decoration", "none");
+                    li_item.css("font-style", "normal");
+                }
+                var a_item = $("#b_on_" + full_name + "-" + item_id);
+                if (a_item != null && typeof(a_item) != "undefined") {
+                    a_item.css("display", "inline");
+                }
+            }
+    }
+
+    function mark_black_listed(item_id, is_on) {
+        mark_li_item_black_listed("getAlsoViewed", item_id, is_on);
+        mark_li_item_black_listed("getAlsoBought", item_id, is_on);
+        mark_li_item_black_listed("getBoughtTogether", item_id, is_on);
+        mark_li_item_black_listed("getUltimatelyBought", item_id, is_on);
+    }
+
+    function toggle_black_list(site_id, item_id1, item_id2, is_on) {
+        $.getJSON("/ajax/toggle_black_list",
+            {"site_id": site_id, "item_id1": item_id1, "item_id2": item_id2, "is_on": is_on},
+            function(data) {
+                var is_on_ = is_on == "true";
+                mark_black_listed(item_id2, is_on_);
+                update_black_list_area(site_id, item_id1);
+            });
+    }
+
+    function update_black_list_area(site_id, item_id) {
+       $.getJSON("/ajax/get_black_list",
+            {"site_id": site_id, "item_id": item_id},
+            function(data) {
+                var html = "";
+                $.each(data.black_list, function(idx, item_info) {
+                    var remove_black_list_link = sprintf(
+                            "javascript:toggle_black_list('%s', '%s', '%s', 'false')",
+                            site_id, item_id, item_info.item_id);
+                    html += sprintf("<li id='black-list-%s'><a style='color: gray;' href='%s'>%s</a>"
+                                    + " [<a href=\"%s\">X</a>]</li>\n", 
+                                     item_info.item_id, item_info.item_link, item_info.item_name,
+                                     remove_black_list_link);
+                });
+                $("#blacklist").html(html);
+        });
+    }
+
+    function initiate_black_list(site_id, item_id) {
+        $.getJSON("/ajax/get_black_list",
+            {"site_id": site_id, "item_id": item_id},
+            function(data) {
+                //alert(JSON.stringify(data));
+                $.each(data.black_list, function(idx, item_info) {
+                    mark_black_listed(item_info.item_id, true);
+                });
+                update_black_list_area(site_id, item_id);
+            });
+    }
+
+    $(function() {
+        initiate_black_list("{{site.site_id}}", "{{item.item_id}}");
+    });
+</script>
 <ul>
     <li>商品名称：<a href="{{item.item_link}}">{{item.item_name}}</a></li>
     <li>商品价格：{{item.price}}</li>
 </ul>
 
-看了本商品的顾客还看了：
+<h2>看了本商品的顾客还看了：</h2>
 <ol>
 {% for topn_item in getAlsoViewed %}
-    <li><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}]</li>
+    <li id="getAlsoViewed-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getAlsoViewed-{{topn_item.item_id}}">X</a>]</li>
 {% endfor %}
 </ol>
+
+<hr/>
 
 买了本商品的顾客还买了：
 <ol>
 {% for topn_item in getAlsoBought %}
-    <li><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}]</li>
+    <li id="getAlsoBought-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getAlsoBought-{{topn_item.item_id}}">X</a>]</li>
 {% endfor %}
 </ol>
+
+<hr/>
 
 经常和本商品一起买的：
 <ol>
 {% for topn_item in getBoughtTogether %}
-    <li><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}]</li>
+    <li id="getBoughtTogether-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getBoughtTogether-{{topn_item.item_id}}">X</a>]</li>
 {% endfor %}
 </ol>
+
+<hr/>
 
 看了本商品最终购买：
 <ol>
 {% for topn_item in getUltimatelyBought %}
-    <li><a style="color:blue" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}}</li>
+    <li id="getUltimatelyBought-{{topn_item.item_id}}"><a style="color:blue" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}} [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getUltimatelyBought-{{topn_item.item_id}}">X</a>]</li>
 {% endfor %}
 </ol>
+
+<hr/>
+<h3>黑名单：</h3>
+<ul id="blacklist" style="">
+</ul>
+
 
 {% endblock %}
