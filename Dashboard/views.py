@@ -112,7 +112,7 @@ def getItemsAndCount(connection, site_id, page_num):
             "next_page_num": min(max_page_num, page_num + 1),
             "max_page_num": max_page_num,
             "curr_left_reached": page_num == 1,
-            "curr_right_reached": page_num == max_page_num}
+            "curr_right_reached": page_num >= max_page_num}
 
 
 @login_required
