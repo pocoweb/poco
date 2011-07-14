@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+import sys
+sys.path.insert(0, "../")
+sys.path.insert(0, "../pylib")
+import pymongo
+import datetime
+
+
+from common.utils import getSiteDBCollection
+
+host_name = sys.argv[1]
+site_id = sys.argv[2]
+user_id = sys.argv[3]
+
+connection = pymongo.Connection(host_name)
+
+c_raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
+
+def getItemInfo(item_id):
+    c_items = getSiteDBCollection(connection, site_id, "items")
+    item = c_items.find_one({"item_id": item_id})
+    return item
+
+#user_id = "17495" # 1360, 10503, 13047, 13062, 15457, 15781, 17448, 17495, 17546, 17599
+print "Behavior of: %s" % user_id
+for row in c_raw_logs.find({"filled_user_id": user_id, "behavior": {"$in": ["V", "PLO", "ClickRec"]}}).sort("timestamp", 1):
+    ts_formatted = datetime.datetime.fromtimestamp(row["timestamp"]).strftime("%m-%d %H:%M")
+    if row["behavior"] == "PLO":
+        print ts_formatted, row["behavior"], row["order_content"]
+    else:
+        if row["behavior"] == "ClickRec":
+            recommendation = c_raw_logs.find_one({"behavior": {"$ne": "ClickRec"}, "req_id": row["req_id"]})
+            print ts_formatted, row["behavior"] + ":" + recommendation["behavior"], row["item_id"], getItemInfo(row["item_id"])["item_name"].encode("utf-8")
+        else:
+            print ts_formatted, row["behavior"], row["item_id"], getItemInfo(row["item_id"])["item_name"].encode("utf-8")
+
