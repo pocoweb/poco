@@ -19,8 +19,9 @@ def getDateStrAndHour(timestamp):
         dt = datetime.datetime.fromtimestamp(timestamp)
     except:
         raise Exception("Can't parse timestamp: %r, %r" % (timestamp, type(timestamp)))
-    date_str = dt.strftime("%Y-%m-%d")
-    hour = dt.hour
+    result = {}
+    result["date_str"] = dt.strftime("%Y-%m-%d")
+    result["hour"] = dt.hour
     return date_str, hour
 
 
@@ -39,11 +40,11 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
                   row["filled_user_id"], row["behavior"], row["tjbid"]]
         if row["behavior"] == "V":
             output += [row["item_id"], "0", "0"]
-            output_a_row(output)
+            output_a_row(out_f, output)
         elif row["behavior"] == "PLO":
             for order_item in row["order_content"]:
                 output1 = output + [order_item["item_id"], str(order_item["price"]), str(order_item["amount"])]
-                output_a_row(output1)
+                output_a_row(out_f, output1)
         elif row["behavior"] == "ClickRec":
             output += [row["item_id"], "0", "0"]
             output_a_row(out_f, output)
