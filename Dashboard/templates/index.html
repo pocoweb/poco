@@ -20,7 +20,7 @@ function renderChart_1(site_id, data) {
             chart: {
                 renderTo: "chart-1",
                 //marginRight: 30,
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品PV和UV图",
@@ -69,14 +69,14 @@ function renderChart_1(site_id, data) {
                       "data": data.pv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true,
+                        enabled: true
                         }
                       },
                      {"name": "商品UV",
                       "data": data.uv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true,
+                        enabled: true
                         }
                       },
                     {"name": "PV/UV",
@@ -96,7 +96,7 @@ function renderChart_plo(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-plo",
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品订单数",
@@ -162,7 +162,7 @@ function renderChart_rec(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-rec",
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品推荐统计",
@@ -220,18 +220,19 @@ function renderChart_rec(site_id, data) {
 
 <script type="text/javascript">
     function fillCharts(site_id, statistics) {
-        renderChart_1(site_id, statistics);
-        {% if user.is_admin %}
-            renderChart_plo(site_id, statistics);
-            renderChart_rec(site_id, statistics);
-        {% endif %}
-
+        try{
+            renderChart_1(site_id, statistics);
+            {% if user.is_admin %}
+                renderChart_plo(site_id, statistics);
+                renderChart_rec(site_id, statistics);
+            {% endif %}
+        }catch(err){}
     };
 
     function updateSiteStatistics(site_id) {
         $.getJSON("/ajax/get_site_statistics", {site_id: site_id},
                 function(data, textStatus, jqXHR) {
-                    if (data.code == 0) {
+                    if (data.code == 0 && data.site.items_count > 0 ) {
                         var site_data = data.site;
                         $("#items-count").html(site_data["items_count"]);
                         fillCharts(site_data.site_id, site_data.statistics);

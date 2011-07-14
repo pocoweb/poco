@@ -25,11 +25,4 @@
         <tr><td><a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}">{{item.item_name}}</a></td><td>{{item.price}}</td></tr>
     {% endfor %}
     </table>
-    {% for pn in page_nums %}
-    {% ifnotequal pn page_num %}
-    <a href="/site_items_list?site_id={{site.site_id}}&page_num={{pn}}">{{pn}}</a>&nbsp;
-    {% else %}
-    {{pn}}&nbsp;
-    {% endifnotequal %}
-    {% endfor %}
 {% endblock %}
