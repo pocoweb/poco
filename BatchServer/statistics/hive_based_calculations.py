@@ -12,20 +12,24 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
 from common.utils import getSiteDBCollection
+from common.utils import smart_split
 
 
-def getDateStrAndHour(timestamp):
+def getCalendarInfo(timestamp):
     try:
         dt = datetime.datetime.fromtimestamp(timestamp)
     except:
         raise Exception("Can't parse timestamp: %r, %r" % (timestamp, type(timestamp)))
     result = {}
     result["date_str"] = dt.strftime("%Y-%m-%d")
+    result["month"] = dt.month
+    result["day"] = dt.day
     result["hour"] = dt.hour
-    return date_str, hour
+    result["year"], result["weeknum"], result["weekday"] = dt.isocalendar()
+    return result
 
 
-DELIMITER = '\t'
+DELIMITER = ','
 def output_a_row(out_f, output):
     out_f.write("%s\n" % DELIMITER.join(output))
     out_f.flush()
@@ -35,7 +39,9 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
     out_f = open(output_file_path, "w")
     for line in open(backfilled_raw_logs_path, "r"):
         row = json.loads(line.strip())
-        date_str, hour = getDateStrAndHour(row["timestamp"])
+        calendar_info = getCalendarInfo(row["timestamp"])
+        date_str = calendar_info["date_str"]
+        hour = calendar_info["hour"]
         output = [date_str, repr(hour), repr(row["timestamp"]),
                   row["filled_user_id"], row["behavior"], row["tjbid"]]
         if row["behavior"] == "V":
@@ -67,16 +73,47 @@ def load_backfilled_raw_logs(work_dir, client):
                      "amount INT "
                      ")"
                      "ROW FORMAT DELIMITED "
-                     "FIELDS TERMINATED BY '\t' "
+                     "FIELDS TERMINATED BY ',' "
                      "STORED AS TEXTFILE")
     client.execute("add FILE %s" % getMapperFilePath("as_behavior_datestr_item_id.py"))
     client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE backfilled_raw_logs" % input_file_path)
 
 
+def yieldClientResults(client):
+    while True:
+        row = client.fetchOne()
+        if (row == None or row == ''):
+            break
+        yield smart_split(row, "\t")
 
-def calc_kedanjia(client):
-    pass
 
+def upload_statistics(site_id, connection, client, data):
+    c_statistics = getSiteDBCollection(connection, site_id, "statistics")
+    date_str = data["date_str"]
+    del data["date_str"]
+    row_in_db = c_statistics.find_one({"date": date_str})
+    if row_in_db is None:
+        row_in_db = {"date": date_str}
+    for key in data.keys():
+        row_in_db.update(data)
+    c_statistics.save(row_in_db)
+
+
+def result_as_dict(result, column_names):
+    result_dict = {}
+    for idx in range(len(result)):
+        result_dict[column_names[idx]] = result[idx]
+    return result_dict
+
+
+def calc_daily_order_money_related(site_id, connection, client):
+    client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
+                   "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
+                   '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, timestamp_) a '
+                   "GROUP BY a.date_str ")
+    for row in yieldClientResults(client):
+        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
+        upload_statistics(site_id, connection, client, data)
 
 '''
 def load_items(connection, site_id, work_dir, client):
@@ -144,6 +181,8 @@ def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_p
         load_backfilled_raw_logs(work_dir, client)
         #load_items(connection, site_id, work_dir, client)
         #calc_daily_item_pv_coverage(client)
+
+        calc_daily_order_money_related(site_id, connection, client)
 
         transport.close()
 
