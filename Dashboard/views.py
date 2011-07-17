@@ -45,11 +45,17 @@ def getSiteStatistics(site_id, days=10):
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
             row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
 
-            row["avg_order_total"] = float("%.2f" % row["avg_order_total"])
-            row["total_sales"] = float("%.2f" % row["total_sales"])
+            convertColumn(row, "avg_order_total")
+            convertColumn(row, "total_sales")
         result.append(row)
     return result
 
+
+def convertColumn(row, column_name):
+    if row.has_key(column_name):
+        row[column_name] = float("%.2f" % row[column_name])
+    else:
+        row[column_name] = None
 
 def login_required(callable):
     def method(request):

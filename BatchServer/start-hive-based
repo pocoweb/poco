@@ -8,9 +8,9 @@ from statistics import hive_based_calculations
 
 def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client):
     hive_based_calculations.calc_daily_order_money_related(site_id, connection, client)
-    hive_based_calculations.calc_click_rec_buy(site_id, connection, client)
-    hive_based_calculations.calc_unique_sku(site_id, connection, client)
-    hive_based_calculations.calc_avg_item_amount(site_id, connection, client)
+    #hive_based_calculations.calc_click_rec_buy(site_id, connection, client)
+    #hive_based_calculations.calc_unique_sku(site_id, connection, client)
+    #hive_based_calculations.calc_avg_item_amount(site_id, connection, client)
 
 
 connection = pymongo.Connection()

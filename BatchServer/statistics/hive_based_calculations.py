@@ -111,7 +111,7 @@ def calc_daily_order_money_related(site_id, connection, client):
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
                    '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, timestamp_) a '
                    "GROUP BY a.date_str ")
-    print "Date", "Order Count", "Average Order Amount", "Total Sales"
+    #print "Date", "Order Count", "Average Order Amount", "Total Sales"
     for row in yieldClientResults(client):
         data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
         data["order_count"] = int(data["order_count"])
@@ -269,20 +269,16 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
         calc_daily_order_money_related(site_id, connection, client)
 
 
-def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, do_calculations=do_calculations):
+def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, 
+                        do_calculations=do_calculations):
     convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
-    try:
-        transport = TSocket.TSocket('localhost', 10000)
-        transport = TTransport.TBufferedTransport(transport)
-        protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    transport = TSocket.TSocket('localhost', 10000)
+    transport = TTransport.TBufferedTransport(transport)
+    protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
-        client = ThriftHive.Client(protocol)
-        transport.open()
-        do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client)
-        transport.close()
-
-    except Thrift.TException, tx:
-        print '%s' % (tx.message)
-
+    client = ThriftHive.Client(protocol)
+    transport.open()
+    do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client)
+    transport.close()
 
 
