@@ -213,6 +213,79 @@ function renderChart_rec(site_id, data) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+
+
+function renderChart_order_money(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-order-money",
+                //marginRight: 30,
+                marginBottom: 30
+            },
+            title: {
+                text: "平均客单价和总金额",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '客单价'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    },
+                    {
+                        title: {
+                            text: '总金额'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '元';
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 10,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [{"name": "客单价",
+                      "data": data.avg_order_total,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: true
+                        }
+                      },
+                    {"name": "总金额",
+                      "data": data.total_sales,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: true
+                      },
+                      yAxis: 1
+                     }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
 {% endif %}
 
 
@@ -225,6 +298,7 @@ function renderChart_rec(site_id, data) {
             {% if user.is_admin %}
                 renderChart_plo(site_id, statistics);
                 renderChart_rec(site_id, statistics);
+                renderChart_order_money(site_id, statistics);
             {% endif %}
         }catch(err){}
     };
@@ -286,6 +360,7 @@ function renderChart_rec(site_id, data) {
     {% if user.is_admin %}
         <div id="chart-plo" style="width:800px;height:300px;"></div>
         <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-order-money" style="width:800px;height:300px; margin-top: 30px;"></div>
     {% endif %}
 
 </div>

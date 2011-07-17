@@ -44,6 +44,9 @@ def getSiteStatistics(site_id, days=10):
             pv_plo = float(row["PV_PLO"])
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
             row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
+
+            row["avg_order_total"] = float("%.2f" % row["avg_order_total"])
+            row["total_sales"] = float("%.2f" % row["total_sales"])
         result.append(row)
     return result
 
@@ -89,6 +92,7 @@ def index(request):
 def _prepareCharts(user, statistics):
     data = {"pv_v": [], "uv_v": [], "pv_uv": [],
             "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
+            "avg_order_total": [], "total_sales": [],
             "categories": []}
     def pushIntoData(stat_row, keys):
         for key in keys:
@@ -99,6 +103,7 @@ def _prepareCharts(user, statistics):
     for stat_row in statistics:
         if user["is_admin"]:
             pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
+            pushIntoData(stat_row, ["avg_order_total", "total_sales"])
         else:
             pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV"])
         data["categories"].append(stat_row["date"][5:])
