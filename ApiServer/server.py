@@ -301,6 +301,7 @@ class PlaceOrderProcessor(ActionProcessor):
         result = []
         for row in order_content.split("|"):
             item_id, price, amount = row.split(",")
+            price = price.strip()
             result.append({"item_id": item_id, "price": price,
                            "amount": amount})
         return result
