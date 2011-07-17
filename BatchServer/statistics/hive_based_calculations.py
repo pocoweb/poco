@@ -111,9 +111,102 @@ def calc_daily_order_money_related(site_id, connection, client):
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
                    '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, timestamp_) a '
                    "GROUP BY a.date_str ")
+    print "Date", "Order Count", "Average Order Amount", "Total Sales"
     for row in yieldClientResults(client):
         data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
+        data["order_count"] = int(data["order_count"])
+        data["avg_order_total"] = float(data["avg_order_total"])
+        data["total_sales"] = float(data["total_sales"])
+        #print ",".join((data["date_str"], str(data["order_count"]), str(data["avg_order_total"]), str(data["total_sales"])))
         upload_statistics(site_id, connection, client, data)
+
+
+
+def look_for_rec_buy(result_set):
+    MAX_DIRECT_TIME = 48 * 3600
+    MAX_INDIRECT_TIME = 24 * 7 * 3600
+    last_user_id = None
+    last_click_recs = {}
+    already_viewed = {}
+    for row in result_set:
+        user_id, timestamp, behavior, item_id, price, amount = row
+        timestamp = float(timestamp)
+        if price != "NULL" and amount != "NULL":
+            price = float(price)
+            amount = int(amount)
+        else:
+            price = 0
+            amount = 0
+        date_str = getCalendarInfo(timestamp)["date_str"]
+        hour = getCalendarInfo(timestamp)["hour"]
+
+        if last_user_id != user_id:
+            last_click_recs = {}
+            already_viewed = {}
+            last_user_id = user_id
+
+        if behavior == "V":
+            already_viewed[item_id] = timestamp
+        elif behavior == "ClickRec":
+            if not already_viewed.has_key(item_id):
+                last_click_recs[item_id] = (timestamp, True)
+            else:
+                last_click_recs[item_id] = (timestamp, False)
+        elif behavior == "PLO":
+            if last_click_recs.has_key(item_id):
+                click_ts, is_rec_first = last_click_recs[item_id]
+                influence_type = None
+                if (timestamp - click_ts) < MAX_DIRECT_TIME:
+                    influence_type = "DIRECT"
+                elif (timestamp - click_ts) < MAX_INDIRECT_TIME:
+                    influence_type = "INDIRECT"
+                if is_rec_first:
+                    influence_type += "_REC_FIRST"
+                else:
+                    influence_type += "_REC_LATER"
+                if influence_type is not None:
+                    print "%s %s h: %s bought %s %s by recommendation %s hours ago. PricexAmount=%s x %s=%s" % (date_str, hour, user_id, item_id, influence_type, (timestamp - click_ts)/3600.0, price, amount, price * amount)
+
+def calc_click_rec_buy(site_id, connection, client):
+    client.execute("SELECT brl.filled_user_id, brl.timestamp_, brl.behavior, brl.item_id, brl.price, brl.amount "
+                   "FROM backfilled_raw_logs brl "
+                   'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
+                   'ORDER BY filled_user_id, timestamp_')
+    look_for_rec_buy(yieldClientResults(client))
+
+
+def calc_avg_item_amount(site_id, connection, client):
+    client.execute("SELECT a.date_str, AVG(a.amount) AS avg_amount "
+                   "FROM (SELECT timestamp_, date_str, SUM(amount) AS amount "
+                   "      FROM backfilled_raw_logs brl "
+                   '      WHERE behavior = "PLO"'
+                   "      GROUP BY timestamp_, date_str) a "
+                   "GROUP BY a.date_str"
+    )
+    print "Date", "Average Item Amount"
+    for row in yieldClientResults(client):
+        print ",".join([row[0], str(row[1])])
+
+
+
+def calc_unique_sku(site_id, connection, client):
+    client.execute("SELECT date_str, AVG(sku) AS avg_sku "
+                   "FROM (SELECT timestamp_, date_str, COUNT(DISTINCT item_id) AS sku "
+                   "      FROM backfilled_raw_logs brl "
+                   '      WHERE behavior = "PLO" '
+                   "      GROUP BY timestamp_, date_str) a "
+                   "GROUP BY date_str"
+    )
+    #client.execute(#"SELECT date_str, AVG(amount) AS avg_amount "
+    #               "SELECT timestamp_, date_str, SUM(amount) AS amount "
+    #               "      FROM backfilled_raw_logs brl "
+    #               "      GROUP BY timestamp_, date_str "
+    #               #"GROUP BY date_str"
+    #)
+    print "Date", "Average Unique SKU"
+    for row in yieldClientResults(client):
+        print ",".join((row[0], str(row[1])))
+
 
 '''
 def load_items(connection, site_id, work_dir, client):
@@ -168,7 +261,15 @@ def calc_daily_item_pv_coverage(client):
 '''
 
 
-def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path):
+def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client):
+        load_backfilled_raw_logs(work_dir, client)
+        #load_items(connection, site_id, work_dir, client)
+        #calc_daily_item_pv_coverage(client)
+
+        calc_daily_order_money_related(site_id, connection, client)
+
+
+def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, do_calculations=do_calculations):
     convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
     try:
         transport = TSocket.TSocket('localhost', 10000)
@@ -177,24 +278,11 @@ def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_p
 
         client = ThriftHive.Client(protocol)
         transport.open()
-
-        load_backfilled_raw_logs(work_dir, client)
-        #load_items(connection, site_id, work_dir, client)
-        #calc_daily_item_pv_coverage(client)
-
-        calc_daily_order_money_related(site_id, connection, client)
-
+        do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client)
         transport.close()
 
     except Thrift.TException, tx:
         print '%s' % (tx.message)
 
 
-if __name__ == "__main__":
-    import pymongo
-    connection = pymongo.Connection()
-    hive_based_calculations(
-            connection,
-            "kuaishubao",
-            "/Users/sun/projects/Tuijianbao/hg/BatchServer/work_dir",
-            "/Users/sun/projects/Tuijianbao/hg/BatchServer/work_dir/backfilled_raw_logs")
+
