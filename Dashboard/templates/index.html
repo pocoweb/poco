@@ -20,7 +20,7 @@ function renderChart_1(site_id, data) {
             chart: {
                 renderTo: "chart-1",
                 //marginRight: 30,
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品PV和UV图",
@@ -69,17 +69,17 @@ function renderChart_1(site_id, data) {
                       "data": data.pv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true,
+                        enabled: true
                         }
                       },
                      {"name": "商品UV",
                       "data": data.uv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true,
+                        enabled: true
                         }
                       },
-                     {"name": "PV/UV",
+                    {"name": "PV/UV",
                       "data": data.pv_uv,
                       "type": "spline",
                       yAxis: 1
@@ -90,12 +90,13 @@ function renderChart_1(site_id, data) {
     return chart;
 }
 
+
+{% if user.is_admin %}
 function renderChart_plo(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-plo",
-                marginRight: 30,
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品订单数",
@@ -115,7 +116,16 @@ function renderChart_plo(site_id, data) {
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
                         }]
-                    } 
+                    },
+                    {
+                        title: {
+                            text: '比率'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
             ],
             tooltip: {
                 formatter: function() {
@@ -135,6 +145,12 @@ function renderChart_plo(site_id, data) {
                        "name": "订单数",
                        "data": data.pv_plo,
                        "type": "column"
+                     },
+
+                    {"name": "订单数/商品UV",
+                      "data": data.pv_plo_d_uv,
+                      "type": "spline",
+                      yAxis: 1
                      }
                 ]
     };
@@ -146,8 +162,7 @@ function renderChart_rec(site_id, data) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-rec",
-                marginRight: 30,
-                marginBottom: 30,
+                marginBottom: 30
             },
             title: {
                 text: "商品推荐统计",
@@ -200,48 +215,98 @@ function renderChart_rec(site_id, data) {
 }
 
 
+function renderChart_order_money(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-order-money",
+                //marginRight: 30,
+                marginBottom: 30
+            },
+            title: {
+                text: "平均客单价和总金额",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '客单价'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    },
+                    {
+                        title: {
+                            text: '总金额'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '元';
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 10,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [{"name": "客单价",
+                      "data": data.avg_order_total,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: true
+                        }
+                      },
+                    {"name": "总金额",
+                      "data": data.total_sales,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: true
+                      },
+                      yAxis: 1
+                     }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+{% endif %}
+
+
 </script>
 
 <script type="text/javascript">
     function fillCharts(site_id, statistics) {
-        var d = {};
-        d.pv_v = [];
-        d.uv_v = [];
-        d.pv_uv = [];
-        d.pv_plo = [];
-        d.pv_rec = [];
-        d.clickrec = [];
-        d.categories = [];
-        //alert(JSON.stringify(statistics));
-        $.each(statistics, function(idx, stat_row) {
-            d.categories.push(stat_row["date"].substring(5));
-            if (stat_row.is_available) {
-                d.pv_v.push(stat_row.PV_V);
-                d.uv_v.push(stat_row.UV_V);
-                d.pv_uv.push(stat_row.PV_UV);
-                d.pv_plo.push(stat_row.PV_PLO);
-                d.pv_rec.push(stat_row.PV_Rec);
-                d.clickrec.push(stat_row.ClickRec);
-            }
-            else {
-                d.pv_v.push(null);
-                d.uv_v.push(null);
-                d.pv_uv.push(null);
-                d.pv_plo.push(null);
-                d.pv_rec.push(null);
-                d.clickrec.push(null);
-            }
-        });
-        renderChart_1(site_id, d);
-        renderChart_plo(site_id, d);
-        renderChart_rec(site_id, d);
-
+        try{
+            renderChart_1(site_id, statistics);
+            {% if user.is_admin %}
+                renderChart_plo(site_id, statistics);
+                renderChart_rec(site_id, statistics);
+                renderChart_order_money(site_id, statistics);
+            {% endif %}
+        }catch(err){}
     };
 
     function updateSiteStatistics(site_id) {
         $.getJSON("/ajax/get_site_statistics", {site_id: site_id},
                 function(data, textStatus, jqXHR) {
-                    if (data.code == 0) {
+                    if (data.code == 0 && data.site.items_count > 0 ) {
                         var site_data = data.site;
                         $("#items-count").html(site_data["items_count"]);
                         fillCharts(site_data.site_id, site_data.statistics);
@@ -292,8 +357,11 @@ function renderChart_rec(site_id, data) {
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
     </div>
     <div id="chart-1" style="width:800px;height:300px;"></div>
-    <div id="chart-plo" style="width:800px;height:300px;"></div>
-    <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% if user.is_admin %}
+        <div id="chart-plo" style="width:800px;height:300px;"></div>
+        <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-order-money" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% endif %}
 
 </div>
 {% endblock %}

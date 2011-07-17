@@ -40,9 +40,22 @@ def getSiteStatistics(site_id, days=10):
             pv_v = float(row["PV_V"])
             pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
             row["PV_UV"] = float("%.2f" % pv_uv)
+
+            pv_plo = float(row["PV_PLO"])
+            pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
+            row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
+
+            convertColumn(row, "avg_order_total")
+            convertColumn(row, "total_sales")
         result.append(row)
     return result
 
+
+def convertColumn(row, column_name):
+    if row.has_key(column_name):
+        row[column_name] = float("%.2f" % row[column_name])
+    else:
+        row[column_name] = None
 
 def login_required(callable):
     def method(request):
@@ -66,13 +79,41 @@ def _getUserSiteIds(user_name):
     user = c_users.find_one({"user_name": user_name})
     return user["sites"]
 
+def getUser(user_name):
+    connection = getConnection()
+    c_users = connection["tjb-db"]["users"]
+    user = c_users.find_one({"user_name": user_name})
+    return user
+
 @login_required
 def index(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
     return render_to_response("index.html", 
-            {"page_name": "首页", "sites": sites, "user_name": user_name},
+            {"page_name": "首页", "sites": sites, "user_name": user_name,
+             "user": getUser(user_name)},
             context_instance=RequestContext(request))
+
+
+def _prepareCharts(user, statistics):
+    data = {"pv_v": [], "uv_v": [], "pv_uv": [],
+            "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
+            "avg_order_total": [], "total_sales": [],
+            "categories": []}
+    def pushIntoData(stat_row, keys):
+        for key in keys:
+            if stat_row["is_available"]:
+                data[key.lower()].append(stat_row[key])
+            else:
+                data[key.lower()].append(None)
+    for stat_row in statistics:
+        if user["is_admin"]:
+            pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
+            pushIntoData(stat_row, ["avg_order_total", "total_sales"])
+        else:
+            pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV"])
+        data["categories"].append(stat_row["date"][5:])
+    return data
 
 
 # FIXME: should use a better way to to access restriction
@@ -81,12 +122,13 @@ def ajax_get_site_statistics(request):
     site_id = request.GET.get("site_id", None)
     user_name = request.session["user_name"]
     user_site_ids = _getUserSiteIds(user_name)
+    user = getUser(user_name)
     if site_id in user_site_ids:
         result = {"code": 0}
         connection = getConnection()
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
-                       "statistics": getSiteStatistics(site_id)}
+                       "statistics": _prepareCharts(user, getSiteStatistics(site_id))}
         return HttpResponse(json.dumps(result))
     else:
         return HttpResponse(json.dumps({"code": 1}))

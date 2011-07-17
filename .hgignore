@@ -11,3 +11,4 @@ BatchServer/similarity_calculation/local_settings.py
 BatchServer/work_dir
 ApiServer/test_directory/tester
 demo/frontend/UserDb.sqlite3
+Dashboard/session_store
