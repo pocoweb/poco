@@ -2,22 +2,39 @@
 import sys
 sys.path.insert(0, "../")
 sys.path.insert(0, "../pylib")
+import os.path
 import pymongo
 from statistics import hive_based_calculations
 
+import settings
+
 
 def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client):
-    hive_based_calculations.calc_daily_order_money_related(site_id, connection, client)
-    #hive_based_calculations.calc_click_rec_buy(site_id, connection, client)
-    #hive_based_calculations.calc_unique_sku(site_id, connection, client)
-    #hive_based_calculations.calc_avg_item_amount(site_id, connection, client)
+    hive_based_calculations.convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
+    hive_based_calculations.load_backfilled_raw_logs(work_dir, client)
+    ##hive_based_calculations.calc_daily_order_money_related(site_id, connection, client)
+    hive_based_calculations.calc_click_rec_buy(site_id, connection, client)
+    ##hive_based_calculations.calc_unique_sku(site_id, connection, client)
+    ##hive_based_calculations.calc_avg_item_amount(site_id, connection, client)
+    hive_based_calculations.calc_place_order_with_rec_info(site_id, connection, client)
+    hive_based_calculations.calc_kedanjia_without_rec(site_id, connection, client)
+    hive_based_calculations.calc_kedanjia_with_rec(site_id, connection, client)
+
+def do_calculations2(connection, site_id, work_dir, backfilled_raw_logs_path, client):
+    hive_based_calculations.convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
+    hive_based_calculations.load_backfilled_raw_logs(work_dir, client)
+    hive_based_calculations.convert_recommendation_logs(work_dir, backfilled_raw_logs_path)
+    hive_based_calculations.load_recommendation_logs(work_dir, client)
+    #hive_based_calculations.calc_recommendations_by_type(site_id, connection, client)
+    #hive_based_calculations.calc_click_rec_by_type(site_id, connection, client)
+    hive_based_calculations.calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client)
 
 
 connection = pymongo.Connection()
 hive_based_calculations.hive_based_calculations(
         connection,
         "kuaishubao",
-        "/Users/sun/projects/Tuijianbao/hg/BatchServer/work_dir",
-        "/Users/sun/projects/Tuijianbao/hg/BatchServer/work_dir/backfilled_raw_logs",
-        do_calculations)
+        settings.work_dir,
+        os.path.join(settings.work_dir, "backfilled_raw_logs"),
+        do_calculations2)
 

@@ -34,6 +34,78 @@ def output_a_row(out_f, output):
     out_f.write("%s\n" % DELIMITER.join(output))
     out_f.flush()
 
+
+def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
+    output_file_path = os.path.join(work_dir, "recommendation_logs_comma_separated")
+    out_f = open(output_file_path, "w")
+    for line in open(backfilled_raw_logs_path, "r"):
+        row = json.loads(line.strip())
+        if row["behavior"].startswith("Rec"):
+            calendar_info = getCalendarInfo(row["timestamp"])
+            date_str = calendar_info["date_str"]
+            output = [date_str, repr(row["timestamp"]), row["behavior"], row["req_id"]]
+            output_a_row(out_f, output)
+    out_f.close()
+
+
+def load_recommendation_logs(work_dir, client):
+    input_file_path = os.path.join(work_dir, "recommendation_logs_comma_separated")
+    client.execute("DROP TABLE recommendation_logs")
+    client.execute("CREATE TABLE recommendation_logs ( "
+                     "date_str STRING, "
+                     "timestamp_ DOUBLE, "
+                     "behavior STRING, "
+                     "req_id STRING "
+                     ")"
+                     "ROW FORMAT DELIMITED "
+                     "FIELDS TERMINATED BY ',' "
+                     "STORED AS TEXTFILE")
+    client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE recommendation_logs" % input_file_path)
+
+
+def calc_recommendations_by_type(site_id, connection, client):
+    client.execute("DROP TABLE recommendations_by_type")
+    client.execute("CREATE TABLE recommendations_by_type ( "
+                   " date_str STRING, "
+                   " behavior STRING, "
+                   " count    INT "
+                   ")")
+    client.execute("INSERT OVERWRITE TABLE recommendations_by_type "
+                   "SELECT date_str, behavior, COUNT(*) "
+                   "FROM recommendation_logs "
+                   "GROUP BY date_str, behavior")
+
+
+def calc_click_rec_by_type(site_id, connection, client):
+    client.execute("DROP TABLE click_rec_by_type")
+    client.execute("CREATE TABLE click_rec_by_type ( "
+                   " date_str STRING, "
+                   " behavior STRING, "
+                   " count    INT "
+                   ")")
+    client.execute("INSERT OVERWRITE TABLE click_rec_by_type "
+                   "SELECT date_str, behavior, COUNT(*) "
+                   "FROM "
+                   "   (SELECT brl.date_str, rl.behavior "
+                   "   FROM recommendation_logs rl "
+                   "   JOIN backfilled_raw_logs brl ON (rl.req_id = brl.req_id) "
+                   '   WHERE brl.behavior = "ClickRec") a '
+                   "GROUP BY date_str, behavior")
+
+
+
+def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client):
+    calc_recommendations_by_type(site_id, connection, client)
+    calc_click_rec_by_type(site_id, connection, client)
+    
+    client.execute("SELECT rbt.date_str, rbt.behavior, rbt.count AS recommendation_count, cbt.count AS click_rec_count, cbt.count / rbt.count "
+                   "FROM recommendations_by_type rbt "
+                   "LEFT OUTER JOIN click_rec_by_type cbt ON (rbt.date_str = cbt.date_str AND rbt.behavior = cbt.behavior) "
+                   )
+
+    for row in yieldClientResults(client):
+        print row
+
 def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
     output_file_path = os.path.join(work_dir, "backfilled_raw_logs_ctrl_a_separated")
     out_f = open(output_file_path, "w")
@@ -45,14 +117,14 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
         output = [date_str, repr(hour), repr(row["timestamp"]),
                   row["filled_user_id"], row["behavior"], row["tjbid"]]
         if row["behavior"] == "V":
-            output += [row["item_id"], "0", "0"]
+            output += [row["item_id"], "0", "0", "0"]
             output_a_row(out_f, output)
         elif row["behavior"] == "PLO":
             for order_item in row["order_content"]:
-                output1 = output + [order_item["item_id"], str(order_item["price"]), str(order_item["amount"])]
+                output1 = output + [order_item["item_id"], str(order_item["price"]), str(order_item["amount"]), "0"]
                 output_a_row(out_f, output1)
         elif row["behavior"] == "ClickRec":
-            output += [row["item_id"], "0", "0"]
+            output += [row["item_id"], "0", "0", row["req_id"]]
             output_a_row(out_f, output)
 
     out_f.close()
@@ -70,7 +142,8 @@ def load_backfilled_raw_logs(work_dir, client):
                      "tjbid STRING, "
                      "item_id STRING,"
                      "price FLOAT, "
-                     "amount INT "
+                     "amount INT, "
+                     "req_id STRING "
                      ")"
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
@@ -111,13 +184,11 @@ def calc_daily_order_money_related(site_id, connection, client):
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
                    '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, timestamp_) a '
                    "GROUP BY a.date_str ")
-    #print "Date", "Order Count", "Average Order Amount", "Total Sales"
     for row in yieldClientResults(client):
         data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
         data["order_count"] = int(data["order_count"])
         data["avg_order_total"] = float(data["avg_order_total"])
         data["total_sales"] = float(data["total_sales"])
-        #print ",".join((data["date_str"], str(data["order_count"]), str(data["avg_order_total"]), str(data["total_sales"])))
         upload_statistics(site_id, connection, client, data)
 
 
@@ -167,12 +238,107 @@ def look_for_rec_buy(result_set):
                 if influence_type is not None:
                     print "%s %s h: %s bought %s %s by recommendation %s hours ago. PricexAmount=%s x %s=%s" % (date_str, hour, user_id, item_id, influence_type, (timestamp - click_ts)/3600.0, price, amount, price * amount)
 
+
+def calc_ClickRec_by_type(site_id, connection, client):
+    pass
+
+
+def calc_kedanjia_without_rec(site_id, connection, client):
+    client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
+                   "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
+                   '      FROM place_order_with_rec_info pow '
+                   '      WHERE NOT is_rec_item '
+                   '      GROUP BY date_str, timestamp_ '
+                   '     ) a '
+                   "GROUP BY a.date_str ")
+    tts_all = 0
+    for row in yieldClientResults(client):
+        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
+        data["order_count"] = int(data["order_count"])
+        data["avg_order_total"] = float(data["avg_order_total"])
+        data["total_sales"] = float(data["total_sales"])
+        tts_all += data["total_sales"]
+        #upload_statistics(site_id, connection, client, data)
+        print row
+    print "TTS:", tts_all
+
+
+def calc_kedanjia_with_rec(site_id, connection, client):
+    client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
+                   "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
+                   '      FROM place_order_with_rec_info pow '
+                   '      GROUP BY date_str, timestamp_ '
+                   '     ) a '
+                   "GROUP BY a.date_str ")
+    tts_all = 0
+    for row in yieldClientResults(client):
+        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
+        data["order_count"] = int(data["order_count"])
+        data["avg_order_total"] = float(data["avg_order_total"])
+        data["total_sales"] = float(data["total_sales"])
+        tts_all += data["total_sales"]
+        #upload_statistics(site_id, connection, client, data)
+        print row
+    print "TTS:", tts_all
+
+
+
+def calc_place_order_with_rec_info(site_id, connection, client):
+    client.execute("DROP TABLE   place_order_with_rec_info")
+    client.execute("CREATE TABLE place_order_with_rec_info ( "
+                     "date_str STRING, "
+                     "hour INT, "
+                     "timestamp_ DOUBLE, "
+                     "filled_user_id STRING, "
+                     "tjbid STRING, "
+                     "item_id STRING,"
+                     "price FLOAT, "
+                     "amount INT, "
+                     "has_rec_item BOOLEAN, "
+                     "is_rec_item BOOLEAN "
+                     ")"
+                     "ROW FORMAT DELIMITED "
+                     "FIELDS TERMINATED BY ',' "
+                     "STORED AS TEXTFILE")
+    client.execute("INSERT OVERWRITE TABLE place_order_with_rec_info "
+                   "  SELECT a.date_str, a.hour, a.timestamp_, a.filled_user_id, "
+                   "         a.tjbid, a.item_id, a.price, a.amount, a.rb1_ts IS NOT NULL, "
+                   "                         (a.rb1_ts IS NOT NULL AND a.rb1_item_id == a.item_id)  "
+                   "  FROM "
+                   "   (SELECT DISTINCT brl.date_str, brl.hour, brl.timestamp_, brl.filled_user_id, "
+                   "    brl.tjbid, brl.item_id, brl.price, brl.amount, rb1.timestamp_ AS rb1_ts, rb1.item_id AS rb1_item_id "
+                   "    FROM rec_buy rb1 "
+                   "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.timestamp_ = brl.timestamp_) "
+                   '    WHERE brl.behavior = "PLO" '
+                   "   ) a"
+                   )
+    client.execute("SELECT COUNT(*) FROM place_order_with_rec_info")
+    for row in yieldClientResults(client):
+        print row
+
+
+
 def calc_click_rec_buy(site_id, connection, client):
-    client.execute("SELECT brl.filled_user_id, brl.timestamp_, brl.behavior, brl.item_id, brl.price, brl.amount "
+    client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.py"))
+    client.execute("DROP TABLE rec_buy")
+    client.execute("CREATE TABLE rec_buy ( "
+                   "         timestamp_ DOUBLE, "
+                   "         user_id    STRING, "
+                   "         item_id    STRING  "
+                   " ) ")
+    client.execute("INSERT OVERWRITE TABLE rec_buy "
+                   "SELECT TRANSFORM (filled_user_id, timestamp_, behavior, item_id, price, amount) "
+                   "       USING 'python find_rec_buy.py' "
+                   "       AS (timestamp_, user_id, item_id) "
+                   "FROM (SELECT brl.filled_user_id, brl.timestamp_, brl.behavior, brl.item_id, brl.price, brl.amount "
                    "FROM backfilled_raw_logs brl "
                    'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
-                   'ORDER BY filled_user_id, timestamp_')
-    look_for_rec_buy(yieldClientResults(client))
+                   'ORDER BY filled_user_id, timestamp_) a ')
+    #look_for_rec_buy(yieldClientResults(client))
+    #for row in yieldClientResults(client):
+    #    print row
+
+
 
 
 def calc_avg_item_amount(site_id, connection, client):
