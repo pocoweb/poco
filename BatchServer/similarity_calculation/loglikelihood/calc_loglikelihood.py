@@ -38,13 +38,14 @@ def calc_loglikelihood(cooccurances_counts_path, user_counts_path, item_prefer_c
     for line in open(cooccurances_counts_path, "r"):
         item_id1, item_id2, prefer12_count = line.strip().split(",")
         prefer12_count = float(prefer12_count)
-        prefer1 = item_prefer_map[item_id1]
-        prefer2 = item_prefer_map[item_id2]
-        logLikelihood = twoLogLambda(prefer12_count,
-                                        prefer1 - prefer12_count,
-                                        prefer2,
-                                        user_counts - prefer2)
-        score = 1.0 - 1.0 / (1.0 + logLikelihood)
-        f_output.write("%s,%s,%s\n" % (item_id1, item_id2, score))
-        f_output.flush()
+        if prefer12_count > 1:
+            prefer1 = item_prefer_map[item_id1]
+            prefer2 = item_prefer_map[item_id2]
+            logLikelihood = twoLogLambda(prefer12_count,
+                                            prefer1 - prefer12_count,
+                                            prefer2,
+                                            user_counts - prefer2)
+            score = 1.0 - 1.0 / (1.0 + logLikelihood)
+            f_output.write("%s,%s,%s\n" % (item_id1, item_id2, score))
+            f_output.flush()
     f_output.close()
