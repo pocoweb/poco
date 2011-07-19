@@ -467,37 +467,37 @@ function renderChart_rec_ratios(site_id, data) {
             series: [
                     {
                        "name": "看了也看",
-                       "data": data["click_rec_ratio_recvav"],
+                       "data": data["click_rec_show_ratio_recvav"],
                        "type": "spline"
                      },
                     {
                        "name": "根据购买历史",
-                       "data": data["click_rec_ratio_recph"],
+                       "data": data["click_rec_show_ratio_recph"],
                        "type": "spline"
                      },
                     {
                        "name": "买了也买",
-                       "data": data["click_rec_ratio_recbab"],
+                       "data": data["click_rec_show_ratio_recbab"],
                        "type": "spline"
                      },
                     {
                        "name": "一起买",
-                       "data": data["click_rec_ratio_recbtg"],
+                       "data": data["click_rec_show_ratio_recbtg"],
                        "type": "spline"
                      },
                     {
                        "name": "看了最终买",
-                       "data": data["click_rec_ratio_recvub"],
+                       "data": data["click_rec_show_ratio_recvub"],
                        "type": "spline"
                      },
                     {
                        "name": "根据浏览历史",
-                       "data": data["click_rec_ratio_recbobh"],
+                       "data": data["click_rec_show_ratio_recbobh"],
                        "type": "spline"
                      },
                     {
                        "name": "根据购物车",
-                       "data": data["click_rec_ratio_recsc"],
+                       "data": data["click_rec_show_ratio_recsc"],
                        "type": "spline"
                      }
                 ]
@@ -562,15 +562,21 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                 layout: 'horizontal',
                 align: 'right',
                 verticalAlign: 'top',
-                y: 10,
+                y: 25,
                 borderWidth: 0,
                 floating: true
             },
             series: [{
                        "name": "推荐请求数",
-                       "data": data["recommendation_count_" + action_name],
+                       "data": data["recommendation_request_count_" + action_name],
                        "type": "column"
                      },
+                    {
+                       "name": "推荐展示数",
+                       "data": data["recommendation_show_count_" + action_name],
+                       "type": "column"
+                     },
+
                      {
                        "name": "推荐点击数",
                        "data": data["click_rec_count_" + action_name],
@@ -578,7 +584,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                      },
                     {
                        "name": "推荐点击/请求比",
-                       "data": data["click_rec_ratio_" + action_name],
+                       "data": data["click_rec_show_ratio_" + action_name],
                        "type": "spline",
                        yAxis: 1
                      },
@@ -684,7 +690,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
         <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
         <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-ratios" style="width:800px;height:500px; margin-top: 30px;"></div>
+        <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
     {% endif %}
 
 </div>

@@ -43,7 +43,8 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
         if row["behavior"].startswith("Rec"):
             calendar_info = getCalendarInfo(row["timestamp"])
             date_str = calendar_info["date_str"]
-            output = [date_str, repr(row["timestamp"]), row["behavior"], row["req_id"]]
+            output = [date_str, repr(row["timestamp"]), row["behavior"], row["req_id"], 
+                        str(len(row["recommended_items"]))]
             output_a_row(out_f, output)
     out_f.close()
 
@@ -55,7 +56,8 @@ def load_recommendation_logs(work_dir, client):
                      "date_str STRING, "
                      "timestamp_ DOUBLE, "
                      "behavior STRING, "
-                     "req_id STRING "
+                     "req_id STRING, "
+                     "recommended_items_count INT "
                      ")"
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
@@ -63,16 +65,30 @@ def load_recommendation_logs(work_dir, client):
     client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE recommendation_logs" % input_file_path)
 
 
-def calc_recommendations_by_type(site_id, connection, client):
-    client.execute("DROP TABLE recommendations_by_type")
-    client.execute("CREATE TABLE recommendations_by_type ( "
+def calc_recommendations_request_by_type(site_id, connection, client):
+    client.execute("DROP TABLE   recommendations_request_by_type")
+    client.execute("CREATE TABLE recommendations_request_by_type ( "
                    " date_str STRING, "
                    " behavior STRING, "
                    " count    INT "
                    ")")
-    client.execute("INSERT OVERWRITE TABLE recommendations_by_type "
+    client.execute("INSERT OVERWRITE TABLE recommendations_request_by_type "
                    "SELECT date_str, behavior, COUNT(*) "
                    "FROM recommendation_logs "
+                   "GROUP BY date_str, behavior")
+
+
+def calc_recommendations_show_by_type(site_id, connection, client):
+    client.execute("DROP TABLE   recommendations_show_by_type")
+    client.execute("CREATE TABLE recommendations_show_by_type ( "
+                   " date_str STRING, "
+                   " behavior STRING, "
+                   " count    INT "
+                   ")")
+    client.execute("INSERT OVERWRITE TABLE recommendations_show_by_type "
+                   "SELECT date_str, behavior, COUNT(*) "
+                   "FROM recommendation_logs "
+                   "WHERE recommended_items_count > 0 "
                    "GROUP BY date_str, behavior")
 
 
@@ -94,22 +110,28 @@ def calc_click_rec_by_type(site_id, connection, client):
 
 
 def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client):
-    calc_recommendations_by_type(site_id, connection, client)
+    calc_recommendations_request_by_type(site_id, connection, client)
+    calc_recommendations_show_by_type(site_id, connection, client)
     calc_click_rec_by_type(site_id, connection, client)
     
-    client.execute("SELECT rbt.date_str, rbt.behavior, rbt.count AS recommendation_count, cbt.count AS click_rec_count, cbt.count / rbt.count "
-                   "FROM recommendations_by_type rbt "
-                   "LEFT OUTER JOIN click_rec_by_type cbt ON (rbt.date_str = cbt.date_str AND rbt.behavior = cbt.behavior) "
+    client.execute("SELECT rrbt.date_str, rrbt.behavior, rrbt.count AS recommendation_request_count, rsbt.count AS recommendation_show_count, cbt.count AS click_rec_count, cbt.count / rsbt.count "
+                   "FROM recommendations_request_by_type rrbt "
+                   "LEFT OUTER JOIN recommendations_show_by_type rsbt ON (rrbt.date_str = rsbt.date_str AND rrbt.behavior = rsbt.behavior) "
+                   "LEFT OUTER JOIN click_rec_by_type cbt ON (rrbt.date_str = cbt.date_str AND rrbt.behavior = cbt.behavior) "
                    )
 
     data_map = {}
     for row in yieldClientResults(client):
-        row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_count", as_int), 
-                                                                ("click_rec_count", as_int), ("click_rec_ratio", as_float)])
+        row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_request_count", as_int), 
+                                                                ("recommendation_show_count", as_int),
+                                                                ("click_rec_count", as_int), 
+                                                                ("click_rec_show_ratio", as_float)])
         data = data_map.setdefault(row_dict["date_str"], {"date_str": row_dict["date_str"]})
-        data["recommendation_count_" + row_dict["behavior"].lower()] = row_dict["recommendation_count"]
-        data["click_rec_count_" + row_dict["behavior"].lower()] = row_dict["click_rec_count"]
-        data["click_rec_ratio_" + row_dict["behavior"].lower()] = row_dict["click_rec_ratio"]
+        behavior_lower = row_dict["behavior"].lower()
+        data["recommendation_request_count_" + behavior_lower] = row_dict["recommendation_request_count"]
+        data["recommendation_show_count_" + behavior_lower] = row_dict["recommendation_show_count"]
+        data["click_rec_count_" + behavior_lower] = row_dict["click_rec_count"]
+        data["click_rec_show_ratio_" + behavior_lower] = row_dict["click_rec_show_ratio"]
 
     for data in data_map.values():
         upload_statistics(site_id, connection, client, data)
