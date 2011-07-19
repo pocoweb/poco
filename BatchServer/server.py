@@ -485,13 +485,14 @@ def writeFailedJob(site_id, flow_name, failed_job_name):
 
 def writeFlowBegin(site_id, flow_name):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
-    logging.info("RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
+    logging.info("FlowBegin: RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
     record["flows"][flow_name] = {"begin_timestamp": time.time()}
     updateCalculationRecord(SITE_ID, record)
 
 
 def writeFlowEnd(site_id, flow_name, is_successful, is_skipped, err_msg = None):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
+    logging.info("FlowEnd: RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
     flow_record = record["flows"][flow_name] 
     flow_record["end_timestamp"] = time.time()
     flow_record["is_successful"] = is_successful

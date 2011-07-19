@@ -96,15 +96,26 @@ if False:
             c_users.update({"user_name": user["user_name"]},
                            {"$set": {"is_admin": False}})
 
-print "Fix PLO order_content"
+    print "Fix PLO order_content"
+    sites = connection["tjb-db"]["sites"]
+    for site in sites.find():
+        print "Work on:", site["site_name"]
+        c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
+        for raw_log in c_raw_logs.find({"behavior": "PLO"}):
+            order_content = raw_log["order_content"]
+            for order_item in order_content:
+                order_item["price"] = order_item["price"].strip()
+            c_raw_logs.save(raw_log)
+            #c_raw_logs.update(raw_log, {"$set": {"order_content": order_content}})
+
+
+print "Fix recommended_items "
 sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
-    for raw_log in c_raw_logs.find({"behavior": "PLO"}):
-        order_content = raw_log["order_content"]
-        for order_item in order_content:
-            order_item["price"] = order_item["price"].strip()
-        c_raw_logs.save(raw_log)
-        #c_raw_logs.update(raw_log, {"$set": {"order_content": order_content}})
-
+    for raw_log in c_raw_logs.find():
+        if raw_log["behavior"].startswith("Rec"):
+            if not raw_log.has_key("recommended_items"):
+                raw_log["recommended_items"] = []
+                c_raw_logs.save(raw_log)

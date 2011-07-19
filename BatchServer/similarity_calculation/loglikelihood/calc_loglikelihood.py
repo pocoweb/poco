@@ -35,6 +35,8 @@ def calc_loglikelihood(cooccurances_counts_path, user_counts_path, item_prefer_c
     f_output = open(output_path, "w")
     user_counts = int(open(user_counts_path, "r").read())
     item_prefer_map = read_item_prefer_count_map(item_prefer_count_path)
+    if user_counts == 0:
+        return
     for line in open(cooccurances_counts_path, "r"):
         item_id1, item_id2, prefer12_count = line.strip().split(",")
         prefer12_count = float(prefer12_count)
