@@ -215,15 +215,15 @@ function renderChart_rec(site_id, data) {
 }
 
 
-function renderChart_order_money(site_id, data) {
+function renderChart_avg_order_total(site_id, data) {
     var chart_dict = {
             chart: {
-                renderTo: "chart-order-money",
+                renderTo: "chart-avg-order-total",
                 //marginRight: 30,
                 marginBottom: 30
             },
             title: {
-                text: "平均客单价和总金额",
+                text: "平均客单价",
                 x: -20
             },
             subtitle: {
@@ -243,7 +243,80 @@ function renderChart_order_money(site_id, data) {
                     },
                     {
                         title: {
-                            text: '总金额'
+                            text: '客单价差'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
+
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '元';
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 10,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [{"name": "客单价",
+                      "data": data.avg_order_total,
+                      "type": "column",
+                      "dataLabels": {
+                        enabled: true
+                        }
+                      },
+                      {"name": "有无推荐客单价差",
+                      "data": data.avg_order_total_rec_delta,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: true
+                        },
+                      "yAxis": 1
+                      }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+
+function renderChart_total_sales(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-total-sales",
+                //marginRight: 30,
+                marginBottom: 30
+            },
+            title: {
+                text: "总销售金额",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '金额'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    },
+                    {
+                        title: {
+                            text: '销售金额差'
                         },
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
@@ -265,26 +338,252 @@ function renderChart_order_money(site_id, data) {
                 borderWidth: 0,
                 floating: true
             },
-            series: [{"name": "客单价",
-                      "data": data.avg_order_total,
-                      "type": "spline",
+            series: [{"name": "总销售金额",
+                      "data": data.total_sales,
+                      "type": "column",
                       "dataLabels": {
                         enabled: true
                         }
                       },
-                    {"name": "总金额",
-                      "data": data.total_sales,
+                      {"name": "有无推荐销售金额差",
+                      "data": data.total_sales_rec_delta,
                       "type": "spline",
                       "dataLabels": {
                         enabled: true
-                      },
-                      yAxis: 1
+                        },
+                        yAxis: 1
+                      }
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+
+
+function renderChart_unique_sku(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-unique-sku",
+                marginBottom: 30
+            },
+            title: {
+                text: "平均Unique SKU",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '平均Unique SKU'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y;
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 10,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [{
+                       "name": "平均Unique SKU",
+                       "data": data.avg_unique_sku,
+                       "type": "spline"
+                     },
+                     {
+                       "name": "平均商品件数",
+                       "data": data.avg_item_amount,
+                       "type": "spline"
+                     }
+
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+
+function renderChart_rec_ratios(site_id, data) {
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-rec-ratios",
+                marginBottom: 30
+            },
+            title: {
+                text: "推荐点击/请求比",
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '点击/请求比'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y;
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 25,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [
+                    {
+                       "name": "看了也看",
+                       "data": data["click_rec_ratio_recvav"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "根据购买历史",
+                       "data": data["click_rec_ratio_recph"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "买了也买",
+                       "data": data["click_rec_ratio_recbab"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "一起买",
+                       "data": data["click_rec_ratio_recbtg"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "看了最终买",
+                       "data": data["click_rec_ratio_recvub"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "根据浏览历史",
+                       "data": data["click_rec_ratio_recbobh"],
+                       "type": "spline"
+                     },
+                    {
+                       "name": "根据购物车",
+                       "data": data["click_rec_ratio_recsc"],
+                       "type": "spline"
                      }
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+
+
+
+function renderChart_rec_by_type(site_id, data, action_name) {
+    var action_name2cname = {
+        "recvav": "看了也看",
+        "recph": "根据购买历史",
+        "recbab": "买了也买",
+        "recbtg": "一起买",
+        "recvub": "看了最终买",
+        "recbobh": "根据浏览历史",
+        "recsc": "根据购物车"
+    };
+    var chart_dict = {
+            chart: {
+                renderTo: "chart-rec-" + action_name,
+                marginBottom: 30
+            },
+            title: {
+                text: "商品推荐统计 - " + action_name2cname[action_name],
+                x: -20
+            },
+            subtitle: {
+                text: site_id,
+                x: -20
+            },
+            xAxis: {
+                categories: data.categories
+            },
+            yAxis: [{
+                        title: {
+                            text: '次数'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }]
+                    },
+                    {
+                        title: {
+                            text: '点击/请求比'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '次';
+                }
+            },
+            legend: {
+                layout: 'horizontal',
+                align: 'right',
+                verticalAlign: 'top',
+                y: 10,
+                borderWidth: 0,
+                floating: true
+            },
+            series: [{
+                       "name": "推荐请求数",
+                       "data": data["recommendation_count_" + action_name],
+                       "type": "column"
+                     },
+                     {
+                       "name": "推荐点击数",
+                       "data": data["click_rec_count_" + action_name],
+                       "type": "column"
+                     },
+                    {
+                       "name": "推荐点击/请求比",
+                       "data": data["click_rec_ratio_" + action_name],
+                       "type": "spline",
+                       yAxis: 1
+                     },
+                ]
+    };
+    var chart = new Highcharts.Chart(chart_dict);
+    return chart;
+}
+
+
 
 {% endif %}
 
@@ -298,7 +597,17 @@ function renderChart_order_money(site_id, data) {
             {% if user.is_admin %}
                 renderChart_plo(site_id, statistics);
                 renderChart_rec(site_id, statistics);
-                renderChart_order_money(site_id, statistics);
+                renderChart_avg_order_total(site_id, statistics);
+                renderChart_total_sales(site_id, statistics);
+                renderChart_unique_sku(site_id, statistics);
+                renderChart_rec_by_type(site_id, statistics, "recvav");
+                renderChart_rec_by_type(site_id, statistics, "recph");
+                renderChart_rec_by_type(site_id, statistics, "recbab");
+                renderChart_rec_by_type(site_id, statistics, "recbtg");
+                renderChart_rec_by_type(site_id, statistics, "recvub");
+                renderChart_rec_by_type(site_id, statistics, "recbobh");
+                renderChart_rec_by_type(site_id, statistics, "recsc");
+                renderChart_rec_ratios(site_id, statistics);
             {% endif %}
         }catch(err){}
     };
@@ -360,7 +669,17 @@ function renderChart_order_money(site_id, data) {
     {% if user.is_admin %}
         <div id="chart-plo" style="width:800px;height:300px;"></div>
         <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-order-money" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-avg-order-total" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-total-sales" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-unique-sku" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recvav" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recph" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recbab" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recbtg" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
+        <div id="chart-rec-ratios" style="width:800px;height:500px; margin-top: 30px;"></div>
     {% endif %}
 
 </div>

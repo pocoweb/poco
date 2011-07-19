@@ -105,7 +105,7 @@ class PreprocessingFlow(BaseFlow):
 
 class StatisticsFlow(BaseFlow):
     def __init__(self):
-        BaseFlow.__init__(self, "preprocessing")
+        BaseFlow.__init__(self, "statistics")
         self.work_dir = os.path.join(settings.work_dir, "statistics")
         if not os.path.isdir(self.work_dir):
             os.mkdir(self.work_dir)
@@ -114,8 +114,7 @@ class StatisticsFlow(BaseFlow):
                       self.do_extract_behavior_date_tjbid,
                       self.do_sort_uniq_behavior_date_tjbid,
                       self.do_count_behavior_by_unique_visitor,
-                      self.do_upload_count_behavior_by_unique_visitor,
-                      self.do_hive_based_calculations]
+                      self.do_upload_count_behavior_by_unique_visitor]
 
     # Begin Count Behaviors
     def do_behavior_date_row(self):
@@ -162,6 +161,14 @@ class StatisticsFlow(BaseFlow):
         upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
     # End Count "behavior by unique visitor"
 
+
+class HiveBasedStatisticsFlow(BaseFlow):
+    def __init__(self):
+        BaseFlow.__init__(self, "hive-based-statistics")
+        self.work_dir = os.path.join(settings.work_dir, "hive-based-statistics")
+        if not os.path.isdir(self.work_dir):
+            os.mkdir(self.work_dir)
+        self.jobs += [self.do_hive_based_calculations]
     # Begin Hive Based Calculations
     def do_hive_based_calculations(self):
         from statistics.hive_based_calculations import hive_based_calculations
@@ -428,6 +435,9 @@ preprocessing_flow.dependOn(begin_flow)
 
 statistics_flow = StatisticsFlow()
 statistics_flow.dependOn(preprocessing_flow)
+
+hive_based_statistics_flow = HiveBasedStatisticsFlow()
+hive_based_statistics_flow.dependOn(preprocessing_flow)
 
 v_similarity_calc_flow = VSimiliarityCalcFlow()
 v_similarity_calc_flow.dependOn(preprocessing_flow)

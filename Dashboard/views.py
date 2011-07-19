@@ -4,6 +4,7 @@ sys.path.insert(0, "../")
 import hashlib
 import datetime
 from django.http import HttpResponse
+from django.http import HttpResponseNotFound
 from django.shortcuts import render_to_response
 from django.shortcuts import redirect
 from django.template import RequestContext
@@ -23,7 +24,7 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=10):
+def getSiteStatistics(site_id, days=14):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
@@ -45,15 +46,28 @@ def getSiteStatistics(site_id, days=10):
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
             row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
 
-            convertColumn(row, "avg_order_total")
-            convertColumn(row, "total_sales")
+
+            if row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:
+                row["avg_order_total_rec_delta"] = row["avg_order_total"] - row["avg_order_total_no_rec"]
+            else:
+                row["avg_order_total_rec_delta"] = None
+
+            if row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
+                row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
+            else:
+                row["total_sales_rec_delta"] = None
+
+
         result.append(row)
     return result
 
+def convertColumns(row, column_names):
+    for column_name in column_names:
+        convertColumn(row, column_name)
 
 def convertColumn(row, column_name):
-    if row.has_key(column_name):
-        row[column_name] = float("%.2f" % row[column_name])
+    if row.has_key(column_name) and row[column_name] is not None:
+        row[column_name] = float("%.3f" % row[column_name])
     else:
         row[column_name] = None
 
@@ -61,6 +75,21 @@ def login_required(callable):
     def method(request):
         if not request.session.has_key("user_name"):
             return redirect("/login")
+        return callable(request)
+    return method
+
+
+# handlers with this decorator will only be available for admin users
+# other users (not logged in or normal user) will receive a 404 error.
+def login_and_admin_only(callable):
+    def method(request):
+        if not request.session.has_key("user_name"):
+            return HttpResponseNotFound()
+        else:
+            user_name = request.session["user_name"]
+            user = getUser(user_name)
+            if not user["is_admin"]:
+                return HttpResponseNotFound()
         return callable(request)
     return method
 
@@ -95,21 +124,53 @@ def index(request):
             context_instance=RequestContext(request))
 
 
+#@login_and_admin_only
+#def admin_charts(request):
+#    user_name = request.session["user_name"]
+#    sites = _getUserSites(user_name)
+#    return render_to_response("admin_charts.html", 
+#            {"page_name": "首页", "sites": sites, "user_name": user_name,
+#             "user": getUser(user_name)},
+#            context_instance=RequestContext(request))
+
+
 def _prepareCharts(user, statistics):
     data = {"pv_v": [], "uv_v": [], "pv_uv": [],
             "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
             "avg_order_total": [], "total_sales": [],
+            "avg_order_total_no_rec": [], "total_sales_no_rec": [],
+            "avg_order_total_rec_delta": [], "total_sales_rec_delta": [],
+            "avg_unique_sku": [], "avg_item_amount": [],
+
             "categories": []}
     def pushIntoData(stat_row, keys):
         for key in keys:
+            convertColumn(stat_row, key)
             if stat_row["is_available"]:
-                data[key.lower()].append(stat_row[key])
+                data.setdefault(key.lower(), []).append(stat_row[key])
             else:
-                data[key.lower()].append(None)
+                data.setdefault(key.lower(), []).append(None)
     for stat_row in statistics:
         if user["is_admin"]:
             pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
             pushIntoData(stat_row, ["avg_order_total", "total_sales"])
+            pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
+            pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
+            pushIntoData(stat_row, ["avg_unique_sku", "avg_item_amount"])
+            pushIntoData(stat_row, 
+                    ["click_rec_ratio_recph", "recommendation_count_recph", "click_rec_count_recph"])
+            pushIntoData(stat_row, 
+                    ["click_rec_ratio_recvav", "recommendation_count_recvav", "click_rec_count_recvav"])
+            pushIntoData(stat_row,
+                    ["click_rec_ratio_recbab", "recommendation_count_recbab", "click_rec_count_recbab"])
+            pushIntoData(stat_row,
+                    ["click_rec_ratio_recbtg", "recommendation_count_recbtg", "click_rec_count_recbtg"])
+            pushIntoData(stat_row,
+                    ["click_rec_ratio_recvub", "recommendation_count_recvub", "click_rec_count_recvub"])
+            pushIntoData(stat_row,
+                    ["click_rec_ratio_recbobh", "recommendation_count_recbobh", "click_rec_count_recbobh"])
+            pushIntoData(stat_row,
+                    ["click_rec_ratio_recsc", "recommendation_count_recsc", "click_rec_count_recsc"])
         else:
             pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV"])
         data["categories"].append(stat_row["date"][5:])

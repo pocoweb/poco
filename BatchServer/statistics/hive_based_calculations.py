@@ -93,7 +93,6 @@ def calc_click_rec_by_type(site_id, connection, client):
                    "GROUP BY date_str, behavior")
 
 
-
 def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client):
     calc_recommendations_by_type(site_id, connection, client)
     calc_click_rec_by_type(site_id, connection, client)
@@ -103,8 +102,18 @@ def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client
                    "LEFT OUTER JOIN click_rec_by_type cbt ON (rbt.date_str = cbt.date_str AND rbt.behavior = cbt.behavior) "
                    )
 
+    data_map = {}
     for row in yieldClientResults(client):
-        print row
+        row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_count", as_int), 
+                                                                ("click_rec_count", as_int), ("click_rec_ratio", as_float)])
+        data = data_map.setdefault(row_dict["date_str"], {"date_str": row_dict["date_str"]})
+        data["recommendation_count_" + row_dict["behavior"].lower()] = row_dict["recommendation_count"]
+        data["click_rec_count_" + row_dict["behavior"].lower()] = row_dict["click_rec_count"]
+        data["click_rec_ratio_" + row_dict["behavior"].lower()] = row_dict["click_rec_ratio"]
+
+    for data in data_map.values():
+        upload_statistics(site_id, connection, client, data)
+
 
 def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
     output_file_path = os.path.join(work_dir, "backfilled_raw_logs_ctrl_a_separated")
@@ -172,10 +181,30 @@ def upload_statistics(site_id, connection, client, data):
     c_statistics.save(row_in_db)
 
 
-def result_as_dict(result, column_names):
+def as_int(string):
+    if string == "NULL":
+        return None
+    else:
+        return int(string)
+
+def as_float(string):
+    if string == "NULL":
+        return None
+    else:
+        return float(string)
+
+
+def result_as_dict(result, columns):
     result_dict = {}
     for idx in range(len(result)):
-        result_dict[column_names[idx]] = result[idx]
+        column = columns[idx]
+        if isinstance(column, tuple):
+            column_name, converter = column
+            value = converter(result[idx])
+        else:
+            column_name = column
+            value = result[idx]
+        result_dict[column_name] = value
     return result_dict
 
 
@@ -185,10 +214,7 @@ def calc_daily_order_money_related(site_id, connection, client):
                    '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, timestamp_) a '
                    "GROUP BY a.date_str ")
     for row in yieldClientResults(client):
-        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
-        data["order_count"] = int(data["order_count"])
-        data["avg_order_total"] = float(data["avg_order_total"])
-        data["total_sales"] = float(data["total_sales"])
+        data = result_as_dict(row, ["date_str", ("order_count", as_int), ("avg_order_total", as_float), ("total_sales", as_float)])
         upload_statistics(site_id, connection, client, data)
 
 
@@ -251,16 +277,11 @@ def calc_kedanjia_without_rec(site_id, connection, client):
                    '      GROUP BY date_str, timestamp_ '
                    '     ) a '
                    "GROUP BY a.date_str ")
-    tts_all = 0
+
     for row in yieldClientResults(client):
-        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
-        data["order_count"] = int(data["order_count"])
-        data["avg_order_total"] = float(data["avg_order_total"])
-        data["total_sales"] = float(data["total_sales"])
-        tts_all += data["total_sales"]
-        #upload_statistics(site_id, connection, client, data)
-        print row
-    print "TTS:", tts_all
+        data = result_as_dict(row, ["date_str", ("order_count_no_rec", as_int), ("avg_order_total_no_rec", as_float), 
+                                                ("total_sales_no_rec", as_float)])
+        upload_statistics(site_id, connection, client, data)
 
 
 def calc_kedanjia_with_rec(site_id, connection, client):
@@ -270,17 +291,9 @@ def calc_kedanjia_with_rec(site_id, connection, client):
                    '      GROUP BY date_str, timestamp_ '
                    '     ) a '
                    "GROUP BY a.date_str ")
-    tts_all = 0
     for row in yieldClientResults(client):
-        data = result_as_dict(row, ["date_str", "order_count", "avg_order_total", "total_sales"])
-        data["order_count"] = int(data["order_count"])
-        data["avg_order_total"] = float(data["avg_order_total"])
-        data["total_sales"] = float(data["total_sales"])
-        tts_all += data["total_sales"]
-        #upload_statistics(site_id, connection, client, data)
-        print row
-    print "TTS:", tts_all
-
+        data = result_as_dict(row, ["date_str", ("order_count", as_int), ("avg_order_total", as_float), ("total_sales", as_float)])
+        upload_statistics(site_id, connection, client, data)
 
 
 def calc_place_order_with_rec_info(site_id, connection, client):
@@ -312,10 +325,6 @@ def calc_place_order_with_rec_info(site_id, connection, client):
                    '    WHERE brl.behavior = "PLO" '
                    "   ) a"
                    )
-    client.execute("SELECT COUNT(*) FROM place_order_with_rec_info")
-    for row in yieldClientResults(client):
-        print row
-
 
 
 def calc_click_rec_buy(site_id, connection, client):
@@ -334,44 +343,33 @@ def calc_click_rec_buy(site_id, connection, client):
                    "FROM backfilled_raw_logs brl "
                    'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
                    'ORDER BY filled_user_id, timestamp_) a ')
-    #look_for_rec_buy(yieldClientResults(client))
-    #for row in yieldClientResults(client):
-    #    print row
-
-
 
 
 def calc_avg_item_amount(site_id, connection, client):
-    client.execute("SELECT a.date_str, AVG(a.amount) AS avg_amount "
+    client.execute("SELECT a.date_str, AVG(a.amount) AS avg_item_amount "
                    "FROM (SELECT timestamp_, date_str, SUM(amount) AS amount "
                    "      FROM backfilled_raw_logs brl "
                    '      WHERE behavior = "PLO"'
                    "      GROUP BY timestamp_, date_str) a "
                    "GROUP BY a.date_str"
     )
-    print "Date", "Average Item Amount"
     for row in yieldClientResults(client):
-        print ",".join([row[0], str(row[1])])
+        data = result_as_dict(row, ["date_str", ("avg_item_amount", as_float)])
+        upload_statistics(site_id, connection, client, data)
 
 
 
 def calc_unique_sku(site_id, connection, client):
-    client.execute("SELECT date_str, AVG(sku) AS avg_sku "
+    client.execute("SELECT date_str, AVG(sku) AS avg_unique_sku "
                    "FROM (SELECT timestamp_, date_str, COUNT(DISTINCT item_id) AS sku "
                    "      FROM backfilled_raw_logs brl "
                    '      WHERE behavior = "PLO" '
                    "      GROUP BY timestamp_, date_str) a "
                    "GROUP BY date_str"
     )
-    #client.execute(#"SELECT date_str, AVG(amount) AS avg_amount "
-    #               "SELECT timestamp_, date_str, SUM(amount) AS amount "
-    #               "      FROM backfilled_raw_logs brl "
-    #               "      GROUP BY timestamp_, date_str "
-    #               #"GROUP BY date_str"
-    #)
-    print "Date", "Average Unique SKU"
     for row in yieldClientResults(client):
-        print ",".join((row[0], str(row[1])))
+        data = result_as_dict(row, ["date_str", ("avg_unique_sku", as_float)])
+        upload_statistics(site_id, connection, client, data)
 
 
 '''
@@ -428,16 +426,31 @@ def calc_daily_item_pv_coverage(client):
 
 
 def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client):
-        load_backfilled_raw_logs(work_dir, client)
-        #load_items(connection, site_id, work_dir, client)
-        #calc_daily_item_pv_coverage(client)
+    convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
+    load_backfilled_raw_logs(work_dir, client)
 
-        calc_daily_order_money_related(site_id, connection, client)
+    convert_recommendation_logs(work_dir, backfilled_raw_logs_path)
+    load_recommendation_logs(work_dir, client)
+    #load_items(connection, site_id, work_dir, client)
+    #calc_daily_item_pv_coverage(client)
+
+    #calc_daily_order_money_related(site_id, connection, client)
+
+    calc_unique_sku(site_id, connection, client)
+    calc_avg_item_amount(site_id, connection, client)
+    
+    calc_click_rec_buy(site_id, connection, client)
+    calc_place_order_with_rec_info(site_id, connection, client)
+
+    calc_kedanjia_with_rec(site_id, connection, client)
+    calc_kedanjia_without_rec(site_id, connection, client)
+
+    calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client)
 
 
 def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, 
                         do_calculations=do_calculations):
-    convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path)
+
     transport = TSocket.TSocket('localhost', 10000)
     transport = TTransport.TBufferedTransport(transport)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
