@@ -133,6 +133,11 @@ function renderChart_plo(site_id, data) {
                         this.x + ':' + this.y + '单';
                 }
             },
+            plotOptions: {
+                column: {
+                    pointWidth: 20
+                }
+            },
             legend: {
                 layout: 'horizontal',
                 align: 'right',
