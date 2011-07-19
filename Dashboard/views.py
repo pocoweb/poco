@@ -47,15 +47,7 @@ def getSiteStatistics(site_id, days=14):
             row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
 
 
-            if row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:
-                row["avg_order_total_rec_delta"] = row["avg_order_total"] - row["avg_order_total_no_rec"]
-            else:
-                row["avg_order_total_rec_delta"] = None
 
-            if row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
-                row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
-            else:
-                row["total_sales_rec_delta"] = None
 
 
         result.append(row)
@@ -134,6 +126,17 @@ def index(request):
 #            context_instance=RequestContext(request))
 
 
+def _calc_rec_deltas(row):
+    if row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:
+        row["avg_order_total_rec_delta"] = row["avg_order_total"] - row["avg_order_total_no_rec"]
+    else:
+        row["avg_order_total_rec_delta"] = None
+
+    if row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
+        row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
+    else:
+        row["total_sales_rec_delta"] = None
+
 def _prepareCharts(user, statistics):
     data = {"pv_v": [], "uv_v": [], "pv_uv": [],
             "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
@@ -155,6 +158,7 @@ def _prepareCharts(user, statistics):
             pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
             pushIntoData(stat_row, ["avg_order_total", "total_sales"])
             pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
+            _calc_rec_deltas(stat_row)
             pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
             pushIntoData(stat_row, ["avg_unique_sku", "avg_item_amount"])
             pushIntoData(stat_row, 
