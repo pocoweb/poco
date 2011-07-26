@@ -417,20 +417,8 @@ class RemoveItemHandler(APIHandler):
         return self.processor.process(site_id, args)
 
 
+
 class BaseRecommendationProcessor(ActionProcessor):
-    # args should have "user_id", "tuijianbaoid"
-    def getRecommendationLog(self, args, req_id, recommended_items):
-        return {"req_id": req_id,
-                "user_id": args["user_id"], 
-                "tjbid": args["tuijianbaoid"], 
-                "recommended_items": recommended_items,
-                "amount": args["amount"]}
-
-    def getTopN(self, site_id, args):
-        raise NotImplemented
-
-    def postprocessTopN(self, topn):
-        pass
 
     def generateReqId(self):
         return str(uuid.uuid4())
@@ -450,6 +438,87 @@ class BaseRecommendationProcessor(ActionProcessor):
 
     def getExcludedRecommendationItems(self):
         return getattr(self, "excluded_recommendation_items", set([]))
+
+
+class BaseByEachItemProcessor(BaseRecommendationProcessor):
+    # args should have "user_id", "tuijianbaoid"
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        return {"req_id": req_id,
+                "user_id": args["user_id"], 
+                "tjbid": args["tuijianbaoid"], 
+                "is_empty_result": len(recommended_items) == 0,
+                "amount_for_each_item": self.getAmountForEachItem(args)
+                }
+
+
+    def getRecommendationsForEachItem(site_id, args):
+        raise NotImplemented
+
+
+    def getRecommendationResultFilter(self, site_id, args):
+        raise NotImplemented
+
+
+    def getRecRowMaxAmount(self, args):
+        try:
+            rec_row_max_amount = int(args["rec_row_max_amount"])
+        except ValueError:
+            raise ArgumentError("rec_row_max_amount should be an integer.")
+        return rec_row_max_amount
+
+
+    def getAmountForEachItem(self, args):
+        try:
+            amount_for_each_item = int(args["amount_for_each_item"])
+        except ValueError:
+            raise ArgumentError("amount_for_each_item should be an integer.")
+        return amount_for_each_item
+
+
+    def process(self, site_id, args):
+        self.recommended_items = None
+        include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
+        req_id = self.generateReqId()
+        result_filter = self.getRecommendationResultFilter(site_id, args)
+
+        amount_for_each_item = self.getAmountForEachItem(args)
+        recommended_items = []
+        recommendations_for_each_item = []
+        for recommendation_for_item in self.getRecommendationsForEachItem(site_id, args):
+            topn = recommendation_for_item["topn"]
+            excluded_recommendation_items = self.getExcludedRecommendationItems() | set(recommended_items)
+            topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
+                        amount_for_each_item, include_item_info, url_converter=self.getRedirectUrlFor,
+                        excluded_recommendation_items=excluded_recommendation_items)
+            if len(topn) > 0:
+                recommendation_for_item["topn"] = topn
+                recommended_items += self._extractRecommendedItems(topn)
+                recommendations_for_each_item.append(recommendation_for_item)
+            if len(recommendations_for_each_item) >= self.getRecRowMaxAmount(args):
+                break
+
+        self.logAction(site_id, args, self.getRecommendationLog(args, req_id, 
+                                            recommended_items, recommendations_for_each_item))
+        self.recommended_items = recommended_items
+        return {"code": 0, "result": recommendations_for_each_item, "req_id": req_id}
+
+
+
+class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
+    # args should have "user_id", "tuijianbaoid"
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        return {"req_id": req_id,
+                "user_id": args["user_id"], 
+                "tjbid": args["tuijianbaoid"], 
+                "recommended_items": recommended_items,
+                "is_empty_result": len(recommended_items) == 0,
+                "amount": args["amount"]}
+
+    def postprocessTopN(self, topn):
+        return
+
+    def getTopN(self, site_id, args):
+        raise NotImplemented
 
     def process(self, site_id, args):
         self.recommended_items = None
@@ -471,7 +540,9 @@ class BaseRecommendationProcessor(ActionProcessor):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-class BaseSimilarityProcessor(BaseRecommendationProcessor):
+
+
+class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
     similarity_type = None
 
     ap = ArgumentProcessor(
@@ -483,13 +554,54 @@ class BaseSimilarityProcessor(BaseRecommendationProcessor):
     )
 
     def getRecommendationLog(self, args, req_id, recommended_items):
-        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log = BaseSimpleResultRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["item_id"] = args["item_id"]
         return log
 
     def getTopN(self, site_id, args):
         connection = getConnection()
         return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"])
+
+
+
+
+class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
+    action_name = "RecEBI"
+    ap = ArgumentProcessor(
+    (
+     ("user_id", True),
+     ("browsing_history", False),
+     ("include_item_info", False), # no, not include; yes, include
+     ("rec_row_max_amount", True),
+     ("amount_for_each_item", True),
+    ))
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
+
+    def getBrowsingHistory(self, args):
+        browsing_history = args["browsing_history"]
+        if browsing_history == None:
+            browsing_history = []
+        else:
+            browsing_history = browsing_history.split(",")
+        return browsing_history
+
+    def getRecommendationLog(self, args, req_id, recommended_items, recommendations_for_each_item):
+        log = BaseByEachItemProcessor.getRecommendationLog(self, args, req_id, 
+                            recommended_items, recommendations_for_each_item)
+        log["browsing_history"] = self.getBrowsingHistory(args)
+        return log
+
+    def getRecommendationsForEachItem(self, site_id, args):
+        browsing_history = self.getBrowsingHistory(args)
+        return mongo_client.recommend_by_each_item(site_id, "V", browsing_history,
+                    self.getRecRowMaxAmount(args))
+
+
+class GetByEachBrowsedItemHandler(SingleRequestHandler):
+    processor_class = GetByEachBrowsedItemProcessor
+
 
 
 class GetAlsoViewedProcessor(BaseSimilarityProcessor):
@@ -528,7 +640,7 @@ class GetBoughtTogetherHandler(SingleRequestHandler):
     processor_class = GetBoughtTogetherProcessor
 
 
-class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
+class GetUltimatelyBoughtProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecVUB"
     ap = ArgumentProcessor(
          (("user_id", True),
@@ -542,7 +654,7 @@ class GetUltimatelyBoughtProcessor(BaseRecommendationProcessor):
         return SameGroupRecommendationResultFilter(mongo_client, site_id, args["item_id"])
 
     def getRecommendationLog(self, args, req_id, recommended_items):
-        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log = BaseSimpleResultRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["item_id"] = args["item_id"]
         return log
 
@@ -558,7 +670,7 @@ class GetUltimatelyBoughtHandler(SingleRequestHandler):
     processor_class = GetUltimatelyBoughtProcessor
 
 
-class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
+class GetByBrowsingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecBOBH"
     ap = ArgumentProcessor(
     (
@@ -572,7 +684,7 @@ class GetByBrowsingHistoryProcessor(BaseRecommendationProcessor):
         return SimpleRecommendationResultFilter()
 
     def getRecommendationLog(self, args, req_id, recommended_items):
-        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log = BaseSimpleResultRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         browsing_history = args["browsing_history"]
         if browsing_history == None:
             browsing_history = []
@@ -594,7 +706,7 @@ class GetByBrowsingHistoryHandler(SingleRequestHandler):
     processor_class = GetByBrowsingHistoryProcessor
 
 
-class GetByShoppingCartProcessor(BaseRecommendationProcessor):
+class GetByShoppingCartProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecSC"
     ap = ArgumentProcessor(
     (
@@ -608,7 +720,7 @@ class GetByShoppingCartProcessor(BaseRecommendationProcessor):
         return SimpleRecommendationResultFilter()
 
     def getRecommendationLog(self, args, req_id, recommended_items):
-        log = BaseRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
+        log = BaseSimpleResultRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["shopping_cart"] = args["shopping_cart"].split(",")
         return log
 
@@ -626,7 +738,7 @@ class GetByShoppingCartHandler(SingleRequestHandler):
     processor_class = GetByShoppingCartProcessor
 
 
-class GetByPurchasingHistoryProcessor(BaseRecommendationProcessor):
+class GetByPurchasingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecPH"
     ap = ArgumentProcessor(
     (("user_id", True),
@@ -817,6 +929,7 @@ handlers = [
     (r"/1.0/getUltimatelyBought", GetUltimatelyBoughtHandler),
     (r"/1.0/getByPurchasingHistory", GetByPurchasingHistoryHandler),
     (r"/1.0/getByShoppingCart", GetByShoppingCartHandler),
+    (r"/1.0/getByEachBrowsedItem", GetByEachBrowsedItemHandler),
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]

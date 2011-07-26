@@ -109,13 +109,24 @@ if False:
             #c_raw_logs.update(raw_log, {"$set": {"order_content": order_content}})
 
 
-print "Fix recommended_items "
+    print "Fix recommended_items "
+    sites = connection["tjb-db"]["sites"]
+    for site in sites.find():
+        print "Work on:", site["site_name"]
+        c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
+        for raw_log in c_raw_logs.find():
+            if raw_log["behavior"].startswith("Rec"):
+                if not raw_log.has_key("recommended_items"):
+                    raw_log["recommended_items"] = []
+                    c_raw_logs.save(raw_log)
+
+
+print "set is_empty_result "
 sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
     for raw_log in c_raw_logs.find():
         if raw_log["behavior"].startswith("Rec"):
-            if not raw_log.has_key("recommended_items"):
-                raw_log["recommended_items"] = []
-                c_raw_logs.save(raw_log)
+            raw_log["is_empty_result"] = len(raw_log["recommended_items"]) == 0
+            c_raw_logs.save(raw_log)

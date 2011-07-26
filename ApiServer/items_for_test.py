@@ -27,7 +27,10 @@ items = {
              "item_name": "Kill A Bird"},
              "29": {"site_id": SITE_ID, "item_id": "29", 
              "item_link": "http://example.com/item?id=29",
-             "item_name": "Soo..."}
+             "item_name": "Soo..."},
+             "30": {"site_id": SITE_ID, "item_id": "30",
+             "item_link": "http://example.com/item?id=30",
+             "item_name": "Not Recommended by Item 1"} # please DO NOT let item 1 recommend this one
         }
 
 

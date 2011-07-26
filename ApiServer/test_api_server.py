@@ -609,6 +609,82 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
              "amount": "4"})
 
 
+class GetByEachBrowsedItemTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.updateItem("30")
+
+    def decodeAndValidateRedirectUrlsForEachTopn(self, result, req_id, API_KEY):
+        for result_row in result:
+            self.decodeAndValidateRedirectUrls(result_row["topn"], req_id, API_KEY)
+
+    def testWithPackedRequest(self):
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 2})
+        pr.addRequest("RecEBI", {"user_id": "null", "browsing_history": "1,8", "include_item_info": "no", "rec_row_max_amount": "2", "amount_for_each_item": "3"})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(len(result["responses"].keys()), 2)
+        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
+                    [{'item_id': '3', 'score': 0.99770000000000003}, 
+                     {'item_id': '2', 'score': 0.99329999999999996}
+                    ])
+        self.assertEquals(result["responses"]["getByEachBrowsedItem"]["result"],
+              [{'item_id': '1', 'topn': [
+                            {'item_id': '11', 'score': 0.98880000000000001},
+                            {'item_id': '15', 'score': 0.98710000000000001}]}, 
+                {'item_id': '8', 'topn': [
+                            {'item_id': '30', 'score': 0.96999999999999997}]}])
+
+    def test(self):
+        self.assertCurrentLinesCount(0)
+        result = api_access("/getByEachBrowsedItem", 
+                {"api_key": API_KEY, "user_id": "hah",
+                 "browsing_history": "1,2,8",
+                 "rec_row_max_amount": "2",
+                 "amount_for_each_item": "3",
+                 "include_item_info": "yes"})
+        self.assertCurrentLinesCount(1)
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
+        self.assertEquals(result["result"], 
+                [{'item_id': '1', 
+                  'topn': [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
+                            {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
+                            {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
+                           ]
+                },
+                 {'item_id': '8', 
+                  'topn': [{'item_name': 'Not Recommended by Item 1', 
+                            'item_id': '30', 
+                            'score': 0.96999999999999997, 
+                            'item_link': 'http://example.com/item?id=30'}
+                           ]
+                 }
+                ]
+        )
+        # TODO: check logs
+        last_line = self.readLastLine()
+        print last_line.keys()
+        self.assert_(last_line.has_key("tjbid"))
+        self.assert_(last_line.has_key("timestamp"))
+        self.assertSomeKeys(last_line, 
+                {"user_id": "hah",
+                 "behavior": "RecEBI",
+                 "referer": None,
+                 "amount_for_each_item": 3,
+                 "is_empty_result": False,
+                 "browsing_history": ["1", "2", "8"]})
+
+
 class GetByBrowsingHistoryTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
@@ -1110,7 +1186,12 @@ class PackedRequestTest(BaseTestCase):
                           self.readLineMatch({"behavior": "RSC"})["tjbid"])
 
 
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(GetByEachBrowsedItemTest('testWithPackedRequest'))
+    return suite
+
 
 if __name__ == "__main__":
     unittest.main()
-
+    #unittest.TextTestRunner(verbosity=2).run(suite())

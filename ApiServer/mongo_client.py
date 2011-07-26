@@ -7,6 +7,7 @@ import time
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
 from common.utils import sign
+from common.utils import trunc_list
 
 
 class UpdateSiteError(Exception):
@@ -129,6 +130,7 @@ class MongoClient:
         purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
         topn = self.calc_weighted_top_list_method1(site_id, "PLO", purchasing_history) 
         return topn
+
 
 
     def recommend_viewed_ultimately_buy(self, site_id, item_id):
@@ -304,6 +306,20 @@ class MongoClient:
             rec_tuples.append((key, score_total / count))
         rec_tuples.sort(lambda a,b: sign(b[1] - a[1]))
         return [rec_tuple for rec_tuple in rec_tuples]
+
+
+    def recommend_by_each_item(self, site_id, similarity_type, items_list,
+                    rec_row_max_amount, extra_excludes_list=[]):
+        c_item_similarities = getSiteDBCollection(self.connection, site_id, 
+                                    "item_similarities_%s" % similarity_type)
+
+        result = []
+        items_set = set(items_list)
+        for row in c_item_similarities.find({"item_id": {"$in": items_list}}):
+            topn = [topn_item for topn_item in row["mostSimilarItems"] if topn_item[0] not in items_set]
+            result.append({"item_id": row["item_id"], "topn": topn})
+
+        return result
 
 
     def recommend_based_on_some_items(self, site_id, similarity_type, items_list):

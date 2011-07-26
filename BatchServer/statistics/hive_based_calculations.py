@@ -57,7 +57,7 @@ def load_recommendation_logs(work_dir, client):
                      "timestamp_ DOUBLE, "
                      "behavior STRING, "
                      "req_id STRING, "
-                     "recommended_items_count INT "
+                     "is_empty_result BOOLEAN "
                      ")"
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
@@ -88,7 +88,7 @@ def calc_recommendations_show_by_type(site_id, connection, client):
     client.execute("INSERT OVERWRITE TABLE recommendations_show_by_type "
                    "SELECT date_str, behavior, COUNT(*) "
                    "FROM recommendation_logs "
-                   "WHERE recommended_items_count > 0 "
+                   "WHERE NOT is_empty_result "
                    "GROUP BY date_str, behavior")
 
 

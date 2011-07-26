@@ -119,7 +119,24 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "i": "category_id",
                         "l": "category_link",
                         "n": "category_name",
-                        "p": "parent_categories"}
+                        "p": "parent_categories"},
+                "reb": {"action_name": "RecEBI",
+                        "full_name": "getByEachBrowsedItem",
+                        "index": 18,
+                        "u": "user_id",
+                        "h": "browsing_history",
+                        "c": "include_item_info",
+                        "r": "rec_row_max_amount",
+                        "a": "amount_for_each_item"
+                },
+                #"rep": {"action_name": "RecEPI",
+                #        "full_name": "getByEachPurchasedItem",
+                #        "index": 19,
+                #        "u": "user_id",
+                #        "c": "include_item_info",
+                #        "t": "item_amount_to_use",
+                #        "a": "amount_for_each_item"
+                #}
              }
 
 def generateALL_ATTR_NAMES_js():

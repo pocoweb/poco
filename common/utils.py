@@ -146,3 +146,10 @@ def smart_split(string, delimiter):
         return []
     else:
         return string.split(delimiter)
+
+
+def trunc_list(list, max_size):
+    if len(list) > max_size:
+        return list[:max_size]
+    else:
+        return list
