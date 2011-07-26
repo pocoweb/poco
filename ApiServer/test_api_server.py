@@ -633,18 +633,15 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
                  return_tuijianbaoid=True)
 
         pr = packed_request.PackedRequest()
-        pr.addRequest("RecEPI", {"user_id": "92", "include_item_info": "no", "rec_row_max_amount": "2", "amount_for_each_item": "3"})
+        pr.addRequest("RecEPI", {"user_id": "ha", "rec_row_max_amount": "2", "amount_for_each_item": "2", "include_item_info": "no"})
         result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
-        print result
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(len(result["responses"].keys()), 1)
         self.assertEquals(result["responses"]["getByEachPurchasedItem"]["result"],
-              [{'item_id': '1', 'topn': [
-                            {'item_id': '11', 'score': 0.98880000000000001},
-                            {'item_id': '15', 'score': 0.98710000000000001}]}, 
-                {'item_id': '8', 'topn': [
-                            {'item_id': '30', 'score': 0.96999999999999997}]}])
+              [{'item_id': '1', 'topn': [{'item_id': '11', 'score': 0.99980000000000002}, 
+                                         {'item_id': '3', 'score': 0.99880000000000002}]}, 
+               {'item_id': '8', 'topn': [{'item_id': '30', 'score': 0.99209999999999998}]}])
 
 
     def test(self):
@@ -738,9 +735,7 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
                  }
                 ]
         )
-        # TODO: check logs
         last_line = self.readLastLine()
-        print last_line.keys()
         self.assert_(last_line.has_key("tjbid"))
         self.assert_(last_line.has_key("timestamp"))
         self.assertSomeKeys(last_line, 
