@@ -5,6 +5,8 @@ import math
 
 
 def twoLogLambda(k1, k2, n1, n2):
+    if (n1 + n2) == 0 or n1 == 0 or n2 == 0:
+        return None
     p = (k1 + k2) / (n1 + n2)
     return 2.0 * (logL(k1 / n1, k1, n1)
                   + logL(k2 / n2, k2, n2)
@@ -47,6 +49,8 @@ def calc_loglikelihood(cooccurances_counts_path, user_counts_path, item_prefer_c
                                             prefer1 - prefer12_count,
                                             prefer2,
                                             user_counts - prefer2)
+            if logLikelihood is None:
+                continue
             score = 1.0 - 1.0 / (1.0 + logLikelihood)
             f_output.write("%s,%s,%s\n" % (item_id1, item_id2, score))
             f_output.flush()
