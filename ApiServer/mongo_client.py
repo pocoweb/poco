@@ -308,8 +308,12 @@ class MongoClient:
         return [rec_tuple for rec_tuple in rec_tuples]
 
 
-    def recommend_by_each_item(self, site_id, similarity_type, items_list,
-                    rec_row_max_amount, extra_excludes_list=[]):
+    def recommend_by_each_purchased_item(self, site_id, user_id):
+        purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
+        return self.recommend_by_each_item(site_id, "PLO", purchasing_history)
+
+
+    def recommend_by_each_item(self, site_id, similarity_type, items_list):
         c_item_similarities = getSiteDBCollection(self.connection, site_id, 
                                     "item_similarities_%s" % similarity_type)
 

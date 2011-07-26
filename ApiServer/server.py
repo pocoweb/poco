@@ -497,8 +497,7 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
             if len(recommendations_for_each_item) >= self.getRecRowMaxAmount(args):
                 break
 
-        self.logAction(site_id, args, self.getRecommendationLog(args, req_id, 
-                                            recommended_items, recommendations_for_each_item))
+        self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
         self.recommended_items = recommended_items
         return {"code": 0, "result": recommendations_for_each_item, "req_id": req_id}
 
@@ -563,6 +562,25 @@ class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
         return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"])
 
 
+class GetByEachPurchasedItemProcessor(BaseByEachItemProcessor):
+    action_name = "RecEPI"
+    ap = ArgumentProcessor(
+    (("user_id", True),
+     ("include_item_info", False), # no, not include; yes, include
+     ("rec_row_max_amount", True),
+     ("amount_for_each_item", True),
+    ))
+
+    def getRecommendationResultFilter(self, site_id, args):
+        return SimpleRecommendationResultFilter()
+
+    def getRecommendationsForEachItem(self, site_id, args):
+        user_id = args["user_id"]
+        return mongo_client.recommend_by_each_purchased_item(site_id, user_id)
+
+
+class GetByEachPurchasedItemHandler(SingleRequestHandler):
+    processor_class = GetByEachPurchasedItemProcessor
 
 
 class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
@@ -587,16 +605,14 @@ class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
             browsing_history = browsing_history.split(",")
         return browsing_history
 
-    def getRecommendationLog(self, args, req_id, recommended_items, recommendations_for_each_item):
-        log = BaseByEachItemProcessor.getRecommendationLog(self, args, req_id, 
-                            recommended_items, recommendations_for_each_item)
+    def getRecommendationLog(self, args, req_id, recommended_items):
+        log = BaseByEachItemProcessor.getRecommendationLog(self, args, req_id, recommended_items)
         log["browsing_history"] = self.getBrowsingHistory(args)
         return log
 
     def getRecommendationsForEachItem(self, site_id, args):
         browsing_history = self.getBrowsingHistory(args)
-        return mongo_client.recommend_by_each_item(site_id, "V", browsing_history,
-                    self.getRecRowMaxAmount(args))
+        return mongo_client.recommend_by_each_item(site_id, "V", browsing_history)
 
 
 class GetByEachBrowsedItemHandler(SingleRequestHandler):
@@ -930,6 +946,7 @@ handlers = [
     (r"/1.0/getByPurchasingHistory", GetByPurchasingHistoryHandler),
     (r"/1.0/getByShoppingCart", GetByShoppingCartHandler),
     (r"/1.0/getByEachBrowsedItem", GetByEachBrowsedItemHandler),
+    (r"/1.0/getByEachPurchasedItem", GetByEachPurchasedItemHandler),
     (r"/1.0/packedRequest", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]

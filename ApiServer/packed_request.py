@@ -129,14 +129,14 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "r": "rec_row_max_amount",
                         "a": "amount_for_each_item"
                 },
-                #"rep": {"action_name": "RecEPI",
-                #        "full_name": "getByEachPurchasedItem",
-                #        "index": 19,
-                #        "u": "user_id",
-                #        "c": "include_item_info",
-                #        "t": "item_amount_to_use",
-                #        "a": "amount_for_each_item"
-                #}
+                "rep": {"action_name": "RecEPI",
+                        "full_name": "getByEachPurchasedItem",
+                        "index": 19,
+                        "u": "user_id",
+                        "c": "include_item_info",
+                        "t": "rec_row_max_amount",
+                        "a": "amount_for_each_item"
+                }
              }
 
 def generateALL_ATTR_NAMES_js():

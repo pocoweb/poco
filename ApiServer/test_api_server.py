@@ -457,6 +457,10 @@ class BaseRecommendationTest(BaseTestCase):
             self.assertEquals(parsed_qs["item_id"][0], topn_row["item_id"])
             topn_row["item_link"] = original_url
 
+    def decodeAndValidateRedirectUrlsForEachTopn(self, result, req_id, API_KEY):
+        for result_row in result:
+            self.decodeAndValidateRedirectUrls(result_row["topn"], req_id, API_KEY)
+
 
 class GetByAlsoViewedTest(BaseRecommendationTest):
     def setUp(self):
@@ -609,6 +613,72 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
              "amount": "4"})
 
 
+class GetByEachPurchasedItemTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.updateItem("30")
+        self.cleanUpPurchasingHistory()
+
+    def testWithPackedRequest(self):
+        self.assertCurrentLinesCount(0)
+
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "order_content": "1,2.5,1|2,1.3,2|8,3.3,1"},
+                 return_tuijianbaoid=True)
+
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecEPI", {"user_id": "92", "include_item_info": "no", "rec_row_max_amount": "2", "amount_for_each_item": "3"})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        print result
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(len(result["responses"].keys()), 1)
+        self.assertEquals(result["responses"]["getByEachPurchasedItem"]["result"],
+              [{'item_id': '1', 'topn': [
+                            {'item_id': '11', 'score': 0.98880000000000001},
+                            {'item_id': '15', 'score': 0.98710000000000001}]}, 
+                {'item_id': '8', 'topn': [
+                            {'item_id': '30', 'score': 0.96999999999999997}]}])
+
+
+    def test(self):
+        self.assertPurchasingHistoryCount(0)
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "rec_row_max_amount": "3",
+                 "amount_for_each_item": "2",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["result"], [])
+
+        # Place an order
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "order_content": "1,2.5,1|2,1.3,2|8,3.3,1"},
+                 return_tuijianbaoid=True)
+
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "rec_row_max_amount": "2",
+                 "amount_for_each_item": "2",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
+        self.assertEquals(result["result"],
+                        [{'item_id': '1', 
+                          'topn': [{'item_name': 'Meditation', 'item_id': '11', 'score': 0.99980000000000002, 'item_link': 'http://example.com/item?id=11'}, 
+                                   {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}]}, 
+                        {'item_id': '8', 
+                         'topn': [{'item_name': 'Not Recommended by Item 1', 'item_id': '30', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=30'}]}])
+
+
 class GetByEachBrowsedItemTest(BaseRecommendationTest):
     def setUp(self):
         BaseTestCase.setUp(self)
@@ -619,9 +689,6 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         self.updateItem("15")
         self.updateItem("30")
 
-    def decodeAndValidateRedirectUrlsForEachTopn(self, result, req_id, API_KEY):
-        for result_row in result:
-            self.decodeAndValidateRedirectUrls(result_row["topn"], req_id, API_KEY)
 
     def testWithPackedRequest(self):
         self.assertCurrentLinesCount(0)
@@ -1188,7 +1255,7 @@ class PackedRequestTest(BaseTestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(GetByEachBrowsedItemTest('testWithPackedRequest'))
+    suite.addTest(GetByEachPurchasedItemTest('testWithPackedRequest'))
     return suite
 
 
