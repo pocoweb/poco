@@ -36,5 +36,7 @@ hive_based_calculations.hive_based_calculations(
         "kuaishubao",
         settings.work_dir,
         os.path.join(settings.work_dir, "backfilled_raw_logs"),
-        do_calculations2)
+        hive_based_calculations.do_calculations
+        #do_calculations2
+        )
 

@@ -55,10 +55,10 @@ for line in sys.stdin:
                 influence_type = "DIRECT"
             elif (timestamp - click_ts) < MAX_INDIRECT_TIME:
                 influence_type = "INDIRECT"
-            if is_rec_first:
-                influence_type += "_REC_FIRST"
-            else:
-                influence_type += "_REC_LATER"
             if influence_type is not None:
+                if is_rec_first:
+                    influence_type += "_REC_FIRST"
+                else:
+                    influence_type += "_REC_LATER"
                 print "\t".join([repr(timestamp), user_id, item_id])
 
