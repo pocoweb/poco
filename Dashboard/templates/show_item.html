@@ -93,7 +93,7 @@
     <li>商品价格：{{item.price}}</li>
 </ul>
 
-<h2>看了本商品的顾客还看了：</h2>
+<h3>看了本商品的顾客还看了：</h3>
 <ol>
 {% for topn_item in getAlsoViewed %}
     <li class="item_list_row" id="getAlsoViewed-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getAlsoViewed-{{topn_item.item_id}}">X</a>]</li>
@@ -102,16 +102,7 @@
 
 <hr/>
 
-买了本商品的顾客还买了：
-<ol>
-{% for topn_item in getAlsoBought %}
-    <li class="item_list_row" id="getAlsoBought-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getAlsoBought-{{topn_item.item_id}}">X</a>]</li>
-{% endfor %}
-</ol>
-
-<hr/>
-
-经常和本商品一起买的：
+<h3>经常和本商品一起买的：</h3>
 <ol>
 {% for topn_item in getBoughtTogether %}
     <li class="item_list_row" id="getBoughtTogether-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getBoughtTogether-{{topn_item.item_id}}">X</a>]</li>
@@ -120,7 +111,7 @@
 
 <hr/>
 
-看了本商品最终购买：
+<h3>看了本商品最终购买：</h3>
 <ol>
 {% for topn_item in getUltimatelyBought %}
     <li class="item_list_row" id="getUltimatelyBought-{{topn_item.item_id}}"><a style="color:blue" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a> Score: {{topn_item.score}} [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getUltimatelyBought-{{topn_item.item_id}}">X</a>]</li>
@@ -128,6 +119,16 @@
 </ol>
 
 <hr/>
+
+<h3>买了本商品的顾客还买了：</h3>
+<ol>
+{% for topn_item in getAlsoBought %}
+    <li class="item_list_row" id="getAlsoBought-{{topn_item.item_id}}"><a style="{% if topn_item.score > 0.85 %} color:blue {% else %}color: gray{% endif %};" href="{{topn_item.item_link}}">{{topn_item.item_name}}</a>[{{topn_item.score}}] [<a href="javascript:toggle_black_list('{{site.site_id}}', '{{item.item_id}}', '{{topn_item.item_id}}', 'true')" id="b_on_getAlsoBought-{{topn_item.item_id}}">X</a>]</li>
+{% endfor %}
+</ol>
+
+<hr/>
+
 <h3>黑名单：</h3>
 <ul id="blacklist" style="">
 </ul>

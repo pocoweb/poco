@@ -24,7 +24,7 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=14):
+def getSiteStatistics(site_id, days=30):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
