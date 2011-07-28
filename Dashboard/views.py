@@ -46,10 +46,6 @@ def getSiteStatistics(site_id, days=14):
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
             row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
 
-
-
-
-
         result.append(row)
     return result
 
