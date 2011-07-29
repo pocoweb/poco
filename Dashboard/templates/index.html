@@ -162,6 +162,7 @@ function renderChart_plo(site_id, data) {
     return chart;
 }
 
+{% if user.is_admin %}
 function renderChart_rec(site_id, data) {
     var chart_dict = {
             chart: {
@@ -217,6 +218,7 @@ function renderChart_rec(site_id, data) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+{% endif %}
 
 
 function renderChart_avg_order_total(site_id, data) {
@@ -364,7 +366,7 @@ function renderChart_total_sales(site_id, data) {
 }
 
 
-
+{% if user.is_admin %}
 function renderChart_unique_sku(site_id, data) {
     var chart_dict = {
             chart: {
@@ -421,6 +423,7 @@ function renderChart_unique_sku(site_id, data) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+{% endif %}
 
 
 function renderChart_rec_ratios(site_id, data) {
@@ -506,7 +509,7 @@ function renderChart_rec_ratios(site_id, data) {
 }
 
 
-
+{% if user.is_admin %}
 function renderChart_rec_by_type(site_id, data, action_name) {
     var action_name2cname = {
         "recvav": "看了也看",
@@ -592,7 +595,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
-
+{% endif %}
 </script>
 
 <script type="text/javascript">
@@ -600,9 +603,12 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         try{
             renderChart_1(site_id, statistics);
             renderChart_plo(site_id, statistics);
+            {% if user.is_admin %}
             renderChart_rec(site_id, statistics);
+            {% endif %}
             renderChart_avg_order_total(site_id, statistics);
             renderChart_total_sales(site_id, statistics);
+            {% if user.is_admin %}
             renderChart_unique_sku(site_id, statistics);
             renderChart_rec_by_type(site_id, statistics, "recvav");
             renderChart_rec_by_type(site_id, statistics, "recph");
@@ -611,6 +617,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             renderChart_rec_by_type(site_id, statistics, "recvub");
             renderChart_rec_by_type(site_id, statistics, "recbobh");
             renderChart_rec_by_type(site_id, statistics, "recsc");
+            {% endif %}
             renderChart_rec_ratios(site_id, statistics);
         }catch(err){}
     };
@@ -670,9 +677,12 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     </div>
     <div id="chart-1" style="width:800px;height:300px;"></div>
     <div id="chart-plo" style="width:800px;height:300px;"></div>
+    {% if user.is_admin %}
     <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% endif %}
     <div id="chart-avg-order-total" style="width:800px;height:300px; margin-top: 30px;"></div>
     <div id="chart-total-sales" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% if user.is_admin %}
     <div id="chart-unique-sku" style="width:800px;height:300px; margin-top: 30px;"></div>
     <div id="chart-rec-recvav" style="width:800px;height:300px; margin-top: 30px;"></div>
     <div id="chart-rec-recph" style="width:800px;height:300px; margin-top: 30px;"></div>
@@ -681,6 +691,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
     <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
     <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% endif %}
     <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
 </div>
 {% endblock %}

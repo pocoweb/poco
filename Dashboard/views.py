@@ -154,8 +154,10 @@ def _prepareCharts(user, statistics):
             else:
                 data.setdefault(key.lower(), []).append(None)
     for stat_row in statistics:
-        pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
+        pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV"])
+        pushIntoData(stat_row, ["PV_Rec", "ClickRec"])
         pushIntoData(stat_row, ["avg_order_total", "total_sales"])
+
         pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
         _calc_rec_deltas(stat_row)
         pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
