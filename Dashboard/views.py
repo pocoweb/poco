@@ -24,7 +24,7 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=30):
+def getSiteStatistics(site_id, days=15):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
@@ -154,29 +154,27 @@ def _prepareCharts(user, statistics):
             else:
                 data.setdefault(key.lower(), []).append(None)
     for stat_row in statistics:
-        if user["is_admin"]:
-            pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
-            pushIntoData(stat_row, ["avg_order_total", "total_sales"])
-            pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
-            _calc_rec_deltas(stat_row)
-            pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
-            pushIntoData(stat_row, ["avg_unique_sku", "avg_item_amount"])
-            pushIntoData(stat_row, 
-                    ["click_rec_show_ratio_recph", "recommendation_request_count_recph", "recommendation_show_count_recph", "click_rec_count_recph"])
-            pushIntoData(stat_row, 
-                    ["click_rec_show_ratio_recvav", "recommendation_request_count_recvav", "recommendation_show_count_recvav", "click_rec_count_recvav"])
-            pushIntoData(stat_row,
-                    ["click_rec_show_ratio_recbab", "recommendation_request_count_recbab", "recommendation_show_count_recbab", "click_rec_count_recbab"])
-            pushIntoData(stat_row,
-                    ["click_rec_show_ratio_recbtg", "recommendation_request_count_recbtg", "recommendation_show_count_recbtg", "click_rec_count_recbtg"])
-            pushIntoData(stat_row,
-                    ["click_rec_show_ratio_recvub", "recommendation_request_count_recvub", "recommendation_show_count_recvub", "click_rec_count_recvub"])
-            pushIntoData(stat_row,
-                    ["click_rec_show_ratio_recbobh", "recommendation_request_count_recbobh", "recommendation_show_count_recbobh", "click_rec_count_recbobh"])
-            pushIntoData(stat_row,
-                    ["click_rec_show_ratio_recsc", "recommendation_request_count_recsc", "recommendation_show_count_recsc", "click_rec_count_recsc"])
-        else:
-            pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV"])
+        pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV", "PV_Rec", "ClickRec"])
+        pushIntoData(stat_row, ["avg_order_total", "total_sales"])
+        pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
+        _calc_rec_deltas(stat_row)
+        pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
+        pushIntoData(stat_row, ["avg_unique_sku", "avg_item_amount"])
+        pushIntoData(stat_row, 
+                ["click_rec_show_ratio_recph", "recommendation_request_count_recph", "recommendation_show_count_recph", "click_rec_count_recph"])
+        pushIntoData(stat_row, 
+                ["click_rec_show_ratio_recvav", "recommendation_request_count_recvav", "recommendation_show_count_recvav", "click_rec_count_recvav"])
+        pushIntoData(stat_row,
+                ["click_rec_show_ratio_recbab", "recommendation_request_count_recbab", "recommendation_show_count_recbab", "click_rec_count_recbab"])
+        pushIntoData(stat_row,
+                ["click_rec_show_ratio_recbtg", "recommendation_request_count_recbtg", "recommendation_show_count_recbtg", "click_rec_count_recbtg"])
+        pushIntoData(stat_row,
+                ["click_rec_show_ratio_recvub", "recommendation_request_count_recvub", "recommendation_show_count_recvub", "click_rec_count_recvub"])
+        pushIntoData(stat_row,
+                ["click_rec_show_ratio_recbobh", "recommendation_request_count_recbobh", "recommendation_show_count_recbobh", "click_rec_count_recbobh"])
+        pushIntoData(stat_row,
+                ["click_rec_show_ratio_recsc", "recommendation_request_count_recsc", "recommendation_show_count_recsc", "click_rec_count_recsc"])
+        
         data["categories"].append(stat_row["date"][5:])
     return data
 
