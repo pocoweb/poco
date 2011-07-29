@@ -842,7 +842,8 @@ ACTION_NAME2FULL_NAME = packed_request.ACTION_NAME2FULL_NAME
 # 2. shared params
 # 3. overriding
 class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
-    def extractRequests(self, args):
+    @staticmethod
+    def extractRequests(args):
         global ABBR_NAME2RELATED_INFO
         args = copy.copy(args)
         processor_class2request_info = {}
