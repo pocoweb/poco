@@ -37,11 +37,23 @@ mongo_client = MongoClient(getConnection())
 # TODO: when to reload site ids.
 
 class LogWriter:
+    def __init__(self):
+        self.local_file = open(settings.local_raw_log_file, "a")
+
+    def closeLocalLog(self):
+        self.local_file.close()
+
+    def writeToLocalLog(self, site_id, content):
+        line = "%s:%s\n" % (site_id, json.dumps(content))
+        self.local_file.write(line)
+        self.local_file.flush()
+
     def writeEntry(self, site_id, content):
         timestamp = time.time()
         content["timestamp"] = timestamp
         if settings.print_raw_log:
             print "RAW LOG: site_id: %s, %s" % (site_id, content)
+        self.writeToLocalLog(site_id, content)
         mongo_client.writeLogToMongo(site_id, content)
 
 
@@ -952,6 +964,7 @@ handlers = [
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]
 
+
 def main():
     opts, _ = getopt.getopt(sys.argv[1:], 'p:', ['port='])
     port = settings.server_port
@@ -963,10 +976,13 @@ def main():
                 print "port should be integer"
     global logWriter
     logWriter = LogWriter()
-    application = tornado.web.Application(handlers)
-    application.listen(port, settings.server_name)
-    print "Listen at %s:%s" % (settings.server_name, port)
-    tornado.ioloop.IOLoop.instance().start()
+    try:
+        application = tornado.web.Application(handlers)
+        application.listen(port, settings.server_name)
+        print "Listen at %s:%s" % (settings.server_name, port)
+        tornado.ioloop.IOLoop.instance().start()
+    finally:
+        logWriter.closeLocalLog()
 
 
 if __name__ == "__main__":
