@@ -138,8 +138,8 @@ def _calc_rec_deltas(row):
         row["total_sales_rec_delta"] = None
 
 def _calc_clickrec_pv_ratio(row):
-    if row["pv_v"] is not None and row["clickrec"] is not None and row["pv_v"] != 0:
-        row["clickrec_pv_ratio"] = float(row["clickrec"] / row["pv_v"])
+    if row["PV_V"] is not None and row["ClickRec"] is not None and row["PV_V"] != 0:
+        row["clickrec_pv_ratio"] = float(row["ClickRec"]) / float(row["PV_V"])
         convertColumn(row, "clickrec_pv_ratio")
 
 def _prepareCharts(user, statistics):
