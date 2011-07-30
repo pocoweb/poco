@@ -69,14 +69,14 @@ function renderChart_1(site_id, data) {
                       "data": data.pv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                      {"name": "商品UV",
                       "data": data.uv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                     {"name": "PV/UV",
@@ -291,14 +291,14 @@ function renderChart_avg_order_total(site_id, data) {
                       "data": data.avg_order_total,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                       {"name": "有无推荐客单价差",
                       "data": data.avg_order_total_rec_delta,
                       "type": "spline",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         },
                       "yAxis": 1
                       }
@@ -337,7 +337,7 @@ function renderChart_total_sales(site_id, data) {
                     },
                     {
                         title: {
-                            text: '销售金额差'
+                            text: '比率'
                         },
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
@@ -348,7 +348,7 @@ function renderChart_total_sales(site_id, data) {
             tooltip: {
                 formatter: function() {
                     return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y + '元';
+                        this.x + ':' + this.y;
                 }
             },
             legend: {
@@ -363,17 +363,24 @@ function renderChart_total_sales(site_id, data) {
                       "data": data.total_sales,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                       {"name": "有无推荐销售金额差",
                       "data": data.total_sales_rec_delta,
-                      "type": "spline",
+                      "type": "column",
                       "dataLabels": {
                         enabled: true
                         },
-                        yAxis: 1
-                      }
+                      },
+                      {"name": "推荐贡献比率",
+                      "data": data.total_sales_rec_delta_ratio,
+                      "type": "spline",
+                      "dataLabels": {
+                        enabled: false
+                        },
+                       yAxis: 1
+                      },
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);

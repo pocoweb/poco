@@ -134,13 +134,18 @@ def _calc_rec_deltas(row):
 
     if row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
         row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
+        row["total_sales_rec_delta_ratio"] = row["total_sales_rec_delta"] / row["total_sales_no_rec"]
+        convertColumn(row, "total_sales_rec_delta_ratio")
     else:
         row["total_sales_rec_delta"] = None
+        row["total_sales_rec_delta_ratio"] = None
 
 def _calc_clickrec_pv_ratio(row):
     if row["PV_V"] is not None and row["ClickRec"] is not None and row["PV_V"] != 0:
         row["clickrec_pv_ratio"] = float(row["ClickRec"]) / float(row["PV_V"])
         convertColumn(row, "clickrec_pv_ratio")
+    else:
+        row["clickrec_pv_ratio"] = None
 
 def _prepareCharts(user, statistics):
     data = {"pv_v": [], "uv_v": [], "pv_uv": [],
@@ -168,6 +173,7 @@ def _prepareCharts(user, statistics):
         pushIntoData(stat_row, ["avg_order_total_no_rec", "total_sales_no_rec"])
         _calc_rec_deltas(stat_row)
         pushIntoData(stat_row, ["avg_order_total_rec_delta", "total_sales_rec_delta"])
+        pushIntoData(stat_row, ["total_sales_rec_delta_ratio"])
         pushIntoData(stat_row, ["avg_unique_sku", "avg_item_amount"])
         pushIntoData(stat_row, 
                 ["click_rec_show_ratio_recph", "recommendation_request_count_recph", "recommendation_show_count_recph", "click_rec_count_recph"])
