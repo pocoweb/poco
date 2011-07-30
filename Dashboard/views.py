@@ -134,7 +134,7 @@ def _calc_rec_deltas(row):
 
     if row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
         row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
-        row["total_sales_rec_delta_ratio"] = row["total_sales_rec_delta"] / row["total_sales_no_rec"]
+        row["total_sales_rec_delta_ratio"] = row["total_sales_rec_delta"] / row["total_sales"]
         convertColumn(row, "total_sales_rec_delta_ratio")
     else:
         row["total_sales_rec_delta"] = None
