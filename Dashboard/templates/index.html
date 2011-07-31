@@ -69,14 +69,14 @@ function renderChart_1(site_id, data) {
                       "data": data.pv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                      {"name": "商品UV",
                       "data": data.uv_v,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                     {"name": "PV/UV",
@@ -91,7 +91,6 @@ function renderChart_1(site_id, data) {
 }
 
 
-{% if user.is_admin %}
 function renderChart_plo(site_id, data) {
     var chart_dict = {
             chart: {
@@ -163,6 +162,7 @@ function renderChart_plo(site_id, data) {
     return chart;
 }
 
+{% if user.is_admin %}
 function renderChart_rec(site_id, data) {
     var chart_dict = {
             chart: {
@@ -170,7 +170,7 @@ function renderChart_rec(site_id, data) {
                 marginBottom: 30
             },
             title: {
-                text: "商品推荐统计",
+                text: "商品推荐占PV数",
                 x: -20
             },
             subtitle: {
@@ -187,7 +187,16 @@ function renderChart_rec(site_id, data) {
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
                         }]
-                    } 
+                    },
+                    {
+                        title: {
+                            text: '比率'
+                        },
+                        plotLines: [{
+                            value: 0, width: 1, color: '#808080'
+                        }],
+                        opposite: true
+                    }
             ],
             tooltip: {
                 formatter: function() {
@@ -204,20 +213,27 @@ function renderChart_rec(site_id, data) {
                 floating: true
             },
             series: [{
-                       "name": "推荐请求数",
-                       "data": data.pv_rec,
+                       "name": "商品PV数",
+                       "data": data.pv_v,
                        "type": "column"
                      },
                      {
                        "name": "推荐点击数",
                        "data": data.clickrec,
                        "type": "column"
+                     },
+                     {
+                       "name": "推荐点击占PV比",
+                       "data": data.clickrec_pv_ratio,
+                       "type": "spline",
+                       "yAxis": 1
                      }
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+{% endif %}
 
 
 function renderChart_avg_order_total(site_id, data) {
@@ -275,14 +291,14 @@ function renderChart_avg_order_total(site_id, data) {
                       "data": data.avg_order_total,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                       {"name": "有无推荐客单价差",
                       "data": data.avg_order_total_rec_delta,
                       "type": "spline",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         },
                       "yAxis": 1
                       }
@@ -321,7 +337,7 @@ function renderChart_total_sales(site_id, data) {
                     },
                     {
                         title: {
-                            text: '销售金额差'
+                            text: '比率'
                         },
                         plotLines: [{
                             value: 0, width: 1, color: '#808080'
@@ -332,7 +348,7 @@ function renderChart_total_sales(site_id, data) {
             tooltip: {
                 formatter: function() {
                     return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y + '元';
+                        this.x + ':' + this.y;
                 }
             },
             legend: {
@@ -347,17 +363,24 @@ function renderChart_total_sales(site_id, data) {
                       "data": data.total_sales,
                       "type": "column",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         }
                       },
                       {"name": "有无推荐销售金额差",
                       "data": data.total_sales_rec_delta,
+                      "type": "column",
+                      "dataLabels": {
+                        enabled: false
+                        },
+                      },
+                      {"name": "推荐贡献比率",
+                      "data": data.total_sales_rec_delta_ratio,
                       "type": "spline",
                       "dataLabels": {
-                        enabled: true
+                        enabled: false
                         },
-                        yAxis: 1
-                      }
+                       yAxis: 1
+                      },
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);
@@ -365,7 +388,7 @@ function renderChart_total_sales(site_id, data) {
 }
 
 
-
+{% if user.is_admin %}
 function renderChart_unique_sku(site_id, data) {
     var chart_dict = {
             chart: {
@@ -422,6 +445,7 @@ function renderChart_unique_sku(site_id, data) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
+{% endif %}
 
 
 function renderChart_rec_ratios(site_id, data) {
@@ -507,7 +531,7 @@ function renderChart_rec_ratios(site_id, data) {
 }
 
 
-
+{% if user.is_admin %}
 function renderChart_rec_by_type(site_id, data, action_name) {
     var action_name2cname = {
         "recvav": "看了也看",
@@ -593,33 +617,30 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
-
-
-
 {% endif %}
-
-
 </script>
 
 <script type="text/javascript">
     function fillCharts(site_id, statistics) {
         try{
             renderChart_1(site_id, statistics);
+            renderChart_plo(site_id, statistics);
             {% if user.is_admin %}
-                renderChart_plo(site_id, statistics);
-                renderChart_rec(site_id, statistics);
-                renderChart_avg_order_total(site_id, statistics);
-                renderChart_total_sales(site_id, statistics);
-                renderChart_unique_sku(site_id, statistics);
-                renderChart_rec_by_type(site_id, statistics, "recvav");
-                renderChart_rec_by_type(site_id, statistics, "recph");
-                renderChart_rec_by_type(site_id, statistics, "recbab");
-                renderChart_rec_by_type(site_id, statistics, "recbtg");
-                renderChart_rec_by_type(site_id, statistics, "recvub");
-                renderChart_rec_by_type(site_id, statistics, "recbobh");
-                renderChart_rec_by_type(site_id, statistics, "recsc");
-                renderChart_rec_ratios(site_id, statistics);
+            renderChart_rec(site_id, statistics);
             {% endif %}
+            renderChart_avg_order_total(site_id, statistics);
+            renderChart_total_sales(site_id, statistics);
+            {% if user.is_admin %}
+            renderChart_unique_sku(site_id, statistics);
+            renderChart_rec_by_type(site_id, statistics, "recvav");
+            renderChart_rec_by_type(site_id, statistics, "recph");
+            renderChart_rec_by_type(site_id, statistics, "recbab");
+            renderChart_rec_by_type(site_id, statistics, "recbtg");
+            renderChart_rec_by_type(site_id, statistics, "recvub");
+            renderChart_rec_by_type(site_id, statistics, "recbobh");
+            renderChart_rec_by_type(site_id, statistics, "recsc");
+            {% endif %}
+            renderChart_rec_ratios(site_id, statistics);
         }catch(err){}
     };
 
@@ -677,21 +698,22 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
     </div>
     <div id="chart-1" style="width:800px;height:300px;"></div>
+    <div id="chart-plo" style="width:800px;height:300px;"></div>
     {% if user.is_admin %}
-        <div id="chart-plo" style="width:800px;height:300px;"></div>
-        <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-avg-order-total" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-total-sales" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-unique-sku" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recvav" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recph" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recbab" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recbtg" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
-        <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
+    <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
     {% endif %}
-
+    <div id="chart-avg-order-total" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-total-sales" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% if user.is_admin %}
+    <div id="chart-unique-sku" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recvav" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recph" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recbab" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recbtg" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
+    <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
+    {% endif %}
+    <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
 </div>
 {% endblock %}
