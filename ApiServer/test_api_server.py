@@ -47,6 +47,12 @@ def getApiKey(site_id):
 API_KEY = getApiKey(SITE_ID)
 
 
+def uploadViewedUltimatelyBuys(records):
+    c_viewed_ultimately_buys = getSiteDBCollection(getConnection(), SITE_ID, "viewed_ultimately_buys")
+    for record in records:
+        c_viewed_ultimately_buys.save(record)
+
+
 class BaseTestCase(unittest.TestCase):
     def setUp(self):
         self.connection = pymongo.Connection(settings.mongodb_host)
@@ -70,6 +76,12 @@ class BaseTestCase(unittest.TestCase):
 
     def cleanUpItems(self):
         getSiteDBCollection(self.connection, SITE_ID, "items").drop()
+
+    def cleanUpViewedUltimatelyBuys(self):
+        getSiteDBCollection(getConnection(), SITE_ID, "viewed_ultimately_buys").drop()
+
+    def cleanUpBlackList(self):
+        getSiteDBCollection(self.connection, SITE_ID, "rec_black_lists").drop()
 
     def updateCategoryGroups(self, category_groups_src):
         from common.utils import updateCategoryGroups
@@ -462,9 +474,116 @@ class BaseRecommendationTest(BaseTestCase):
             self.decodeAndValidateRedirectUrls(result_row["topn"], req_id, API_KEY)
 
 
+class BlackListTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseRecommendationTest.setUp(self)
+        self.updateItem("1")
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.cleanUpBlackList()
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        self.cleanUpBlackList()
+
+    def testByAlsoViewed(self):
+        # toggle black list
+        mongo_client.toggle_black_list(SITE_ID, "1", "3", True)
+        #
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [
+                 {'item_id': '2', 'score': 0.99329999999999996}, 
+                 {'item_id': '8', 'score': 0.99209999999999998}, 
+                 {'item_id': '11', 'score': 0.98880000000000001},
+                 {'item_id': '15', 'score': 0.98709999999999998}]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "1",
+             "amount": "4"})
+
+
+class GetUltimatelyBoughtTest(BaseRecommendationTest):
+    def setUp(self):
+        BaseRecommendationTest.setUp(self)
+        self.updateItem("1")
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.cleanUpBlackList()
+
+        self.cleanUpViewedUltimatelyBuys()
+        uploadViewedUltimatelyBuys(
+            [
+            {"item_id": "1",
+             "total_views": 20,
+             "viewedUltimatelyBuys": [
+                {"item_id": "3", "count": 10, "percentage": 0.5},
+                {"item_id": "11", "count": 5, "percentage": 0.25},
+                {"item_id": "15", "count": 3, "percentage": 0.15},
+                {"item_id": "2",  "count": 2, "percentage": 0.1}
+             ]
+             }
+            ]
+        )
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        self.cleanUpViewedUltimatelyBuys()
+        self.cleanUpBlackList()
+
+    def testWithBlackList(self):
+        # toogle black list
+        mongo_client.toggle_black_list(SITE_ID, "1", "11", True)
+
+        result = api_access("/getUltimatelyBought", 
+                {"api_key": API_KEY, "user_id": "hah", "item_id": "1", "amount": "3",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_id': '3', 'percentage': 50, 'score': 0.5}, 
+                      {'item_id': '15', 'percentage': 15, 'score': 0.15},
+                      {'item_id': '2', 'percentage': 10, 'score': 0.1}]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVUB",
+             "req_id": req_id,
+             "user_id": "hah",
+             "item_id": "1",
+             "amount": "3"})
+
+    def test(self):
+        result = api_access("/getUltimatelyBought", 
+                {"api_key": API_KEY, "user_id": "hah", "item_id": "1", "amount": "3",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_id': '3', 'percentage': 50, 'score': 0.5}, 
+                      {'item_id': '11', 'percentage': 25, 'score': 0.25}, 
+                      {'item_id': '15', 'percentage': 15, 'score': 0.15}]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVUB",
+             "req_id": req_id,
+             "user_id": "hah",
+             "item_id": "1",
+             "amount": "3"})
+
+
 class GetByAlsoViewedTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
         self.updateItem("1")
         self.updateItem("3")
         self.updateItem("2")
@@ -615,7 +734,7 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
 
 class GetByEachPurchasedItemTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
@@ -678,13 +797,55 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
 
 class GetByEachBrowsedItemTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
         self.updateItem("11")
         self.updateItem("15")
+        self.updateItem("17")
         self.updateItem("30")
+        self.cleanUpBlackList()
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        self.cleanUpBlackList()
+
+    def testWithBlackList(self):
+        # toggle black list
+        mongo_client.toggle_black_list(SITE_ID, "1", "3", True)
+        mongo_client.toggle_black_list(SITE_ID, "8", "30", True)
+
+        self.assertCurrentLinesCount(0)
+        result = api_access("/getByEachBrowsedItem", 
+                {"api_key": API_KEY, "user_id": "hah",
+                 "browsing_history": "1,2,8",
+                 "rec_row_max_amount": "2",
+                 "amount_for_each_item": "3",
+                 "include_item_info": "yes"})
+        self.assertCurrentLinesCount(1)
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
+        self.assertEquals(result["result"], 
+                [{'item_id': '1', 
+                  'topn': [
+                            {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
+                            {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'},
+                            {'item_name': 'Who am I', 'item_id': '17', 'score': 0.97209999999999996, 'item_link': 'http://example.com/item?id=17'}
+                           ]
+                }                ]
+        )
+        last_line = self.readLastLine()
+        self.assert_(last_line.has_key("tjbid"))
+        self.assert_(last_line.has_key("timestamp"))
+        self.assertSomeKeys(last_line, 
+                {"user_id": "hah",
+                 "behavior": "RecEBI",
+                 "referer": None,
+                 "amount_for_each_item": 3,
+                 "is_empty_result": False,
+                 "browsing_history": ["1", "2", "8"]})
 
 
     def testWithPackedRequest(self):
@@ -703,7 +864,9 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         self.assertEquals(result["responses"]["getByEachBrowsedItem"]["result"],
               [{'item_id': '1', 'topn': [
                             {'item_id': '11', 'score': 0.98880000000000001},
-                            {'item_id': '15', 'score': 0.98710000000000001}]}, 
+                            {'item_id': '15', 'score': 0.98710000000000001},
+                            {'item_id': '17', 'score': 0.97209999999999996}
+                            ]}, 
                 {'item_id': '8', 'topn': [
                             {'item_id': '30', 'score': 0.96999999999999997}]}])
 
@@ -727,7 +890,8 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
                            ]
                 },
                  {'item_id': '8', 
-                  'topn': [{'item_name': 'Not Recommended by Item 1', 
+                  'topn': [{'item_name': 'Who am I', 'item_id': '17', 'score': 0.97999999999999998, 'item_link': 'http://example.com/item?id=17'},
+                          {'item_name': 'Not Recommended by Item 1', 
                             'item_id': '30', 
                             'score': 0.96999999999999997, 
                             'item_link': 'http://example.com/item?id=30'}
@@ -749,12 +913,42 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
 
 class GetByBrowsingHistoryTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
+        self.cleanUpBlackList()
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
         self.updateItem("11")
         self.updateItem("15")
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        self.cleanUpBlackList()
+
+    def test_WithBlackList(self):
+        mongo_client.toggle_black_list(SITE_ID, "1", "3", True)
+
+        result = api_access("/getByBrowsingHistory", 
+                {"api_key": API_KEY, "user_id": "ha",
+                 "browsing_history": "1,2",
+                 "amount": "3",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        req_id = result["req_id"]
+        self.decodeAndValidateRedirectUrls(result["topn"], req_id, API_KEY)
+        self.assertEquals(result["topn"], 
+                [
+                 {'item_name': 'Best Books', 'item_id': '8', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=8'}, 
+                 {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
+                 {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}])
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecBOBH",
+             "req_id": req_id,
+             "user_id": "ha",
+             "browsing_history": ["1", "2"],
+             "amount": "3"})
+
 
     def test_RecommendBasedOnBrowsingHistory(self):
         result = api_access("/getByBrowsingHistory", 
@@ -798,7 +992,7 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
 
 class GetByShoppingCartTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
@@ -835,7 +1029,7 @@ class GetByShoppingCartTest(BaseRecommendationTest):
 
 class GetByPurchasingHistoryTest(BaseRecommendationTest):
     def setUp(self):
-        BaseTestCase.setUp(self)
+        BaseRecommendationTest.setUp(self)
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")

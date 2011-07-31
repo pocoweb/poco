@@ -72,21 +72,16 @@ class MongoClient:
 
     def get_black_list(self, site_id, item_id):
         c_rec_black_lists = getSiteDBCollection(self.connection, site_id, "rec_black_lists")
-        rec_black_list = c_rec_black_lists.find_one({"item_id": item_id})
-        if rec_black_list is None:
+        row = c_rec_black_lists.find_one({"item_id": item_id})
+        if row is None:
             return []
         else:
-            return rec_black_list["black_list"]
+            return row["black_list"]
 
-    def recommend_viewed_also_view(self, site_id, similarity_type, item_id):
-        item_similarities = getSiteDBCollection(self.connection, site_id, 
-                "item_similarities_%s" % similarity_type)
-        result = item_similarities.find_one({"item_id": item_id})
-        if result is not None:
-            topn = result["mostSimilarItems"]
-        else:
-            topn = []
-        return topn
+
+    def apply_black_list2topn(self, site_id, item_id, topn):
+        black_list_set = set(self.get_black_list(site_id, item_id))
+        return [topn_item for topn_item in topn if topn_item[0] not in black_list_set]
 
 
     def getPurchasingHistory(self, site_id, user_id):
@@ -132,15 +127,28 @@ class MongoClient:
         return topn
 
 
-
-    def recommend_viewed_ultimately_buy(self, site_id, item_id):
+    def getSimilaritiesForViewedUltimatelyBuy(self, site_id, item_id):
         viewed_ultimately_buys = getSiteDBCollection(self.connection, site_id, "viewed_ultimately_buys")
         result = viewed_ultimately_buys.find_one({"item_id": item_id})
         if result is not None:
             vubs = result["viewedUltimatelyBuys"]
         else:
             vubs = []
-        return [(vubs_item["item_id"], vubs_item["percentage"]) for vubs_item in vubs]
+        topn = [(vubs_item["item_id"], vubs_item["percentage"]) for vubs_item in vubs]
+        topn = self.apply_black_list2topn(site_id, item_id, topn)
+        return topn
+
+
+    def getSimilaritiesForItem(self, site_id, similarity_type, item_id):
+        item_similarities = getSiteDBCollection(self.connection, site_id, 
+                "item_similarities_%s" % similarity_type)
+        result = item_similarities.find_one({"item_id": item_id})
+        if result is not None:
+            topn = result["mostSimilarItems"]
+        else:
+            topn = []
+        topn = self.apply_black_list2topn(site_id, item_id, topn)
+        return topn
 
 
     def getSimilaritiesForItems(self, site_id, similarity_type, item_ids):
@@ -148,7 +156,9 @@ class MongoClient:
         result = []
         for row in c_item_similarities.find({"item_id": {"$in": item_ids}}):
             most_similar_items = row["mostSimilarItems"]
-            result.append(most_similar_items)
+            row["mostSimilarItems"] = self.apply_black_list2topn(site_id, row["item_id"], 
+                                        row["mostSimilarItems"])
+            result.append(row)
         return result
 
     API_KEY2SITE_ID = None
@@ -294,7 +304,8 @@ class MongoClient:
 
         # calculate weighted top list from recent browsing history
         rec_map = {}
-        for recommended_items in self.getSimilaritiesForItems(site_id, similarity_type, recent_history):
+        for row in self.getSimilaritiesForItems(site_id, similarity_type, recent_history):
+            recommended_items = row["mostSimilarItems"]
             for rec_item, score in recommended_items:
                 if rec_item not in excludes_set:
                     rec_map.setdefault(rec_item, [0,0])
@@ -305,7 +316,8 @@ class MongoClient:
             score_total, count = rec_map[key][0], rec_map[key][1]
             rec_tuples.append((key, score_total / count))
         rec_tuples.sort(lambda a,b: sign(b[1] - a[1]))
-        return [rec_tuple for rec_tuple in rec_tuples]
+        topn = [rec_tuple for rec_tuple in rec_tuples]
+        return topn
 
 
     def recommend_by_each_purchased_item(self, site_id, user_id):
@@ -314,12 +326,9 @@ class MongoClient:
 
 
     def recommend_by_each_item(self, site_id, similarity_type, items_list):
-        c_item_similarities = getSiteDBCollection(self.connection, site_id, 
-                                    "item_similarities_%s" % similarity_type)
-
         result = []
         items_set = set(items_list)
-        for row in c_item_similarities.find({"item_id": {"$in": items_list}}):
+        for row in self.getSimilaritiesForItems(site_id, similarity_type, items_list):
             topn = [topn_item for topn_item in row["mostSimilarItems"] if topn_item[0] not in items_set]
             result.append({"item_id": row["item_id"], "topn": topn})
 

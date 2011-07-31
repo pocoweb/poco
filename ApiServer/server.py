@@ -571,7 +571,7 @@ class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
 
     def getTopN(self, site_id, args):
         connection = getConnection()
-        return mongo_client.recommend_viewed_also_view(site_id, self.similarity_type, args["item_id"])
+        return mongo_client.getSimilaritiesForItem(site_id, self.similarity_type, args["item_id"])
 
 
 class GetByEachPurchasedItemProcessor(BaseByEachItemProcessor):
@@ -687,7 +687,7 @@ class GetUltimatelyBoughtProcessor(BaseSimpleResultRecommendationProcessor):
         return log
 
     def getTopN(self, site_id, args):
-        return mongo_client.recommend_viewed_ultimately_buy(site_id, args["item_id"])
+        return mongo_client.getSimilaritiesForViewedUltimatelyBuy(site_id, args["item_id"])
 
     def postprocessTopN(self, topn):
         for topn_item in topn:
