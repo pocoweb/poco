@@ -126,7 +126,8 @@ sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
-    for raw_log in c_raw_logs.find():
-        if raw_log["behavior"].startswith("Rec"):
+    for raw_log in c_raw_logs.find({"recommended_items": {"$exists": True}, "is_empty_result": {"$exists": False}}):
+        #print raw_log
+        if raw_log["behavior"].startswith("Rec") and not raw_log.has_key("is_empty_result"):
             raw_log["is_empty_result"] = len(raw_log["recommended_items"]) == 0
             c_raw_logs.save(raw_log)

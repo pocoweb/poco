@@ -1,3 +1,4 @@
+# coding=utf-8
 import sys
 #sys.path.insert(0, "/Users/sun/tmp/kuaishubao_calc/hive-0.7.1-bin/lib/py")
 import os.path
@@ -31,7 +32,13 @@ def getCalendarInfo(timestamp):
 
 DELIMITER = ','
 def output_a_row(out_f, output):
-    out_f.write("%s\n" % DELIMITER.join(output))
+    output1 = []
+    for item in output:
+        if isinstance(item, unicode):
+            output1.append(item.encode("utf-8"))
+        else:
+            output1.append(item)
+    out_f.write("%s\n" % DELIMITER.join(output1))
     out_f.flush()
 
 
