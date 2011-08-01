@@ -11,10 +11,6 @@ from ApiServer.mongo_client import MongoClient
 import settings
 
 
-# This script is "kuaishubao" only at this time.
-SITE_ID = "kuaishubao"
-
-
 MONGODB_HOST = settings.mongodb_host
 
 connection = pymongo.Connection(MONGODB_HOST)
@@ -33,31 +29,37 @@ def checkUrl(url):
     return res.status
 
 
-def removeItem(item_id):
-    print "removeItem(%s)" % item_id
-    mongo_client.removeItem(SITE_ID, item_id)
+def writeLog(f_log, line):
+    print >>f_log, line
+    f_log.flush()
+
+def removeItem(f_log, site_id, item_id):
+    writeLog(f_log, "removeItem(%s)" % item_id)
+    mongo_client.removeItem(site_id, item_id)
 
 
+def getCurrentTime():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+# TODO: limit the checking time. 
 if __name__ == "__main__":
     while True:
-        f = open("BEGIN_AT", "w")
-        f.write("Begin checking at %s" % datetime.datetime.now())
-        f.close()
-        print "Begin checking at %s" % datetime.datetime.now()
-        c_items = getSiteDBCollection(connection, SITE_ID, "items")
-        items_list = [item for item in c_items.find({"available": True})]
-        items_count = len(items_list)
-        t1 = time.time()
-        for item_idx in range(len(items_list)):
-            item = items_list[item_idx]
-            if item_idx % 50 == 0:
-                print "Progress: %2d%%" % (item_idx / float(items_count) * 100)
-            if str(checkUrl(item["item_link"])) == "404":
-                removeItem(item["item_id"])
-        t2 = time.time()
-        print "Finish checking at %s, in %s seconds." % (datetime.datetime.now(), (t2 - t1))
-        f = open("END_AT", "w")
-        f.write("Finish checking at %s, in %s seconds." % (datetime.datetime.now(), (t2 - t1)))
-        f.close()
-        print "Go Sleep for 8 hours "	
+        for site_id in settings.site_ids:
+            f_log = open(settings.log_file_path, "a")
+            writeLog(f_log, "%s: Begin checking for %s" % (getCurrentTime(), site_id))
+            c_items = getSiteDBCollection(connection, site_id, "items")
+            items_list = [item for item in c_items.find({"available": True})]
+            items_count = len(items_list)
+            t1 = time.time()
+            for item_idx in range(len(items_list)):
+                item = items_list[item_idx]
+                if item_idx % 50 == 0:
+                    writeLog(f_log, "%s: Progress: %2d%%" % (getCurrentTime(), item_idx / float(items_count) * 100))
+                if str(checkUrl(item["item_link"])) == "404":
+                    removeItem(f_log, site_id, item["item_id"])
+            t2 = time.time()
+            writeLog(f_log, "%s: Finish checking for %s in %s seconds." % (getCurrentTime(), site_id, (t2 - t1)))
+            writeLog(f_log, "%s: Go Sleep for 8 hours " % getCurrentTime())
+            f_log.close()
         time.sleep(8 * 3600)
