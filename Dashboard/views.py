@@ -24,7 +24,7 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=15):
+def getSiteStatistics(site_id, days=45):
     c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
     today_date = datetime.date.today()
     result = []
@@ -186,7 +186,8 @@ def _prepareCharts(user, statistics):
         pushIntoData(stat_row,
                 ["click_rec_show_ratio_recsc", "recommendation_request_count_recsc", "recommendation_show_count_recsc", "click_rec_count_recsc"])
         
-        data["categories"].append(stat_row["date"][5:])
+        #data["categories"].append(stat_row["date"][5:])
+        data["categories"].append(stat_row["date"][-2:])
     return data
 
 
