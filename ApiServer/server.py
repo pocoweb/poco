@@ -497,6 +497,16 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
         recommended_items = []
         recommendations_for_each_item = []
         for recommendation_for_item in self.getRecommendationsForEachItem(site_id, args):
+            if include_item_info:
+                by_item = mongo_client.getItem(site_id, recommendation_for_item["item_id"])
+                del by_item["_id"]
+                del by_item["available"]
+                del by_item["categories"]
+                del recommendation_for_item["item_id"]
+                recommendation_for_item["by_item"] = by_item
+            else:
+                recommendation_for_item["by_item"] = {"item_id": recommendation_for_item["item_id"]}
+                del recommendation_for_item["item_id"]
             topn = recommendation_for_item["topn"]
             excluded_recommendation_items = self.getExcludedRecommendationItems() | set(recommended_items)
             topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,

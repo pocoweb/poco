@@ -735,6 +735,7 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
 class GetByEachPurchasedItemTest(BaseRecommendationTest):
     def setUp(self):
         BaseRecommendationTest.setUp(self)
+        self.updateItem("1")
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
@@ -743,7 +744,7 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.updateItem("30")
         self.cleanUpPurchasingHistory()
 
-    def testWithPackedRequest(self):
+    def testWithPackedRequestAndIncludeItemInfoOff(self):
         self.assertCurrentLinesCount(0)
 
         result, response_tuijianbaoid = api_access("/placeOrder", 
@@ -758,9 +759,11 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.assertEquals(result["code"], 0)
         self.assertEquals(len(result["responses"].keys()), 1)
         self.assertEquals(result["responses"]["getByEachPurchasedItem"]["result"],
-              [{'item_id': '1', 'topn': [{'item_id': '11', 'score': 0.99980000000000002}, 
+              [{'by_item': {"item_id": "1"}, 
+                                'topn': [{'item_id': '11', 'score': 0.99980000000000002}, 
                                          {'item_id': '3', 'score': 0.99880000000000002}]}, 
-               {'item_id': '8', 'topn': [{'item_id': '30', 'score': 0.99209999999999998}]}])
+               {'by_item': {"item_id": "8"}, 
+                     'topn': [{'item_id': '30', 'score': 0.99209999999999998}]}])
 
 
     def test(self):
@@ -788,16 +791,19 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         req_id = result["req_id"]
         self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
         self.assertEquals(result["result"],
-                        [{'item_id': '1', 
+                        [{'by_item': {"item_id": "1", "item_name": "Turk", "item_link": "http://example.com/item?id=1"}, 
                           'topn': [{'item_name': 'Meditation', 'item_id': '11', 'score': 0.99980000000000002, 'item_link': 'http://example.com/item?id=11'}, 
                                    {'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}]}, 
-                        {'item_id': '8', 
+                        {'by_item': {"item_id": "8", 
+                                    "item_link": "http://example.com/item?id=8", 
+                                    "item_name": "Best Books"}, 
                          'topn': [{'item_name': 'Not Recommended by Item 1', 'item_id': '30', 'score': 0.99209999999999998, 'item_link': 'http://example.com/item?id=30'}]}])
 
 
 class GetByEachBrowsedItemTest(BaseRecommendationTest):
     def setUp(self):
         BaseRecommendationTest.setUp(self)
+        self.updateItem("1")
         self.updateItem("3")
         self.updateItem("2")
         self.updateItem("8")
@@ -828,13 +834,14 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         req_id = result["req_id"]
         self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
         self.assertEquals(result["result"], 
-                [{'item_id': '1', 
+                [{'by_item': {"item_id": "1", "item_name": "Turk", 
+                               "item_link": "http://example.com/item?id=1"}, 
                   'topn': [
                             {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
                             {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'},
                             {'item_name': 'Who am I', 'item_id': '17', 'score': 0.97209999999999996, 'item_link': 'http://example.com/item?id=17'}
                            ]
-                }                ]
+                }       ]
         )
         last_line = self.readLastLine()
         self.assert_(last_line.has_key("tjbid"))
@@ -862,12 +869,12 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
                      {'item_id': '2', 'score': 0.99329999999999996}
                     ])
         self.assertEquals(result["responses"]["getByEachBrowsedItem"]["result"],
-              [{'item_id': '1', 'topn': [
+              [{'by_item': {"item_id": "1"}, 'topn': [
                             {'item_id': '11', 'score': 0.98880000000000001},
                             {'item_id': '15', 'score': 0.98710000000000001},
                             {'item_id': '17', 'score': 0.97209999999999996}
                             ]}, 
-                {'item_id': '8', 'topn': [
+                {'by_item': {'item_id': '8'}, 'topn': [
                             {'item_id': '30', 'score': 0.96999999999999997}]}])
 
     def test(self):
@@ -883,13 +890,16 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         req_id = result["req_id"]
         self.decodeAndValidateRedirectUrlsForEachTopn(result["result"], req_id, API_KEY)
         self.assertEquals(result["result"], 
-                [{'item_id': '1', 
+                [{'by_item': {"item_id": "1", "item_name": "Turk", 
+                              "item_link": "http://example.com/item?id=1"}, 
                   'topn': [{'item_name': 'Harry Potter I', 'item_id': '3', 'score': 0.99880000000000002, 'item_link': 'http://example.com/item?id=3'}, 
                             {'item_name': 'Meditation', 'item_id': '11', 'score': 0.98880000000000001, 'item_link': 'http://example.com/item?id=11'},
                             {'item_name': 'SaaS Book', 'item_id': '15', 'score': 0.98709999999999998, 'item_link': 'http://example.com/item?id=15'}
                            ]
                 },
-                 {'item_id': '8', 
+                 {'by_item': {"item_id": "8", 
+                                    "item_link": "http://example.com/item?id=8", 
+                                    "item_name": "Best Books"}, 
                   'topn': [{'item_name': 'Who am I', 'item_id': '17', 'score': 0.97999999999999998, 'item_link': 'http://example.com/item?id=17'},
                           {'item_name': 'Not Recommended by Item 1', 
                             'item_id': '30', 

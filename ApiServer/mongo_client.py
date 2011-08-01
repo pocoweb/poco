@@ -274,7 +274,7 @@ class MongoClient:
         result = []
         
         for topn_row in topn:
-            item_in_db = c_items_collection.find_one({"item_id": topn_row[0]})
+            item_in_db = self.getItem(site_id, topn_row[0])
             if item_in_db is None or not result_filter.is_allowed(item_in_db) \
                 or item_in_db["item_id"] in excluded_recommendation_items:
                     continue
