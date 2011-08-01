@@ -50,8 +50,11 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
         if row["behavior"].startswith("Rec"):
             calendar_info = getCalendarInfo(row["timestamp"])
             date_str = calendar_info["date_str"]
-            output = [date_str, repr(row["timestamp"]), row["behavior"], row["req_id"], 
-                        str(len(row["recommended_items"]))]
+            if row["is_empty_result"]:
+                is_empty_result = "TRUE"
+            else:
+                is_empty_result = "FALSE"
+            output = [date_str, repr(row["timestamp"]), row["behavior"], row["req_id"], is_empty_result]
             output_a_row(out_f, output)
     out_f.close()
 
