@@ -40,7 +40,7 @@ def removeItem(item_id):
 
 if __name__ == "__main__":
     while True:
-        f = open("BEGIN_AT", "w")
+        f = open("/tmp/BEGIN_AT", "w")
         f.write("Begin checking at %s" % datetime.datetime.now())
         f.close()
         print "Begin checking at %s" % datetime.datetime.now()
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                 removeItem(item["item_id"])
         t2 = time.time()
         print "Finish checking at %s, in %s seconds." % (datetime.datetime.now(), (t2 - t1))
-        f = open("END_AT", "w")
+        f = open("/tmp/END_AT", "w")
         f.write("Finish checking at %s, in %s seconds." % (datetime.datetime.now(), (t2 - t1)))
         f.close()
         print "Go Sleep for 8 hours "	
