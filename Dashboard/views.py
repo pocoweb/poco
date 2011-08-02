@@ -143,7 +143,7 @@ def _calc_clickrec_pv_ratio(row):
     else:
         row["clickrec_pv_ratio"] = None
 
-def _prepareCharts(user, statistics):
+def _prepareCharts(user, timespan, statistics):
     data = {"pv_v": [], "uv_v": [], "pv_uv": [],
             "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
             "avg_order_total": [], "total_sales": [],
@@ -187,7 +187,12 @@ def _prepareCharts(user, statistics):
                 ["click_rec_show_ratio_recsc", "recommendation_request_count_recsc", "recommendation_show_count_recsc", "click_rec_count_recsc"])
         
         #data["categories"].append(stat_row["date"][5:])
-        data["categories"].append(stat_row["date"][-2:])
+        #day = stat_row["date"][-2:]
+        #if timespan >= 60:
+        #    if int(day) % 5 != 0:
+        #        day = ' '
+        #data["categories"].append(day)
+        data["categories"].append(stat_row["date"])
     return data
 
 
@@ -195,6 +200,7 @@ def _prepareCharts(user, statistics):
 @login_required
 def ajax_get_site_statistics(request):
     site_id = request.GET.get("site_id", None)
+    timespan = int(request.GET.get("timespan", None))
     user_name = request.session["user_name"]
     user_site_ids = _getUserSiteIds(user_name)
     user = getUser(user_name)
@@ -203,7 +209,7 @@ def ajax_get_site_statistics(request):
         connection = getConnection()
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
-                       "statistics": _prepareCharts(user, getSiteStatistics(site_id))}
+                       "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
         return HttpResponse(json.dumps(result))
     else:
         return HttpResponse(json.dumps({"code": 1}))
