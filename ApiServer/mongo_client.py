@@ -353,6 +353,6 @@ class MongoClient:
     # Logging Part
     def writeLogToMongo(self, site_id, content):
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
-        c_raw_logs.ensure_index([("timestamp", pymongo.DESCENDING)])
+        #c_raw_logs.ensure_index([("timestamp", pymongo.DESCENDING)])
         c_raw_logs.insert(content)
 

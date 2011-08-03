@@ -61,14 +61,22 @@ class UploadItemSimilarities:
         self.item_similarities = getSiteDBCollection(self.connection, site_id, 
                         "item_similarities_%s" % type)
 
+#    def updateSimOneRow(self):
+#        item_in_db = self.item_similarities.find_one({"item_id": self.last_item1})
+#        if item_in_db is None:
+#            item_in_db = {}
+#        item_in_db.update({"item_id": self.last_item1, "mostSimilarItems": self.last_rows})
+#        self.item_similarities.save(item_in_db)
+#        self.last_item1 = self.item_id1
+#        self.last_rows = []
+
     def updateSimOneRow(self):
-        item_in_db = self.item_similarities.find_one({"item_id": self.last_item1})
-        if item_in_db is None:
-            item_in_db = {}
-        item_in_db.update({"item_id": self.last_item1, "mostSimilarItems": self.last_rows})
-        self.item_similarities.save(item_in_db)
+        self.item_similarities.update({"item_id": self.last_item1},
+                {"item_id": self.last_item1, "mostSimilarItems": self.last_rows},
+                True, False)
         self.last_item1 = self.item_id1
         self.last_rows = []
+
 
     def __call__(self, item_similarities_file_path):
         for line in open(item_similarities_file_path, "r"):

@@ -4,6 +4,7 @@ import sys
 import os.path
 import simplejson as json
 import datetime
+import logging
 
 from hive_service import ThriftHive
 from hive_service.ttypes import HiveServerException
@@ -15,6 +16,7 @@ from thrift.protocol import TBinaryProtocol
 from common.utils import getSiteDBCollection
 from common.utils import smart_split
 
+logger = logging.getLogger("HiveBased")
 
 def getCalendarInfo(timestamp):
     try:
@@ -42,6 +44,15 @@ def output_a_row(out_f, output):
     out_f.flush()
 
 
+def log_function(function):
+    def wrapped_function(*arg, **kws):
+        logger.info("HIVE_START %s" % function.__name__)
+        result = function(*args, **kws)
+        logger.info("HIVE_END %s" % function.__name__)
+    return wrapped_function
+
+
+@log_function
 def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
     output_file_path = os.path.join(work_dir, "recommendation_logs_comma_separated")
     out_f = open(output_file_path, "w")
@@ -59,6 +70,7 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
     out_f.close()
 
 
+@log_function
 def load_recommendation_logs(work_dir, client):
     input_file_path = os.path.join(work_dir, "recommendation_logs_comma_separated")
     client.execute("DROP TABLE recommendation_logs")
@@ -75,6 +87,7 @@ def load_recommendation_logs(work_dir, client):
     client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE recommendation_logs" % input_file_path)
 
 
+@log_function
 def calc_recommendations_request_by_type(site_id, connection, client):
     client.execute("DROP TABLE   recommendations_request_by_type")
     client.execute("CREATE TABLE recommendations_request_by_type ( "
@@ -88,6 +101,7 @@ def calc_recommendations_request_by_type(site_id, connection, client):
                    "GROUP BY date_str, behavior")
 
 
+@log_function
 def calc_recommendations_show_by_type(site_id, connection, client):
     client.execute("DROP TABLE   recommendations_show_by_type")
     client.execute("CREATE TABLE recommendations_show_by_type ( "
@@ -102,6 +116,7 @@ def calc_recommendations_show_by_type(site_id, connection, client):
                    "GROUP BY date_str, behavior")
 
 
+@log_function
 def calc_click_rec_by_type(site_id, connection, client):
     client.execute("DROP TABLE click_rec_by_type")
     client.execute("CREATE TABLE click_rec_by_type ( "
@@ -119,6 +134,7 @@ def calc_click_rec_by_type(site_id, connection, client):
                    "GROUP BY date_str, behavior")
 
 
+@log_function
 def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client):
     calc_recommendations_request_by_type(site_id, connection, client)
     calc_recommendations_show_by_type(site_id, connection, client)
@@ -147,6 +163,7 @@ def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client
         upload_statistics(site_id, connection, client, data)
 
 
+@log_function
 def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
     output_file_path = os.path.join(work_dir, "backfilled_raw_logs_ctrl_a_separated")
     out_f = open(output_file_path, "w")
@@ -171,6 +188,7 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
     out_f.close()
 
 
+@log_function
 def load_backfilled_raw_logs(work_dir, client):
     input_file_path = os.path.join(work_dir, "backfilled_raw_logs_ctrl_a_separated")
     client.execute("DROP TABLE backfilled_raw_logs")
@@ -240,6 +258,7 @@ def result_as_dict(result, columns):
     return result_dict
 
 
+@log_function
 def calc_daily_order_money_related(site_id, connection, client):
     client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
@@ -301,6 +320,7 @@ def calc_ClickRec_by_type(site_id, connection, client):
     pass
 
 
+@log_function
 def calc_kedanjia_without_rec(site_id, connection, client):
     client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
@@ -316,6 +336,7 @@ def calc_kedanjia_without_rec(site_id, connection, client):
         upload_statistics(site_id, connection, client, data)
 
 
+@log_function
 def calc_kedanjia_with_rec(site_id, connection, client):
     client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
                    "FROM (SELECT date_str, timestamp_,  SUM(price * amount) AS total_money "
@@ -328,6 +349,7 @@ def calc_kedanjia_with_rec(site_id, connection, client):
         upload_statistics(site_id, connection, client, data)
 
 
+@log_function
 def calc_place_order_with_rec_info(site_id, connection, client):
     client.execute("DROP TABLE   place_order_with_rec_info")
     client.execute("CREATE TABLE place_order_with_rec_info ( "
@@ -359,6 +381,7 @@ def calc_place_order_with_rec_info(site_id, connection, client):
                    )
 
 
+@log_function
 def calc_click_rec_buy(site_id, connection, client):
     client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.py"))
     client.execute("DROP TABLE rec_buy")
@@ -377,6 +400,7 @@ def calc_click_rec_buy(site_id, connection, client):
                    'ORDER BY filled_user_id, timestamp_) a ')
 
 
+@log_function
 def calc_avg_item_amount(site_id, connection, client):
     client.execute("SELECT a.date_str, AVG(a.amount) AS avg_item_amount "
                    "FROM (SELECT timestamp_, date_str, SUM(amount) AS amount "
@@ -390,7 +414,7 @@ def calc_avg_item_amount(site_id, connection, client):
         upload_statistics(site_id, connection, client, data)
 
 
-
+@log_function
 def calc_unique_sku(site_id, connection, client):
     client.execute("SELECT date_str, AVG(sku) AS avg_unique_sku "
                    "FROM (SELECT timestamp_, date_str, COUNT(DISTINCT item_id) AS sku "
