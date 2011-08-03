@@ -186,12 +186,6 @@ def _prepareCharts(user, timespan, statistics):
         pushIntoData(stat_row,
                 ["click_rec_show_ratio_recsc", "recommendation_request_count_recsc", "recommendation_show_count_recsc", "click_rec_count_recsc"])
         
-        #data["categories"].append(stat_row["date"][5:])
-        #day = stat_row["date"][-2:]
-        #if timespan >= 60:
-        #    if int(day) % 5 != 0:
-        #        day = ' '
-        #data["categories"].append(day)
         data["categories"].append(stat_row["date"])
     return data
 

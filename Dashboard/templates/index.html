@@ -179,6 +179,19 @@ function renderChart_plo(site_id, data) {
 
 {% if user.is_admin %}
 function renderChart_rec(site_id, data) {
+    var sum_pv_v_wo = 0;
+    var sum_clickrec = 0;
+    for (var index in data.pv_v) {
+        if (data.pv_v[index] != null) {
+            if (data.clickrec[index] != null) {
+                sum_pv_v_wo += data.pv_v[index] - data.clickrec[index];
+                sum_clickrec += data.clickrec[index];
+            }
+        }
+    }
+    var per_pv_v_wo = Math.round(sum_pv_v_wo / (sum_pv_v_wo + sum_clickrec) * 1000) / 10;
+    var per_clickrec = Math.round(sum_clickrec / (sum_pv_v_wo + sum_clickrec) * 1000) / 10;
+
     var chart_dict = {
             chart: {
                 renderTo: "chart-rec",
@@ -217,8 +230,22 @@ function renderChart_rec(site_id, data) {
             ],
             tooltip: {
                 formatter: function() {
-                    return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y + '次';
+                    if (this.point.name) {
+                        var percentage = 0;
+                        if (this.point.name == "非推荐PV") {
+                            percentage = "" + per_pv_v_wo + "%";
+                        }
+                        else {
+                            percentage = "" + per_clickrec + "%";
+                        };
+
+                        return this.point.name + ":" + this.y + '次, 占' + percentage;
+                    
+                    }
+                    else {
+                        return '<b>' + this.series.name + '</b><br/>' +
+                            this.x + ':' + this.y + '次';
+                    }
                 }
             },
             legend: {
@@ -232,19 +259,38 @@ function renderChart_rec(site_id, data) {
             series: [{
                        "name": "商品PV数",
                        "data": data.pv_v,
-                       "type": "line"
+                       "type": "area"
                      },
                      {
                        "name": "推荐点击数",
                        "data": data.clickrec,
-                       "type": "line"
+                       "type": "area"
                      },
                      {
                        "name": "推荐点击占PV比",
                        "data": data.clickrec_pv_ratio,
                        "type": "spline",
                        "yAxis": 1
-                     }
+                     },
+                     {"type": "pie",
+                      "name": "汇总",
+                      "data": [
+                        {name: "非推荐PV",
+                        y: sum_pv_v_wo
+                        //color: highchartsOptions.colors[0]
+                        },
+                        {name: "推荐点击PV",
+                        y: sum_clickrec
+                        //color: highchartsOptions.colors[1]
+                        }
+                      ],
+                      center: [30, 30],
+                      size: 60,
+                      showInLegend: true,
+                      dataLabels: {
+                        enabled: false
+                      }
+                      }
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);
@@ -382,14 +428,14 @@ function renderChart_total_sales(site_id, data) {
             },
             series: [{"name": "总销售金额",
                       "data": data.total_sales,
-                      "type": "line",
+                      "type": "area",
                       "dataLabels": {
                         enabled: false
                         }
                       },
                       {"name": "有无推荐销售金额差",
                       "data": data.total_sales_rec_delta,
-                      "type": "line",
+                      "type": "area",
                       "dataLabels": {
                         enabled: false
                         },
@@ -620,18 +666,18 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             series: [{
                        "name": "推荐请求数",
                        "data": data["recommendation_request_count_" + action_name],
-                       "type": "line"
+                       "type": "area"
                      },
                     {
                        "name": "推荐展示数",
                        "data": data["recommendation_show_count_" + action_name],
-                       "type": "line"
+                       "type": "area"
                      },
 
                      {
                        "name": "推荐点击数",
                        "data": data["click_rec_count_" + action_name],
-                       "type": "line"
+                       "type": "area"
                      },
                     {
                        "name": "推荐点击/请求比",
