@@ -227,7 +227,7 @@ class ViewItemTest(BaseTestCase):
             {"api_key": "THEAPIKEYWHICHNOTEXISTS", "item_id": item_id, "user_id": user_id, 
              "callback": "blah"},
              as_json=False)
-        self.assertEquals(result, "blah({\"code\": 2})")
+        self.assertEquals(result, 'blah({"code": 2, "err_msg": "no such api_key"})')
         self.assertCurrentLinesCount(0)
 
     def test_user_id_item_id_validation(self):
@@ -1356,8 +1356,7 @@ class PackedRequestTest(BaseTestCase):
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs("SITENOTEXIST")
         result = api_access("/packedRequest", url_args)
-        self.assertEquals(result,
-                    {"code": 2})
+        self.assertEquals(result, {"code": 2, "err_msg": "no such api_key"})
 
     def testSharedParams1(self):
         self.assertCurrentLinesCount(0)
@@ -1454,7 +1453,8 @@ class PackedRequestTest(BaseTestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(GetByEachPurchasedItemTest('testWithPackedRequest'))
+    #suite.addTest(GetByEachPurchasedItemTest('testWithPackedRequest'))
+    suite.addTest(UpdateItemTest('test_updateItem'))
     return suite
 
 

@@ -16,7 +16,9 @@ import uuid
 import settings
 import getopt
 import urllib
- 
+import logging
+
+
 from common.utils import smart_split
 
 from mongo_client import MongoClient
@@ -24,10 +26,18 @@ from mongo_client import SimpleRecommendationResultFilter
 from mongo_client import SameGroupRecommendationResultFilter
 
 
+logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
+                    level=logging.WARNING,
+                    datefmt="%Y-%m-%d %I:%M:%S")
+
+
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
 
+
 mongo_client = MongoClient(getConnection())
+
+mongo_client.reloadApiKey2SiteID()
 
 # jquery serialize()  http://api.jquery.com/serialize/
 # http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
@@ -43,10 +53,14 @@ class LogWriter:
     def closeLocalLog(self):
         self.local_file.close()
 
-    def writeToLocalLog(self, site_id, content):
-        line = "%s:%s\n" % (site_id, json.dumps(content))
-        self.local_file.write(line)
+    def writeLineToLocalLog(self, site_id, line):
+        full_line = "%s:%s\n" % (site_id, line)
+        self.local_file.write(full_line)
         self.local_file.flush()
+
+    def writeToLocalLog(self, site_id, content):
+        line = json.dumps(content)
+        self.writeLineToLocalLog(site_id, line)
 
     def writeEntry(self, site_id, content):
         timestamp = time.time()
@@ -94,7 +108,7 @@ class APIHandler(tornado.web.RequestHandler):
 
         api_key2site_id = mongo_client.getApiKey2SiteID()
         if not api_key2site_id.has_key(api_key):
-            response = {'code': 2}
+            response = {'code': 2, 'err_msg': 'no such api_key'}
         else:
             site_id = api_key2site_id[api_key]
             del args["api_key"]
@@ -160,8 +174,22 @@ class ActionProcessor:
     def processArgs(self, args):
         return self.ap.processArgs(args)
 
+    def _process(self, site_id, args):
+        raise NotImplemented
+
     def process(self, site_id, args):
-        pass
+        try:
+            logWriter.writeLineToLocalLog(site_id, "BEGIN_REQUEST")
+            try:
+                return self._process(site_id, args)
+            except ArgumentError:
+                raise
+            except:
+                logging.critical("An Error occurred while processing action: site_id=%s, args=%s" % (site_id, args), exc_info=True)
+                logWriter.writeLineToLocalLog(site_id, "UNKNOWN_ERROR:action_name=%s:args=%s" % (self.action_name, json.dumps(args)))
+                return {"code": 99}
+        finally:
+            logWriter.writeLineToLocalLog(site_id, "END_REQUEST")
 
 
 import re
@@ -186,7 +214,7 @@ class ViewItemProcessor(ActionProcessor):
                 })
             raise ArgumentError("invalid item_id or user_id")
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self._validateInput(site_id, args)
         self.logAction(site_id, args,
                 {"user_id": args["user_id"],
@@ -209,7 +237,7 @@ class AddFavoriteProcessor(ActionProcessor):
          ("user_id", True),
         )
     )
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
                          "item_id": args["item_id"]})
@@ -226,7 +254,7 @@ class RemoveFavoriteProcessor(ActionProcessor):
          ("user_id", True),
         )
     )
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
                          "item_id": args["item_id"]})
@@ -245,7 +273,7 @@ class RateItemProcessor(ActionProcessor):
          ("user_id", True),
         )
     )
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
                          "item_id": args["item_id"],
@@ -268,7 +296,7 @@ class AddOrderItemProcessor(ActionProcessor):
          ("item_id", True),
         )
     )
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
                          "item_id": args["item_id"]})
@@ -287,7 +315,7 @@ class RemoveOrderItemProcessor(ActionProcessor):
         )
     )
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                         {"user_id": args["user_id"], 
                          "item_id": args["item_id"]})
@@ -318,7 +346,7 @@ class PlaceOrderProcessor(ActionProcessor):
                            "amount": amount})
         return result
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.logAction(site_id, args,
                        {"user_id":  args["user_id"], 
                         "order_id": args["order_id"],
@@ -341,7 +369,7 @@ class UpdateCategoryProcessor(ActionProcessor):
     )
 
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         err_msg, args = self.ap.processArgs(args)
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
@@ -376,7 +404,7 @@ class UpdateItemProcessor(ActionProcessor):
         )
     )
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         err_msg, args = self.ap.processArgs(args)
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
@@ -412,7 +440,7 @@ class RemoveItemProcessor(ActionProcessor):
          [("item_id", True)]
         )
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         err_msg, args = self.ap.processArgs(args)
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
@@ -487,7 +515,7 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
         return amount_for_each_item
 
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.recommended_items = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = self.generateReqId()
@@ -541,7 +569,7 @@ class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
     def getTopN(self, site_id, args):
         raise NotImplemented
 
-    def process(self, site_id, args):
+    def _process(self, site_id, args):
         self.recommended_items = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         try:
