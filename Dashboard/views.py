@@ -361,7 +361,7 @@ def ajax_get_black_list(request):
         site_id = request.GET["site_id"]
         item_id = request.GET["item_id"]
         black_list = itemInfoListFromItemIdList(site_id, 
-                        mongo_client.get_black_list(site_id, [item_id]))
+                        mongo_client.get_black_list(site_id, item_id))
         result = {"code": 0, "black_list": black_list}
         return HttpResponse(json.dumps(result))
 
