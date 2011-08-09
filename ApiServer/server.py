@@ -608,7 +608,6 @@ class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
         return log
 
     def getTopN(self, site_id, args):
-        connection = getConnection()
         return mongo_client.getSimilaritiesForItem(site_id, self.similarity_type, args["item_id"])
 
 
