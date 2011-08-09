@@ -25,7 +25,7 @@ mongo_client = MongoClient(getConnection())
 
 
 def getSiteStatistics(site_id, days=45):
-    c_statistics = getSiteDBCollection(getConnection(), site_id, "statistics")
+    c_statistics = getSiteDBCollection(mongo_client.connection, site_id, "statistics")
     today_date = datetime.date.today()
     result = []
     for day_delta in range(days, -1, -1):
@@ -83,7 +83,7 @@ def login_and_admin_only(callable):
 
 
 def _getUserSites(user_name):
-    connection = getConnection()
+    connection = mongo_client.connection
     c_users = connection["tjb-db"]["users"]
     c_sites = connection["tjb-db"]["sites"]
     user = c_users.find_one({"user_name": user_name})
@@ -91,13 +91,13 @@ def _getUserSites(user_name):
     return sites
 
 def _getUserSiteIds(user_name):
-    connection = getConnection()
+    connection = mongo_client.connection
     c_users = connection["tjb-db"]["users"]
     user = c_users.find_one({"user_name": user_name})
     return user["sites"]
 
 def getUser(user_name):
-    connection = getConnection()
+    connection = mongo_client.connection
     c_users = connection["tjb-db"]["users"]
     user = c_users.find_one({"user_name": user_name})
     return user
@@ -200,7 +200,7 @@ def ajax_get_site_statistics(request):
     user = getUser(user_name)
     if site_id in user_site_ids:
         result = {"code": 0}
-        connection = getConnection()
+        connection = mongo_client.connection
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
                        "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
@@ -236,7 +236,7 @@ def getItemsAndCount(connection, site_id, page_num):
 def site_items_list(request):
     site_id = request.GET["site_id"]
     page_num = int(request.GET.get("page_num", "1"))
-    connection = getConnection()
+    connection = mongo_client.connection
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     result = {"page_name": u"%s商品列表" % site["site_name"],
              "site": site, 
@@ -284,7 +284,7 @@ def _getUltimatelyBought(site, item_id, amount):
 def show_item(request):
     site_id = request.GET["site_id"]
     item_id = request.GET["item_id"]
-    connection = getConnection()
+    connection = mongo_client.connection
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
@@ -301,7 +301,7 @@ def show_item(request):
 
 
 def loadCategoryGroupsSrc(site_id):
-    connection = getConnection()
+    connection = mongo_client.connection
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     return site.get("category_groups_src", "")
 
@@ -309,7 +309,7 @@ from common.utils import updateCategoryGroups
 @login_required
 def update_category_groups(request):
     if request.method == "GET":
-        connection = getConnection()
+        connection = mongo_client.connection
         site_id = request.GET["site_id"]
         site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         category_groups_src = loadCategoryGroupsSrc(site_id)
@@ -328,7 +328,7 @@ def ajax_update_category_groups(request):
     if request.method == "GET":
         site_id = request.GET["site_id"]
         category_groups_src = request.GET["category_groups_src"]
-        connection = getConnection()
+        connection = mongo_client.connection
         is_succ, msg = updateCategoryGroups(connection, site_id, category_groups_src)
         result = {"is_succ": is_succ, "msg": msg}
         return HttpResponse(json.dumps(result))
@@ -346,7 +346,7 @@ def ajax_toggle_black_list(request):
 
 
 def itemInfoListFromItemIdList(site_id, item_id_list):
-    c_items = getSiteDBCollection(getConnection(), site_id, "items")
+    c_items = getSiteDBCollection(mongo_client.connection, site_id, "items")
     item_info_list = [item for item in c_items.find({"item_id": {"$in": item_id_list}},
                                   {"item_id": 1, "item_name": 1, "item_link": 1}
                                   )]
@@ -378,7 +378,7 @@ def login(request):
         return render_to_response("login.html", {"msg": msg}, 
                   context_instance=RequestContext(request))
     else:
-        conn = getConnection()
+        conn = mongo_client.connection
         users = conn["tjb-db"]["users"]
         user_in_db = users.find_one({"user_name": request.POST["name"]})
         login_succ = False
@@ -394,7 +394,7 @@ def login(request):
 
 import copy
 def _getCurrentUser(request):
-    conn = getConnection()
+    conn = mongo_client.connection
     if request.session.has_key("user_name"):
         return conn["tjb-db"]["users"].find_one({"user_name": request.session["user_name"]})
     else:
