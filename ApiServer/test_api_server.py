@@ -424,6 +424,54 @@ class UpdateItemTest(BaseTestCase):
                  "categories": []})
 
 
+    def testDoNotUpdateRemovedItem(self):
+        item_id = generate_uid()
+        result = api_access("/updateItem",
+            {"api_key": API_KEY, "item_id": item_id, 
+             "item_link": "http://example.com/item?id=%s" % item_id,
+             "item_name": "Harry Potter I"},
+             assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        del item_in_db["_id"]
+        self.assertEquals(item_in_db,
+                {"available": True,
+                 "item_id": item_id, 
+                 "item_link": "http://example.com/item?id=%s" % item_id,
+                 "item_name": "Harry Potter I",
+                 "categories": []})
+
+        # remove the existed item
+        result = api_access("/removeItem",
+            {"api_key": API_KEY, "item_id": item_id},
+            assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        del item_in_db["_id"]
+        self.assertEquals(item_in_db,
+                {"available": False,
+                 "item_id": item_id, 
+                 "item_link": "http://example.com/item?id=%s" % item_id,
+                 "item_name": "Harry Potter I",
+                 "categories": []})
+
+        # update it again, it should not be updated, and re-enabled.
+        result = api_access("/updateItem",
+            {"api_key": API_KEY, "item_id": item_id, 
+             "item_link": "http://example.com/item?id=%s" % item_id,
+             "item_name": "Harry Potter 8"},
+             assert_returns_tuijianbaoid=False)
+        self.assertEquals(result, {"code": 0})
+        item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        del item_in_db["_id"]
+        self.assertEquals(item_in_db,
+                {"available": False,
+                 "item_id": item_id, 
+                 "item_link": "http://example.com/item?id=%s" % item_id,
+                 "item_name": "Harry Potter I",
+                 "categories": []})
+
+
 class RemoveItemTest(BaseTestCase):
     def test_removeItem(self):
         item_id = generate_uid()
