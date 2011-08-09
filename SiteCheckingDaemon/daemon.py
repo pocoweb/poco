@@ -36,7 +36,8 @@ logger = logging.getLogger("daemon")
 
 site_id2checker = {
     "kuaishubao": checker_404,
-    "shede_com": checker_shede_com
+    "shede_com": checker_shede_com,
+    "crucco_com": checker_404
     }
 
 # TODO: limit the checking time. 
