@@ -1,4 +1,3 @@
-import pymongo
 from common.utils import getSiteDBCollection
 
 
