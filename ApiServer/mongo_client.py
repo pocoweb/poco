@@ -345,9 +345,13 @@ class MongoClient:
             purchasing_history = []
         else:
             purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
-        topn = self.calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
+        topn1 = self.calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
                     extra_excludes_list=purchasing_history)
-        return topn
+        topn2 = self.calc_weighted_top_list_method1(site_id, "PLO", shopping_cart,
+                    extra_excludes_list=purchasing_history)
+        topn1_item_set = set([topn1_item[0] for topn1_item in topn1])
+        
+        return topn1 + [topn2_item for topn2_item in topn2 if topn2_item[0] not in topn1_item_set]
 
 
     # Logging Part

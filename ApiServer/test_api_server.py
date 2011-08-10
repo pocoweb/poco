@@ -998,6 +998,28 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
                  ])
 
 
+class GetByShoppingCartTest2(BaseRecommendationTest):
+    def setUp(self):
+        BaseRecommendationTest.setUp(self)
+        self.updateItem("8")
+        self.updateItem("21")
+        self.updateItem("29")
+        self.updateItem("30")
+        self.updateItem("11")
+
+    def test(self):
+        # to test byShoppingCart combines buy together and plo similarities.
+        result = api_access("/getByShoppingCart", 
+                {"api_key": API_KEY, "user_id": "ha",
+                "shopping_cart": "8",
+                "amount": "5",
+                "include_item_info": "no"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"],
+                            [{'item_id': '21', 'score': 0.99280000000000002}, 
+                             {'item_id': '29', 'score': 0.98309999999999997}, 
+                             {'item_id': '30', 'score': 0.97209999999999996}, 
+                             {'item_id': '11', 'score': 0.96209999999999996}])
 
 
 class GetByShoppingCartTest(BaseRecommendationTest):

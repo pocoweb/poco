@@ -4,7 +4,6 @@ from common.utils import sign
 
 
 def updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_rows):
-    viewed_ultimately_buys = getSiteDBCollection(connection, site_id, "viewed_ultimately_buys")
     last_rows.sort(lambda a,b: sign(b[1] - a[1]))
 
     item1_total_views = item_view_times_map[last_item_id1]
@@ -17,10 +16,8 @@ def updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_r
              "count": count,
              "percentage": count / item1_total_views})
 
-    updateCollectionRecord(viewed_ultimately_buys, 
-                "item_id", last_item_id1, 
-                initial_dict={},
-                content_dict=content_dict)
+    c_viewed_ultimately_buys = getSiteDBCollection(connection, site_id, "viewed_ultimately_buys")
+    c_viewed_ultimately_buys.update({"item_id": last_item_id1, content_dict, upsert=True)
 
 
 def upload_viewed_ultimately_buy(connection, site_id, item_view_times_path, 
