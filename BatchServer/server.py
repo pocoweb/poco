@@ -542,9 +542,9 @@ def updateSiteLastUpdateTs(site_id):
     sites.update({"site_id": site_id}, {"$set": {"last_update_ts": time.time()}})
 
 
-def is_automatic_calculation_okay():
+def is_time_okay_for_automatic_calculation():
     now = datetime.datetime.now()
-    return now.hour >= 0 and now.hour <= 6
+    return now.hour >= 0 and now.hour < 6
 
 
 def workOnSite(site, is_manual_calculation=False):
@@ -555,8 +555,11 @@ def workOnSite(site, is_manual_calculation=False):
         manual_calculation_list.remove(record_in_db)
 
     now = time.time()
-    if is_manual_calculation or site.get("last_update_ts", None) is None \
-        or now - site.get("last_update_ts") > site["calc_interval"]:
+    is_time_interval_okay_for_auto = (site.get("last_update_ts", None) is None \
+                 or now - site.get("last_update_ts") > site["calc_interval"])
+    print site["site_id"], is_time_interval_okay_for_auto, is_time_okay_for_automatic_calculation()
+    is_automatic_calculation_okay = is_time_okay_for_automatic_calculation() and is_time_interval_okay_for_auto
+    if is_manual_calculation or is_automatic_calculation_okay:
         global SITE
         global SITE_ID
         global DISABLEDFLOWS
