@@ -1,1 +1,1 @@
-mongodb_host = "cube2"
+mongodb_host = "localhost"

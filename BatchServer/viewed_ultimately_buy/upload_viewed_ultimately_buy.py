@@ -17,7 +17,7 @@ def updateRecord(connection, site_id, item_view_times_map, last_item_id1, last_r
              "percentage": count / item1_total_views})
 
     c_viewed_ultimately_buys = getSiteDBCollection(connection, site_id, "viewed_ultimately_buys")
-    c_viewed_ultimately_buys.update({"item_id": last_item_id1, content_dict, upsert=True)
+    c_viewed_ultimately_buys.update({"item_id": last_item_id1}, content_dict, upsert=True)
 
 
 def upload_viewed_ultimately_buy(connection, site_id, item_view_times_path, 

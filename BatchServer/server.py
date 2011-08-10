@@ -518,7 +518,7 @@ def writeCalculationLog(site_id, content):
 
 def getManualCalculationSites():
     result = []
-    for site in loadSites():
+    for site in loadSites(connection):
         manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
         record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
         if record_in_db is not None:
@@ -549,7 +549,7 @@ def workOnSite(site, is_manual_calculation=False):
     now = time.time()
     is_time_interval_okay_for_auto = (site.get("last_update_ts", None) is None \
                  or now - site.get("last_update_ts") > site["calc_interval"])
-    print site["site_id"], is_time_interval_okay_for_auto, is_time_okay_for_automatic_calculation()
+    #print site["site_id"], is_time_interval_okay_for_auto, is_time_okay_for_automatic_calculation()
     is_automatic_calculation_okay = is_time_okay_for_automatic_calculation() and is_time_interval_okay_for_auto
     if is_manual_calculation or is_automatic_calculation_okay:
         global SITE
@@ -566,7 +566,6 @@ def workOnSite(site, is_manual_calculation=False):
             try:
                 logger.info("BEGIN CALCULATION ON:%s, CALCULATION_ID:%s" % (SITE_ID, CALCULATION_ID))
                 begin_flow()
-                #print "CALC_SUCC", CALC_SUCC
                 writeCalculationEnd(SITE_ID, CALC_SUCC, err_msg = "SOME_FLOWS_FAILED")
             except:
                 logger.critical("Unexpected Exception:", exc_info=True)
@@ -579,7 +578,7 @@ def workOnSite(site, is_manual_calculation=False):
 
 if __name__ == "__main__":
     while True:
-        for site in loadSites():
+        for site in loadSites(connection):
             for site in getManualCalculationSites():
                 workOnSite(site, is_manual_calculation=True)
             workOnSite(site)
