@@ -24,7 +24,7 @@ def fix_items(connection, site_id):
     c_items = getSiteDBCollection(connection, site_id, "items")
     c_items.drop_indexes()
     c_items.ensure_index("item_name", 1, background=True, unique=False)
-    c_items.ensure_index("item_id", 1, background=True, unique=True, drop_dups=True)
+    c_items.ensure_index("item_id", 1, background=True, unique=False)#, drop_dups=True)
 
 
 def fix_purchasing_history(connection, site_id):
