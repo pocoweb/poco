@@ -10,7 +10,6 @@ import uuid
 import os
 import os.path
 import settings
-from ApiServer.mongo_client import MongoClient
 from common.utils import getSiteDBCollection
 
 # TODO: use hamake?
@@ -24,7 +23,9 @@ logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
 logger = logging.getLogger("Batch Server")
 
 
-mongo_client = MongoClient(pymongo.Connection(settings.mongodb_host))
+connection = pymongo.Connection(settings.mongodb_host)
+#connection_slave = pymongo.Connection(settings.mongodb_host_slave)
+
 
 
 class ShellExecutionError(Exception):
@@ -93,7 +94,6 @@ class PreprocessingFlow(BaseFlow):
     def do_backfill(self):
         from preprocessing import backfiller
         last_ts = None # FIXME: load correct last_ts from somewhere
-        connection = mongo_client.connection
         bf = backfiller.BackFiller(connection, SITE_ID, last_ts,
                     os.path.join(settings.work_dir, "reversed_backfilled_raw_logs"))
         last_ts = bf.start() # FIXME: save last_ts somewhere 
@@ -130,7 +130,6 @@ class StatisticsFlow(BaseFlow):
         self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
 
     def do_upload_count_behaviors(self):
-        connection = mongo_client.connection
         from statistics import upload_count_behaviors
         input_path  = os.path.join(self.work_dir, "count_by_behavior_date")
         upload_count_behaviors.upload_count_behaviors(connection, SITE_ID, input_path)
@@ -154,7 +153,6 @@ class StatisticsFlow(BaseFlow):
         self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
 
     def do_upload_count_behavior_by_unique_visitor(self):
-        connection = mongo_client.connection
         from statistics import upload_count_behaviors_by_unique_visitors
         input_path  = os.path.join(self.work_dir, "unique_visit_by_behavior_date")
         upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
@@ -171,7 +169,6 @@ class HiveBasedStatisticsFlow(BaseFlow):
     # Begin Hive Based Calculations
     def do_hive_based_calculations(self):
         from statistics.hive_based_calculations import hive_based_calculations
-        connection = mongo_client.connection
         backfilled_raw_logs_path = os.path.join(self.parent.work_dir, "backfilled_raw_logs")
         hive_based_calculations(connection, SITE_ID, self.work_dir, backfilled_raw_logs_path)
     #
@@ -281,7 +278,6 @@ class BaseSimilarityCalcFlow(BaseFlow):
     def do_upload_item_similarities_result(self):
         from common.utils import UploadItemSimilarities
         input_path = os.path.join(self.work_dir, "item_similarities_top_n")
-        connection = mongo_client.connection
         uis = UploadItemSimilarities(connection, SITE_ID, self.type)
         uis(input_path)
 
@@ -404,7 +400,6 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
         from viewed_ultimately_buy.upload_viewed_ultimately_buy import upload_viewed_ultimately_buy
         item_view_times_path = os.path.join(self.work_dir, "item_view_times")
         view_buy_pairs_counted_path = os.path.join(self.work_dir, "view_buy_pairs_counted")
-        connection = mongo_client.connection
         upload_viewed_ultimately_buy(connection, SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
 
 class BeginFlow(BaseFlow):
@@ -454,7 +449,6 @@ viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 
 def createCalculationRecord(site_id):
-    connection = mongo_client.connection
     calculation_id = str(uuid.uuid4())
     record = {"calculation_id": calculation_id, "begin_timestamp": time.time(), "flows": {}}
     calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
@@ -463,13 +457,11 @@ def createCalculationRecord(site_id):
 
 
 def getCalculationRecord(site_id, calculation_id):
-    connection = mongo_client.connection
     calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
     return calculation_records.find_one({"calculation_id": calculation_id})
 
 
 def updateCalculationRecord(site_id, record):
-    connection = mongo_client.connection
     calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
     calculation_records.save(record)
 
@@ -518,7 +510,6 @@ def writeCalculationEnd(site_id, is_successful, err_msg = None):
 #     {"event": "END_CALC", "timestamp": <timestamp>, "calculation_id": <calculation_id>, "is_successful": <true or false>, "reason": ""}
 #     "timestamp" and calculation_id are automatically added by this function.
 def writeCalculationLog(site_id, content):
-    connection = mongo_client.connection
     calculation_logs = getSiteDBCollection(connection, site_id, "calculation_logs")
     content["timestamp"] = time.time()
     content["calculation_id"] = CALCULATION_ID
@@ -526,10 +517,8 @@ def writeCalculationLog(site_id, content):
 
 
 def getManualCalculationSites():
-    connection = mongo_client.connection
-    #connection = mongo_client.connection
     result = []
-    for site in mongo_client.loadSites():
+    for site in loadSites():
         manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
         record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
         if record_in_db is not None:
@@ -537,7 +526,6 @@ def getManualCalculationSites():
     return result
 
 def updateSiteLastUpdateTs(site_id):
-    connection = mongo_client.connection
     sites = connection["tjb-db"]["sites"]
     sites.update({"site_id": site_id}, {"$set": {"last_update_ts": time.time()}})
 
@@ -547,8 +535,12 @@ def is_time_okay_for_automatic_calculation():
     return now.hour >= 0 and now.hour < 6
 
 
+def loadSites(connection):
+    c_sites = connection["tjb-db"]["sites"]
+    return [site for site in c_sites.find()]
+
+
 def workOnSite(site, is_manual_calculation=False):
-    connection = mongo_client.connection
     manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
     record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
     if record_in_db is not None:
@@ -587,7 +579,7 @@ def workOnSite(site, is_manual_calculation=False):
 
 if __name__ == "__main__":
     while True:
-        for site in mongo_client.loadSites():
+        for site in loadSites():
             for site in getManualCalculationSites():
                 workOnSite(site, is_manual_calculation=True)
             workOnSite(site)
