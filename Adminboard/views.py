@@ -23,12 +23,10 @@ import settings
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
 
-
 mongo_client = MongoClient(getConnection())
 
-
 def getSiteInfos():
-    connection = pymongo.Connection(settings.mongodb_host)
+    connection = mongo_client.connection
     sites = mongo_client.loadSites()
     result = []
     for site in sites:
@@ -80,7 +78,7 @@ def getSiteInfos():
 
 
 def scheduleCalculation(site_id):
-    connection = pymongo.Connection(settings.mongodb_host)
+    connection = mongo_client.connection
     c_manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
     record_in_db = c_manual_calculation_list.find_one({"site_id": site_id})
     print "RID:", record_in_db
@@ -129,7 +127,7 @@ class BaseSiteHandler:
 
 class AddSiteHandler(BaseSiteHandler):
     def addSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type):
-        connection = pymongo.Connection(settings.mongodb_host)
+        connection = mongo_client.connection
         site = {"site_id": site_id,
                 "last_update_ts": None,
                 "disabledFlows": disabledFlows,
@@ -140,7 +138,7 @@ class AddSiteHandler(BaseSiteHandler):
         connection["tjb-db"]["sites"].save(site)
 
     def _checkSiteIdAvailable(self, site_id):
-        connection = pymongo.Connection(settings.mongodb_host)
+        connection = mongo_client.connection
         return connection["tjb-db"]["sites"].find_one({"site_id": site_id}) is None
 
     def _handlePOST(self, request):
@@ -185,11 +183,11 @@ add_site = login_required(AddSiteHandler())
 
 class EditSiteHandler(BaseSiteHandler):
     def _getSite(self, site_id):
-        connection = pymongo.Connection(settings.mongodb_host)
+        connection = mongo_client.connection
         return connection["tjb-db"]["sites"].find_one({"site_id": site_id})
 
     def _updateSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type):
-        connection = pymongo.Connection(settings.mongodb_host)
+        connection = mongo_client.connection
         site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         site["site_name"] = site_name
         site["calc_interval"] = calc_interval
