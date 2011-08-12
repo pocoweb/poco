@@ -375,6 +375,22 @@ function renderChart_avg_order_total(site_id, data) {
 
 
 function renderChart_total_sales(site_id, data) {
+    var sum_total_sales_without_rec = 0;
+    var sum_total_sales_rec_delta = 0;
+    for (var index in data.total_sales) {
+        if (data.total_sales[index] != null) {
+            if (data.total_sales_rec_delta[index] != null) {
+                sum_total_sales_without_rec += data.total_sales[index] - data.total_sales_rec_delta[index];
+                sum_total_sales_rec_delta += data.total_sales_rec_delta[index];
+            }
+        }
+    }
+    
+    sum_total_sales_without_rec = Math.round(sum_total_sales_without_rec * 100) / 100;
+    sum_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta * 100) / 100;
+
+    var per_total_sales_without_rec = Math.round(sum_total_sales_without_rec / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
+    var per_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
     var chart_dict = {
             chart: {
                 renderTo: "chart-total-sales",
@@ -414,8 +430,22 @@ function renderChart_total_sales(site_id, data) {
             ],
             tooltip: {
                 formatter: function() {
-                    return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y;
+                    if (this.point.name) {
+                        var percentage = 0;
+                        if (this.point.name == "非推荐销售金额") {
+                            percentage = "" + per_total_sales_without_rec + "%";
+                        }
+                        else {
+                            percentage = "" + per_total_sales_rec_delta + "%";
+                        };
+
+                        return this.point.name + ":" + this.y + '元, 占' + percentage;
+                    
+                    }
+                    else {
+                        return '<b>' + this.series.name + '</b><br/>' +
+                            this.x + ':' + this.y + '次';
+                    }
                 }
             },
             legend: {
@@ -448,6 +478,25 @@ function renderChart_total_sales(site_id, data) {
                         },
                        yAxis: 1
                       },
+                     {"type": "pie",
+                      "name": "汇总",
+                      "data": [
+                        {name: "非推荐销售金额",
+                        y: sum_total_sales_without_rec
+                        //color: highchartsOptions.colors[0]
+                        },
+                        {name: "推荐销售金额",
+                        y: sum_total_sales_rec_delta
+                        //color: highchartsOptions.colors[1]
+                        }
+                      ],
+                      center: [30, 30],
+                      size: 60,
+                      showInLegend: true,
+                      dataLabels: {
+                        enabled: false
+                      }
+                      }
                 ]
     };
     var chart = new Highcharts.Chart(chart_dict);
