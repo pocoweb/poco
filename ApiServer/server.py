@@ -226,9 +226,6 @@ class ViewItemHandler(SingleRequestHandler):
     processor_class = ViewItemProcessor
 
 
-# addFavorite LogFormat: timestamp,AF,user_id,tuijianbaoid,item_id
-
-
 class AddFavoriteProcessor(ActionProcessor):
     action_name = "AF"
     ap = ArgumentProcessor(
