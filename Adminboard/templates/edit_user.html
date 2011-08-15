@@ -1,0 +1,32 @@
+<html>
+   <head>
+      <title>{% if is_add_user %}Add User{% else %}Edit User{% endif %} | Admin Board</title>
+      <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
+   </head>
+   <body>
+        <a href="/">Home</a> | <a href="/user_list">User List</a>
+        <form action="{% if is_add_user %}/add_user{% else %}/edit_user{% endif %}" 
+              method="POST">
+            {% if is_add_user %} User Name: <input type="text" name="user_name" value=""><br />
+            {% else %} <input type="hidden" name="user_name" value="{{ data.user_name }}"> 
+            User Name: {{ data.user_name }} {% if data.is_admin %}<span style="color: red;">[ADMIN]</span>{% endif %}<br/>
+            {% endif %}
+            {% if is_add_user %}
+            Password: <input type="password" name="password" value="" ><br />
+            Password(Confirm): <input type="password" name="password_confirm" value=""><br />
+            {% else %}
+            Password: <input type="password" name="password" value="******" ><br />
+            Password(Confirm): <input type="password" name="password_confirm" value="******"><br />
+            {% endif %}
+            Is Admin: <input type="radio" name="is_admin" value="true" {% if data.is_admin %}checked{% endif %} /> true
+                      <input type="radio" name="is_admin" value="false" {% if not data.is_admin %}checked{% endif %} /> false <br/>
+            Managed Sites: 
+            {% for site_id in all_site_ids %}
+            {{site_id}} <input type="checkbox" name="site_ids" value={{site_id}} {% if site_id in data.sites %}checked="checked"{% endif %} /> |
+            {% endfor %}
+            <br />
+            <input type="submit" name="submit" value="Save">
+            {% csrf_token %}
+        </form>
+   </body>
+</html>

@@ -3,6 +3,7 @@ sys.path.insert(0, "../")
 import re
 import os.path
 import time
+import random
 import hashlib
 from django.shortcuts import render_to_response
 from django.shortcuts import redirect
@@ -111,6 +112,154 @@ def ajax_calc_asap(request):
     return HttpResponse("{'code': 0}")
 
 
+def createRandomPassword(length):
+    allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ23456789"
+    password = ""
+    for i in range(length):
+        password += allowedChars[random.randint(0, 256) % len(allowedChars)]
+    return password
+
+
+def createHashedPassword(password):
+    salt = createRandomPassword(16)
+    hashed_password = hashlib.sha256(password + salt).hexdigest()
+    return hashed_password, salt
+
+
+class BaseUserHandler:
+    def _checkUserNameValid(self, user_name):
+        return len(user_name) > 3 and re.match("[A-Za-z0-9_]+$", user_name) is not None
+
+    def _checkPasswordValid(self, password):
+        return len(password) > 5 and re.match("[A-Za-z0-9_]+$", password) is not None
+
+    def _checkUserNameAvailable(self, user_name):
+        connection = mongo_client.connection
+        return connection["tjb-db"]["users"].find_one({"user_name": user_name}) is None
+
+    def getSiteIds(self):
+        return [site["site_id"] for site in mongo_client.loadSites()]
+
+
+class AddUserHandler(BaseUserHandler):
+    def addUser(self, user_name, password, is_admin, sites):
+        print user_name, password, is_admin, sites
+        connection = mongo_client.connection
+        c_users = connection["tjb-db"]["users"]
+        hashed_password, salt = createHashedPassword(password)
+        c_users.insert({"user_name": user_name, "hashed_password": hashed_password, "salt": salt,
+                            "sites": sites, "is_admin": is_admin})
+
+    def _handlePOST(self, request):
+        arguments = request.POST
+        if not arguments.has_key("user_name") \
+            or not arguments.has_key("password") \
+            or not arguments.has_key("password_confirm") \
+            or not arguments.has_key("is_admin"):
+            return HttpResponse("missing arguments")
+        else:
+            user_name =   arguments["user_name"]
+            password = arguments["password"]
+            password_confirm = arguments["password_confirm"]
+            is_admin = arguments["is_admin"] == "true"
+            site_ids = arguments.getlist("site_ids")
+
+            print "ARGUMENTS:", arguments
+
+            if not self._checkUserNameValid(user_name):
+                return HttpResponse("Invalid User Name(length of user name should be greater than 3 and only A-Z a-z 0-9 and underscore are permitted.)")
+            elif not self._checkUserNameAvailable(user_name):
+                return HttpResponse("User name already in use.")
+            elif not self._checkPasswordValid(password):
+                return HttpResponse("Invalid password(length of password should be greater than 5 and only A-Z a-z 0-9 and underscore are permitted.)")
+            elif not password == password_confirm:
+                return HttpResponse("password and password(Confirm) do not match.")
+
+            self.addUser(user_name, password, is_admin, site_ids)
+
+            return HttpResponseRedirect("/edit_user?user_name=%s" % user_name)
+
+
+    def __call__(self, request):
+        if request.method == "GET":
+            return render_to_response("edit_user.html", 
+                        {"is_add_user": True, "data": {'sites': [], 'is_admin': False},
+                         "all_site_ids": self.getSiteIds()},
+                        context_instance=RequestContext(request))
+        elif request.method == "POST":
+            return self._handlePOST(request)
+
+
+add_user = login_required(AddUserHandler())
+
+
+class EditUserHandler(BaseUserHandler):
+    def _getUser(self, user_name):
+        connection = mongo_client.connection
+        return connection["tjb-db"]["users"].find_one({"user_name": user_name})
+
+    def editUser(self, user_name, password, is_admin, sites):
+        update_dict = {"user_name": user_name, "is_admin": is_admin, "sites": sites}
+        if password != "******":
+            hashed_password, salt = createHashedPassword(password)
+            update_dict["hashed_password"] = hashed_password
+            update_dict["salt"] = salt
+        connection = mongo_client.connection
+        c_users = connection["tjb-db"]["users"]
+        c_users.update({"user_name": user_name}, {"$set": update_dict})
+
+    def _handlePOST(self, request):
+        arguments = request.POST
+        if not arguments.has_key("user_name") \
+            or not arguments.has_key("password") \
+            or not arguments.has_key("password_confirm") \
+            or not arguments.has_key("is_admin"):
+            return HttpResponse("missing arguments")
+        else:
+            user_name =   arguments["user_name"]
+            password = arguments["password"]
+            password_confirm = arguments["password_confirm"]
+            is_admin = arguments["is_admin"] == "true"
+            site_ids = arguments.getlist("site_ids")
+
+            if self._checkUserNameAvailable(user_name):
+                return HttpResponse("User name does not exists.")
+            elif password != "******" and not self._checkPasswordValid(password):
+                return HttpResponse("Invalid password(length of password should be greater than 5 and only A-Z a-z 0-9 and underscore are permitted.)")
+            elif not password == password_confirm:
+                return HttpResponse("password and password(Confirm) do not match.")
+
+            self.editUser(user_name, password, is_admin, site_ids)
+
+            return HttpResponseRedirect("/edit_user?user_name=%s" % user_name)
+
+    def _handleGET(self, request):
+        user_name = request.GET["user_name"]
+        if self._checkUserNameAvailable(user_name):
+            return HttpResponse("user does not exist.")
+        user = self._getUser(user_name)
+        print "USER:", user
+        return render_to_response("edit_user.html", 
+                {"is_add_user": False, "data": user, "all_site_ids": self.getSiteIds()},
+                context_instance=RequestContext(request))
+
+    def __call__(self, request):
+        if request.method == "GET":
+            return self._handleGET(request)
+        elif request.method == "POST":
+            return self._handlePOST(request)
+
+
+edit_user = login_required(EditUserHandler())
+
+
+def user_list(self):
+    connection = mongo_client.connection
+    user_list = [user for user in connection["tjb-db"]["users"].find()]
+    return render_to_response("user_list.html",
+                {"user_list": user_list})
+
+
 class BaseSiteHandler:
     def _checkSiteIdValid(self, site_id):
         return re.match("[A-Za-z0-9_]+$", site_id) is not None
@@ -177,6 +326,7 @@ class AddSiteHandler(BaseSiteHandler):
         elif request.method == "POST":
             return self._handlePOST(request)
 
+
 add_site = login_required(AddSiteHandler())
 
 
@@ -237,6 +387,7 @@ class EditSiteHandler(BaseSiteHandler):
             return self._handleGET(request)
         elif request.method == "POST":
             return self._handlePOST(request)
+
 
 edit_site = login_required(EditSiteHandler())
 

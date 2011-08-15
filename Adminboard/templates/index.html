@@ -6,7 +6,7 @@
    <body>
    <h1>Admin Board</h1>
    <p>User Name: {{ user_name }} <a href="/logout">Logout</a></p>
-   <a href="/add_site">Add Site</a>
+   <a href="/add_site">Add Site</a> | <a href="/add_user">Add User</a> | <a href="/user_list">User List</a>
     <script type="text/javascript">
         function calcAsap(site_id) {
             $.getJSON("/ajax/calcAsap", {site_id: site_id},

@@ -1,0 +1,10 @@
+<html>
+<body>
+    <a href="/">Home</a>
+    <ul>
+    {% for user in user_list %}
+        <li>{% if user.is_admin %}<span style="color: red;">[ADMIN]</span>{% endif %}<a href="/edit_user?user_name={{user.user_name}}">{{user.user_name}}</a></li>
+    {% endfor %}
+    </ul>
+</body>
+</html>
