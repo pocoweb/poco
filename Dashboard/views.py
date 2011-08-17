@@ -17,6 +17,7 @@ from ApiServer.mongo_client import MongoClient
 
 import settings
 
+import re
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
@@ -102,16 +103,31 @@ def getUser(user_name):
     user = c_users.find_one({"user_name": user_name})
     return user
 
-@login_required
 def index(request):
+    referer = request.META.get('HTTP_REFERER') 
+    if not referer and request.session.has_key("user_name"):
+        return redirect('/dashboard')
+    else :
+        #if 
+        #        referer = re.sub("https?:\/\/", '', referer).split('/')
+        #        if referer[0] == request.META.get('HTTP_HOST'))
+        #    user_name = request.session["user_name"]
+        #    sites = _getUserSites(user_name)
+        #    return render_to_response("dashboard/index.html", 
+        #            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
+        #             "user": getUser(user_name)},
+        #            context_instance=RequestContext(request))
+        #else:
+        return render_to_response("index.html")
+   
+@login_required
+def dashboard(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
     return render_to_response("dashboard/index.html", 
-            {"page_name": "首页", "sites": sites, "user_name": user_name,
+            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name)},
             context_instance=RequestContext(request))
-
-
 #@login_and_admin_only
 #def admin_charts(request):
 #    user_name = request.session["user_name"]
@@ -373,6 +389,8 @@ def logout(request):
 
 
 def login(request):
+    if request.session.has_key("user_name"):
+        return redirect("/")
     if request.method == "GET":
         msg = request.GET.get("msg", None)
         return render_to_response("login.html", {"msg": msg}, 
