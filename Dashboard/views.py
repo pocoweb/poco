@@ -106,7 +106,7 @@ def getUser(user_name):
 def index(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
-    return render_to_response("index.html", 
+    return render_to_response("dashboard/index.html", 
             {"page_name": "首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name)},
             context_instance=RequestContext(request))
@@ -242,7 +242,7 @@ def site_items_list(request):
              "site": site, 
              "user_name": request.session["user_name"]}
     result.update(getItemsAndCount(connection, site_id, page_num))
-    return render_to_response("site_items_list.html", 
+    return render_to_response("dashboard/site_items_list.html", 
             result,
              context_instance=RequestContext(request))
 
@@ -288,7 +288,7 @@ def show_item(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
-    return render_to_response("show_item.html",
+    return render_to_response("dashboard/show_item.html",
         {"page_name": item_in_db["item_name"],
          "site": site,
          "item": item_in_db, "user_name": request.session["user_name"], 
@@ -313,7 +313,7 @@ def update_category_groups(request):
         site_id = request.GET["site_id"]
         site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         category_groups_src = loadCategoryGroupsSrc(site_id)
-        return render_to_response("update_category_groups.html",
+        return render_to_response("dashboard/update_category_groups.html",
                 {"site_id": site_id, "category_groups_src": category_groups_src,
                  "user_name": request.session["user_name"],
                  "page_name": u"编辑%s分类组别" % site["site_name"]},
