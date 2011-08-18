@@ -118,7 +118,7 @@ def index(request):
         #             "user": getUser(user_name)},
         #            context_instance=RequestContext(request))
         #else:
-        return render_to_response("index.html")
+        return render_to_response("index.html",{"page_name":"推荐宝"})
    
 @login_required
 def dashboard(request):
@@ -128,6 +128,7 @@ def dashboard(request):
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name)},
             context_instance=RequestContext(request))
+
 #@login_and_admin_only
 #def admin_charts(request):
 #    user_name = request.session["user_name"]
@@ -393,8 +394,7 @@ def login(request):
         return redirect("/")
     if request.method == "GET":
         msg = request.GET.get("msg", None)
-        return render_to_response("login.html", {"msg": msg}, 
-                  context_instance=RequestContext(request))
+        return render_to_response("login.html", {"page_name": "登录 | 推荐宝", "msg": msg}, context_instance=RequestContext(request))
     else:
         conn = mongo_client.connection
         users = conn["tjb-db"]["users"]
@@ -405,7 +405,7 @@ def login(request):
 
         if login_succ:
             request.session["user_name"] = request.POST["name"]
-            return redirect("/")
+            return redirect("/dashboard")
         else:
             return redirect("/login?msg=login_failed")
 

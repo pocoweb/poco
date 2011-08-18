@@ -1,42 +1,42 @@
-<html>
-<title>Dashboard</title>
-<head>
-
-<!-- Framework CSS --> 
-<link rel="stylesheet" href="static/blueprint/screen.css" type="text/css" media="screen, projection"> 
-<link rel="stylesheet" href="static/blueprint/print.css" type="text/css" media="print"> 
-<!--[if lt IE 8]><link rel="stylesheet" href="static/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
-
-</head>
-<body>
-<div class="container">
-
-{% if msg == "login_failed" %}
-<div class="span-12 error">
-<p>登录失败，请检查您输入的用户名和密码是否正确</p>
+{% extends "base.html" %}
+{% block content-area %}
+<div class="whole-container">
+    <div class="container">
+      <div class="span-10 prepend-top sub-header page-sub-header">
+        登录
+      </div>
+      <div class="span-9 push-3 last prepend-top">
+          <a href="#" class="regist-big-button">马上申请推荐宝</a>
+      </div>
+    </div>
 </div>
-{% endif %}
+<br />
+<div class="container large">
+  <div class="span-24">
+  {% if msg == "login_failed" %}
+  <div class="span-19 error">
+  登录失败，请检查您输入的用户名和密码是否正确
+  </div>
+  {% endif %}
+  <div class="span-20">
+        <form action="/login" method="post">
+          <fieldset>
+            <p>
+              <label for="name">用户: </label>
+              <input name="name" id="name" type="text" class="title" value="">
+              <a href="#">还没有用户？</a>
+            </p>
 
-<div class="span-12">
-<form method="POST" action="/login">
-    <fieldset>
-        <legend>Dashboard</legend>
-        <p>
-            <label for="name">用户</label>
-	        <input name="name" id="name" type="text" value=""/>
-        </p>
-
-        <p>
-            <label for="password">密码</label>
-	        <input name="password" id="password" type="password" value="" />
-        </p>
-
-        <p>
-	        <input name="submit" type="submit" value="登陆" />
-        </p>
-{% csrf_token %} 
-</form>
+            <p>
+              <label for="password">密码: </label>
+              <input id="password" name="password" type="password" class="title" value="">
+            </p>
+            <p>
+              <input name="submit" type="submit" value="登录" style="font-size:18px;width:62px;"/>
+            </p>
+          </fieldset>
+  {% csrf_token %} 
+        </form>
+      </div>
 </div>
-</div>
-</body>
-</html>
+  {% endblock content-area %}
