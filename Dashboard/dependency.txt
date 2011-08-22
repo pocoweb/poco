@@ -1,0 +1,7 @@
+Django
+simplejson
+pymongo
+
+pip install simplejson pymongo 
+
+sudo port install mongodb

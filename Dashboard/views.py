@@ -408,6 +408,21 @@ def login(request):
             return redirect("/dashboard")
         else:
             return redirect("/login?msg=login_failed")
+            
+def apply(request):
+    if request.method == "GET":
+        msg = request.GET.get("msg", None)
+        if request.session.has_key("applied_success"):
+            msg = "already_applied"
+        return render_to_response("apply.html", {"msg": msg}, context_instance=RequestContext(request)) 
+    else:
+        conn = mongo_client.connection
+        applicants = conn["tjb-db"]["applicants"]
+        applicants.insert({"email": request.POST["email"], "phone": request.POST["phone"]})
+        request.session["applied_success"] = True
+        # TODO
+        # avoid apply more than once
+        return redirect("/apply?msg=succ")
 
 
 import copy
