@@ -118,7 +118,7 @@ def index(request):
         #             "user": getUser(user_name)},
         #            context_instance=RequestContext(request))
         #else:
-        return render_to_response("index.html",{"page_name":"推荐宝"})
+        return render_to_response("index.html",{"page_name":"推荐宝"},context_instance=RequestContext(request))
    
 @login_required
 def dashboard(request):
@@ -391,7 +391,7 @@ def logout(request):
 
 def login(request):
     if request.session.has_key("user_name"):
-        return redirect("/")
+        return redirect("/dashboard")
     if request.method == "GET":
         msg = request.GET.get("msg", None)
         return render_to_response("login.html", {"page_name": "登录 | 推荐宝", "msg": msg}, context_instance=RequestContext(request))

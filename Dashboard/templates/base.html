@@ -3,9 +3,9 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <!-- Framework CSS --> 
-<link rel="stylesheet" href="static/blueprint/screen.css" type="text/css" media="screen, projection"> 
-<link rel="stylesheet" href="static/blueprint/print.css" type="text/css" media="print"> 
-<!--[if lt IE 8]><link rel="stylesheet" href="static/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
+<link rel="stylesheet" href="{{STATIC_URL}}blueprint/screen.css" type="text/css" media="screen, projection"> 
+<link rel="stylesheet" href="{{STATIC_URL}}blueprint/print.css" type="text/css" media="print"> 
+<!--[if lt IE 8]><link rel="stylesheet" href="{{STATIC_URL}}blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
 
 <script src="{{STATIC_URL}}jquery-1.6.1.min.js" type="text/javascript" ></script>
 <script src="{{STATIC_URL}}jquery-ui-1.8.14/js/jquery-ui-1.8.14.custom.min.js" type="text/javascript" ></script>
@@ -29,6 +29,7 @@
   list-style: none outside none;
   padding-left: 3em;
   font-size: 14px;
+  font-weight: bold;
   margin-top: 18px;
 }
 
@@ -38,6 +39,7 @@
 
 #primary-nav-menu a{
   color: #3f3f3f;
+  color: #666;
   text-decoration:none;
 }
 
@@ -49,11 +51,11 @@
 }
 
 .index-sub-header{
-height:464px;
+  height:464px;
 }
 
 .page-sub-header{
-height:45px;
+  height:45px;
 }
 
 a.regist-big-button {
@@ -61,7 +63,7 @@ a.regist-big-button {
   text-decoration:none;
   line-height:60px;
   text-align:center;
-  background:url('static/images/button.png') 0 100% no-repeat;
+  background:url('{{STATIC_URL}}images/button.png') 0 100% no-repeat;
   height:60px;
   width:320px;
   border:0;
@@ -69,7 +71,7 @@ a.regist-big-button {
 }
 
 a.regist-big-button:hover {
-  background:url('static/images/button-hover.png') 0 100% no-repeat;
+  background:url('{{STATIC_URL}}images/button-hover.png') 0 100% no-repeat;
   color: #06c;
 
 }
@@ -92,20 +94,20 @@ a.login-white-link {
   <!-- Header Start -->
   <div class="container">
     <div id="header" class="span-24">
-      <div id="header-logo" class="span-8">
-        <a href="/" ><img src="static/images/logo.png" alt="推荐宝"></a>
+      <div id="header-logo" class="span-6">
+        <a href="/" ><img src="{{STATIC_URL}}/images/logo.png" alt="推荐宝"></a>
       </div>
       <div id="primary-nav-menu" class="span-12 pull-3 primary-nav">
-        <ul class="menu">
+        <ul class="menu" style="display:none">
           <li><a href="/">首页</a></li>
           <li><a href="#">什么是推荐宝</a></li>
           <li><a href="#">联系我们</a></li>
           <li><a href="#">关于我们</a></li>
         </ul>
       </div>
-      <div class="last push-1 primary-nav">
+      <div class="last push-1 primary-nav" style="padding-left:35em">
         <ul class="menu">
-          <li><a href="#">申请推荐宝</a></li>
+          <li><a href="/apply">申请推荐宝</a></li>
           <li><a href="/login">登录</a></li>
         </ul>
       </div>

@@ -3,10 +3,7 @@
 <div class="whole-container">
     <div class="container">
       <div class="span-10 prepend-top sub-header page-sub-header">
-        留下联系方式
-      </div>
-      <div class="span-9 push-3 last prepend-top">
-          <a href="#" class="regist-big-button">马上申请推荐宝</a>
+        免费试用
       </div>
     </div>
 </div>
@@ -15,13 +12,13 @@
   <div class="span-24">
 
 {% if msg == "already_applied" %}
-  <div class="span-19 notice">
-  您已经提交了联系方式，我们会尽快与您取得联系！
+  <div class="span-22 notice">
+  您已经提交过联系方式，我们会尽快与您取得联系！
   </div>
 {% else %}
 
 {% if msg == "succ" %}
-  <div class="span-19 success">
+  <div class="span-22 success">
   您的联系方式已经提交，我们会尽快与您取得联系！
   </div>
 
@@ -31,7 +28,7 @@
     <div class="span-20">
 <form action="/apply" method="post">
     <fieldset>
-        <legend>留下您的联系方式，我们的工作人员会联系您</legend>
+        <legend>请留下您的联系方式，我们的工作人员会联系您</legend>
             <p> 
               <label for="email">公司邮箱: </label>
               <input name="email" id="email" type="text" class="title" value="">
