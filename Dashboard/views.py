@@ -118,7 +118,11 @@ def index(request):
         #             "user": getUser(user_name)},
         #            context_instance=RequestContext(request))
         #else:
-        return render_to_response("index.html",{"page_name":"推荐宝"},context_instance=RequestContext(request))
+        user_name = request.session["user_name"]
+        return render_to_response("index.html",
+                                 {"page_name":"推荐宝",
+                                  "user_name":user_name},
+                                 context_instance=RequestContext(request))
    
 @login_required
 def dashboard(request):
