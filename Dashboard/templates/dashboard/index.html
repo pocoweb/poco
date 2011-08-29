@@ -25,7 +25,7 @@ function x_formatter() {
     }
 }
 
-function renderChart_1(site_id, data) {
+function renderChart_1(site_id, data, action_name) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
@@ -103,10 +103,10 @@ function renderChart_1(site_id, data) {
 }
 
 
-function renderChart_plo(site_id, data) {
+function renderChart_plo(site_id, data, action_name) {
     var chart_dict = {
             chart: {
-                renderTo: "chart-plo",
+                renderTo: "chart-1",
                 marginBottom: 30
             },
             title: {
@@ -178,7 +178,7 @@ function renderChart_plo(site_id, data) {
 }
 
 {% if user.is_admin %}
-function renderChart_rec(site_id, data) {
+function renderChart_rec(site_id, data, action_name) {
     var sum_pv_v_wo = 0;
     var sum_clickrec = 0;
     for (var index in data.pv_v) {
@@ -194,7 +194,7 @@ function renderChart_rec(site_id, data) {
 
     var chart_dict = {
             chart: {
-                renderTo: "chart-rec",
+                renderTo: "chart-1",
                 marginBottom: 30
             },
             title: {
@@ -299,10 +299,10 @@ function renderChart_rec(site_id, data) {
 {% endif %}
 
 
-function renderChart_avg_order_total(site_id, data) {
+function renderChart_avg_order_total(site_id, data, action_name) {
     var chart_dict = {
             chart: {
-                renderTo: "chart-avg-order-total",
+                renderTo: "chart-1",
                 //marginRight: 30,
                 marginBottom: 30
             },
@@ -374,7 +374,7 @@ function renderChart_avg_order_total(site_id, data) {
 }
 
 
-function renderChart_total_sales(site_id, data) {
+function renderChart_total_sales(site_id, data, action_name) {
     var sum_total_sales_without_rec = 0;
     var sum_total_sales_rec_delta = 0;
     for (var index in data.total_sales) {
@@ -393,7 +393,7 @@ function renderChart_total_sales(site_id, data) {
     var per_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
     var chart_dict = {
             chart: {
-                renderTo: "chart-total-sales",
+                renderTo: "chart-1",
                 //marginRight: 30,
                 marginBottom: 30
             },
@@ -505,10 +505,10 @@ function renderChart_total_sales(site_id, data) {
 
 
 {% if user.is_admin %}
-function renderChart_unique_sku(site_id, data) {
+function renderChart_unique_sku(site_id, data, action_name) {
     var chart_dict = {
             chart: {
-                renderTo: "chart-unique-sku",
+                renderTo: "chart-1",
                 marginBottom: 30
             },
             title: {
@@ -566,10 +566,10 @@ function renderChart_unique_sku(site_id, data) {
 {% endif %}
 
 
-function renderChart_rec_ratios(site_id, data) {
+function renderChart_rec_ratios(site_id, data, action_name) {
     var chart_dict = {
             chart: {
-                renderTo: "chart-rec-ratios",
+                renderTo: "chart-1",
                 marginBottom: 30
             },
             title: {
@@ -664,7 +664,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     };
     var chart_dict = {
             chart: {
-                renderTo: "chart-rec-" + action_name,
+                renderTo: "chart-1",
                 marginBottom: 30
             },
             title: {
@@ -745,39 +745,42 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 <script type="text/javascript">
     function fillCharts(site_id, statistics) {
         try{
-            renderChart_1(site_id, statistics);
-            renderChart_plo(site_id, statistics);
-            {% if user.is_admin %}
-            renderChart_rec(site_id, statistics);
-            {% endif %}
-            renderChart_avg_order_total(site_id, statistics);
-            renderChart_total_sales(site_id, statistics);
-            {% if user.is_admin %}
-            renderChart_unique_sku(site_id, statistics);
-            renderChart_rec_by_type(site_id, statistics, "recvav");
-            renderChart_rec_by_type(site_id, statistics, "recph");
-            renderChart_rec_by_type(site_id, statistics, "recbab");
-            renderChart_rec_by_type(site_id, statistics, "recbtg");
-            renderChart_rec_by_type(site_id, statistics, "recvub");
-            renderChart_rec_by_type(site_id, statistics, "recbobh");
-            renderChart_rec_by_type(site_id, statistics, "recsc");
-            {% endif %}
-            renderChart_rec_ratios(site_id, statistics);
+            renderChart_{{ chart }}(site_id, statistics, "{{ type }}");
+            //renderChart_1(site_id, statistics);
+            //renderChart_plo(site_id, statistics);
+            //{% if user.is_admin %}
+            //renderChart_rec(site_id, statistics);
+            //{% endif %}
+            //renderChart_avg_order_total(site_id, statistics);
+            //renderChart_total_sales(site_id, statistics);
+            //{% if user.is_admin %}
+            //renderChart_unique_sku(site_id, statistics);
+            //renderChart_rec_by_type(site_id, statistics, "recvav");
+            //renderChart_rec_by_type(site_id, statistics, "recph");
+            //renderChart_rec_by_type(site_id, statistics, "recbab");
+            //renderChart_rec_by_type(site_id, statistics, "recbtg");
+            //renderChart_rec_by_type(site_id, statistics, "recvub");
+            //renderChart_rec_by_type(site_id, statistics, "recbobh");
+            //renderChart_rec_by_type(site_id, statistics, "recsc");
+            //{% endif %}
+            //renderChart_rec_ratios(site_id, statistics);
         }catch(err){}
     };
 
     function updateSiteStatistics(site_id, timespan) {
-        $("#status-line").html("载入数据中 ... ");
+        $("#chart-1").html("<center style='margin-top:3em'>载入数据中 ... </center>");
+        $("#date-space").html("");
         $.getJSON("/ajax/get_site_statistics", {site_id: site_id, timespan: timespan},
                 function(data, textStatus, jqXHR) {
                     if (data.code == 0) {
                         if (data.site.items_count > 0) {
+                            $("#date-space").html(data.append.date_space);
                             var site_data = data.site;
                             $("#items-count").html(site_data["items_count"]);
                             fillCharts(site_data.site_id, site_data.statistics);
                         }
                         $("#status-line").html("");
-                    }
+                        }
                     else{
                         $("#status-line").html("数据载入失败，请稍后再试。");
                     }
@@ -802,6 +805,13 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         $("#timespan_selector").change(function() {
             on_selectors_change();
         });
+        $(".date-link").click(function() {
+            var timespan_list = $(this).attr("id").split("_");
+            $("#timespan_selector").val(timespan_list[1]);
+            $(".date-selected").removeClass("date-selected");
+            $(this).addClass("date-selected");
+            on_selectors_change();
+        });
     });
 
     
@@ -809,7 +819,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 {% endblock %}
 
 {% block content-area %}
-<div>
     <div>
         <select id="site_selector">
         {% for site in sites %}
@@ -820,30 +829,60 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             {% endif %}
         {% endfor %}
         </select>
-
-        <select id="timespan_selector">
+<!--
+        <select id="timespan_selector1">
             <option value="15">15天</option>
             <option value="30" selected>30天</option>
             <option value="60">60天</option>
             <option value="90">90天</option>
         </select>
-
+-->
         <a href="javascript:on_selectors_change()">刷新</a>
 
         <span id="status-line"></span>
         
-    </div>
-    <div>
-        收录商品数：<span id="items-count">N/A</span>
-    </div>
-    <div>
+        收录商品数：<span id="items-count">计算中...</span>
         <a id="site_items_list_link" href="/site_items_list?site_id={{site.site_id}}">查看商品列表</a>
-    </div>
-    <div>
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
     </div>
-    <div id="chart-1" style="width:800px;height:300px;"></div>
-    <div id="chart-plo" style="width:800px;height:300px;"></div>
+ 
+  <div class="whole-container showgrid">
+    <div style="float:left;width:17%">
+      <ul>
+        <li><a href="?chart=1">商品PV和UV</a></li>
+        <li><a href="?chart=plo">商品订单数</a></li>
+        <li><a href="?chart=rec">商品推荐占PV数</a></li>
+        <li><a href="?chart=avg_order_total">平均客单价</a></li>
+        <li><a href="?chart=total_sales">总销售金额</a></li>
+        <li><a href="?chart=unique_sku">Unique SKU</a></li>
+        <li><a href="?chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
+        <li><a href="?chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
+        <li><a href="?chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
+        <li><a href="?chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
+        <li><a href="?chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
+        <li><a href="?chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
+        <li><a href="?chart=rec_by_type&type=recsc">商品推荐攻击-根据购物车</a></li>
+      </ul>
+    </div>
+    <div style="float:right;width:80%">
+      <div class="span-7" style="height:50px;padding-top:10px">
+        <h3 id="date-space"></h3>
+      </div>
+      <div class="span-12">
+         <ul class="date-menu">
+           <li><a href="#" id="date-link_15" class="date-link">15天</a></li>
+           <li><a href="#" id="date-link_30" class="date-link date-selected">30天</a></li>
+           <li><a href="#" id="date-link_60" class="date-link">60天</a></li>
+           <li><a href="#" id="date-link_90" class="date-link">90天</a></li>
+         </ul>
+      </div>
+      <div id="chart-1" class="showgrid" style="float:left;width:90%;height:350px"></div>
+      </div>
+    </div>
+       <input type="hidden" id="timespan_selector" value="30" />
+<!-- 
+<div>
+   <div id="chart-plo" style="width:800px;height:300px;"></div>
     {% if user.is_admin %}
     <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
     {% endif %}
@@ -861,4 +900,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     {% endif %}
     <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
 </div>
+-->
+
 {% endblock %}

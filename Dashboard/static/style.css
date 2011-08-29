@@ -1,0 +1,108 @@
+.whole-container {
+  width:100%;
+  background-color:#50a4d0;
+  margin:0,auto;
+}
+
+.primary-nav ul.menu {
+  float:right;
+  margin:0;
+  padding:0;
+}
+.primary-nav ul.menu li {
+  display: block;
+  float: left;
+  list-style: none outside none;
+  padding-left: 3em;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 18px;
+}
+
+
+#header {
+  position: relative;
+}
+
+#primary-nav-menu a{
+  color: #3f3f3f;
+  color: #666;
+  text-decoration:none;
+}
+
+.sub-header {
+  text-shadow:1px 1px #aaa;
+  color: #fafafa;
+  line-height: 1.5em;
+  font-size:30px;
+}
+
+.index-sub-header{
+  height:464px;
+}
+
+.page-sub-header{
+  height:45px;
+}
+
+a.regist-big-button {
+  display:block;
+  text-decoration:none;
+  line-height:60px;
+  text-align:center;
+  background:url('images/button.png') 0 100% no-repeat;
+  height:60px;
+  width:320px;
+  border:0;
+  font-size:30px;
+}
+
+a.regist-big-button:hover {
+  background:url('images/button-hover.png') 0 100% no-repeat;
+  color: #06c;
+
+}
+
+a.login-white-link {
+  font-size:14px;
+  color: #eee;
+  text-shadow:none;
+  text-decoration:none;
+}
+
+.font-yahei {
+  font-family: "微软雅黑","宋体";
+}
+
+
+/* For Dashboard */
+ul.date-menu {
+  float:right;
+  margin:0;
+  padding:0;
+}
+ul.date-menu li {
+  display: block;
+  float: left;
+  list-style: none outside none;
+  padding-left: 3em;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 18px;
+}
+
+ul.date-menu li a{
+  padding:5px;
+  text-decoration:none;
+  color:#111;
+  background-color: #aaa;
+}
+
+ul.date-menu li a:hover{
+  color:#333;
+  background-color: #ccc;
+}
+
+ul.date-menu li a.date-selected {
+  background: yellow;
+}
