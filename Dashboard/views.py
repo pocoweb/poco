@@ -118,7 +118,7 @@ def index(request):
         #             "user": getUser(user_name)},
         #            context_instance=RequestContext(request))
         #else:
-        user_name = request.session["user_name"]
+        user_name = request.session.get("user_name", None)
         return render_to_response("index.html",
                                  {"page_name":"推荐宝",
                                   "user_name":user_name},
