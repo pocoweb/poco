@@ -28,7 +28,34 @@ mongo_client = MongoClient(getConnection())
 def getSiteStatistics(site_id, days=45):
     c_statistics = getSiteDBCollection(mongo_client.connection, site_id, "statistics")
     today_date = datetime.date.today()
-    result = []
+    today_str = today_date.strftime("%Y-%m-%d")
+    the_date = today_date - datetime.timedelta(days)
+    the_date_str = the_date.strftime("%Y-%m-%d")
+    rows = c_statistics.find({"date" : {"$gte" : the_date_str, "$lte": today_str}}).sort("date",pymongo.ASCENDING)
+    result = {}
+    for day_delta in range(days, -1, -1):
+        the_date = today_date - datetime.timedelta(days=day_delta)
+        the_date_str = the_date.strftime("%Y-%m-%d")
+        row = {"date": the_date_str, "is_available": False}
+        result[the_date_str] = row
+    
+    for row in rows:
+        if result.has_key(row["date"]):
+            del row["_id"]
+            row["is_available"] = True
+
+            uv_v = float(row["UV_V"])
+            pv_v = float(row["PV_V"])
+            pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
+            row["PV_UV"] = float("%.2f" % pv_uv)
+
+            pv_plo = float(row["PV_PLO"])
+            pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
+            row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
+            
+            result[row["date"]].update(row)
+    
+    '''
     for day_delta in range(days, -1, -1):
         the_date = today_date - datetime.timedelta(days=day_delta)
         the_date_str = the_date.strftime("%Y-%m-%d")
@@ -48,7 +75,10 @@ def getSiteStatistics(site_id, days=45):
             row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
 
         result.append(row)
-    return result
+    '''
+    keys = result.keys()
+    keys.sort()
+    return map(result.get, keys)
 
 def convertColumns(row, column_names):
     for column_name in column_names:
@@ -228,7 +258,7 @@ def ajax_get_site_statistics(request):
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
                        "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
-        date_str = datetime.date.today().strftime("%Y-%m-%d") + " 至 " + (datetime.date.today() - datetime.timedelta(days=timespan)).strftime("%Y-%m-%d")
+        date_str = (datetime.date.today() - datetime.timedelta(days=timespan)).strftime("%Y-%m-%d") + " 至 " + datetime.date.today().strftime("%Y-%m-%d")
         result["append"] = {"date_space": date_str}
         return HttpResponse(json.dumps(result))
     else:

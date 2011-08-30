@@ -16,6 +16,19 @@
 
 <script type="text/javascript">
 function x_formatter() {
+   c_date = this.value.split("-");
+   var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
+   var week = d.getUTCDay();
+   if(week == 1)
+   {
+      return "" + c_date[1] + "-" + c_date[2]
+   }
+   else
+   {
+      return ""
+   }
+  
+   /*
     var day = parseFloat(this.value.substring(8));
     if (day % 5 == 0) {
         return "" + day;
@@ -23,13 +36,14 @@ function x_formatter() {
     else {
         return " ";
     }
+*/
 }
 
 function renderChart_1(site_id, data, action_name) {
-    var chart_dict = {
+    var xAxisLabels = [],
+        chart = new Highcharts.Chart({
             chart: {
                 renderTo: "chart-1",
-                //marginRight: 30,
                 marginBottom: 30
             },
             title: {
@@ -41,9 +55,27 @@ function renderChart_1(site_id, data, action_name) {
                 x: -20
             },
             xAxis: {
+                //type: 'datetime',
+                //tickInterval: 7 * 24 * 3600 * 1000, // one week
                 categories: data.categories,
+                gridLineWidth: 1,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: function(){
+                     xAxisLabels.push(this.value);
+                     var c_date = this.value.split("-");
+                     var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
+                     var week = d.getUTCDay();
+                     if(week == 1)
+                     {
+                        return "" + c_date[1] + "-" + c_date[2]
+                     }
+                     else
+                     {
+                        return ""
+                     }
+
+                    }
+                }
             },
             yAxis: [{
                         title: {
@@ -97,8 +129,39 @@ function renderChart_1(site_id, data, action_name) {
                       yAxis: 1
                      }
                 ]
-    };
-    var chart = new Highcharts.Chart(chart_dict);
+    },
+    function(c){
+        
+        var top = c.plotTop + c.plotHeight+10,
+            left;
+        var xcount = xAxisLabels.length; 
+        $(xAxisLabels).each(function(i, label){
+        if(i < xcount/2)
+{
+                     var c_date = label.split("-");
+                     var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
+                     var week = d.getUTCDay();
+
+            if(week == 0 || week == 6)
+{
+            width = c.xAxis[0].translate(1) - c.xAxis[0].translate(0)
+            left = Math.round(i * width + c.plotLeft+1)
+            //c.xAxis[0].translate(i)+c.plotLeft-28;
+            c.renderer.rect(left, c.plotTop, width, c.plotHeight,0).attr({
+                'stroke-width': 0,
+                stroke: '#000',
+                fill: '#ddd',
+                zIndex: -1,
+                'label': i,
+                'left': i * width + c.plotLeft
+            }).add();
+}
+}
+        });
+            
+    }
+    );
+    console.log(xAxisLabels);
     return chart;
 }
 
