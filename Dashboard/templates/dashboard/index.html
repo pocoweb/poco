@@ -15,153 +15,237 @@
 <script src="{{STATIC_URL}}highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
 
 <script type="text/javascript">
-function x_formatter() {
-   c_date = this.value.split("-");
-   var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
-   var week = d.getUTCDay();
-   if(week == 1)
-   {
-      return "" + c_date[1] + "-" + c_date[2]
-   }
-   else
-   {
-      return ""
-   }
+Highcharts.theme = {
+   chart: {
+      margin: [50, 55, 60, 55],
+      backgroundColor: {
+         linearGradient: [0, 0, 500, 500],
+         stops: [
+            [0, 'rgb(240, 240, 255)'],
+            [1, 'rgb(255, 255, 255)']
+         ]
+      },
+      borderWidth: 1,
+      plotBackgroundColor: 'rgba(255, 255, 255, .9)',
+      plotShadow: true,
+      plotBorderWidth: 1
+   },
+   
+   colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
   
-   /*
-    var day = parseFloat(this.value.substring(8));
-    if (day % 5 == 0) {
-        return "" + day;
-    }
-    else {
-        return " ";
-    }
-*/
+   credits: {
+      href: "http://tuijanbao.net",
+      text: "推荐宝"
+   },
+
+   labels: {
+      style: {
+         color: '#99b'
+      }
+   },
+   legend: {
+         align: 'left',
+         verticalAlign: 'top',
+         y: 10,
+         x: 40,
+         floating: true,
+         borderWidth: 0,
+
+      itemStyle: {         
+         font: '9pt Trebuchet MS, Verdana, sans-serif',
+         color: 'black'
+
+      },
+      itemHoverStyle: {
+         color: '#039'
+      },
+      itemHiddenStyle: {
+         color: 'gray'
+      }
+   },
+   plotOptions: {
+      areaspline: {
+         marker: {
+            enabled: false,
+            symbol: 'circle',
+            radius: 2,
+            states: {
+               hover: {
+                  enabled: true
+               }
+            }
+         }
+      }
+   },
+   subtitle: {
+      x: -20,
+      style: { 
+         color: '#666666',
+         font: 'bold 12px "Trebuchet MS", Verdana, sans-serif'
+      }
+   },
+   title: {
+      x: -20,
+      style: { 
+         color: '#000',
+         font: 'bold 16px "Trebuchet MS", Verdana, sans-serif'
+      }
+   },
+
+   xAxis: {
+      gridLineWidth: 1,
+      lineColor: '#000',
+      tickColor: '#000',
+      labels: {
+         rotation: -45,
+         style: {
+            color: '#000',
+            font: '11px Trebuchet MS, Verdana, sans-serif'
+         },
+      },
+      title: {
+         style: {
+            color: '#333',
+            fontWeight: 'bold',
+            fontSize: '12px',
+            fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+
+         }            
+      }
+   },
+   yAxis: {
+      minorTickInterval: 'auto',
+      lineColor: '#000',
+      lineWidth: 1,
+      tickWidth: 1,
+      tickColor: '#000',
+      labels: {
+         style: {
+            color: '#000',
+            font: '11px Trebuchet MS, Verdana, sans-serif'
+         }
+      },
+      title: {
+         style: {
+            color: '#333',
+            fontWeight: 'bold',
+            fontSize: '12px',
+            fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+         }            
+      }
+   }
+};
+
+// Apply the theme
+var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
+var xAxisLabels = [];
+
+function x_dateformatter() {
+  xAxisLabels.push(this.value);
+  var c_date = this.value.split("-");
+  var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
+  var week = d.getUTCDay();
+  if(week == 1)
+  {
+     return "" + c_date[1] + "-" + c_date[2]
+  }
+  else
+  {
+     return ""
+  }
 }
 
-function renderChart_1(site_id, data, action_name) {
-    var xAxisLabels = [],
-        chart = new Highcharts.Chart({
-            chart: {
-                renderTo: "chart-1",
-                marginBottom: 30
-            },
-            title: {
-                text: "商品PV和UV图",
-                x: -20
-            },
-            subtitle: {
-                //text: site_id,
-                x: -20
-            },
-            xAxis: {
-                //type: 'datetime',
-                //tickInterval: 7 * 24 * 3600 * 1000, // one week
-                categories: data.categories,
-                gridLineWidth: 1,
-                labels: {
-                    formatter: function(){
-                     xAxisLabels.push(this.value);
-                     var c_date = this.value.split("-");
-                     var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
-                     var week = d.getUTCDay();
-                     if(week == 1)
-                     {
-                        return "" + c_date[1] + "-" + c_date[2]
-                     }
-                     else
-                     {
-                        return ""
-                     }
-
-                    }
-                }
-            },
-            yAxis: [{
-                        title: {
-                            text: '次数'
-                        },
-                        plotLines: [{
-                            value: 0, width: 1, color: '#808080'
-                        }]
-                    },
-                    {
-                        title: {
-                            text: '比率'
-                        },
-                        plotLines: [{
-                            value: 0, width: 1, color: '#808080'
-                        }],
-                        opposite: true
-                    }
-            ],
-            tooltip: {
-                formatter: function() {
-                    return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y + '次';
-                }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
-            },
-            series: [{"name": "商品PV",
-                      "data": data.pv_v,
-                      "type": "column",
-                      "dataLabels": {
-                        enabled: false
-                        }
-                      },
-                     {"name": "商品UV",
-                      "data": data.uv_v,
-                      "type": "column",
-                      "dataLabels": {
-                        enabled: false
-                        }
-                      },
-                    {"name": "PV/UV",
-                      "data": data.pv_uv,
-                      "type": "spline",
-                      yAxis: 1
-                     }
-                ]
-    },
-    function(c){
-        
-        var top = c.plotTop + c.plotHeight+10,
-            left;
-        var xcount = xAxisLabels.length; 
-        $(xAxisLabels).each(function(i, label){
-        if(i < xcount/2)
+function x_add_weekend_shadow(c)
 {
-                     var c_date = label.split("-");
-                     var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
-                     var week = d.getUTCDay();
-
-            if(week == 0 || week == 6)
-{
-            width = c.xAxis[0].translate(1) - c.xAxis[0].translate(0)
+    var top = c.plotTop + c.plotHeight+10,
+        left;
+    var xcount = xAxisLabels.length; 
+    $(xAxisLabels).each(function(i, label){
+        var c_date = label.split("-");
+        var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
+        var week = d.getUTCDay();
+    
+        if(week == 0 || week == 6)
+        {
+            width = c.xAxis[0].translate(2) - c.xAxis[0].translate(1)
             left = Math.round(i * width + c.plotLeft+1)
-            //c.xAxis[0].translate(i)+c.plotLeft-28;
+            if(left < c.plotLeft + c.plotWidth)
+{
             c.renderer.rect(left, c.plotTop, width, c.plotHeight,0).attr({
                 'stroke-width': 0,
                 stroke: '#000',
                 fill: '#ddd',
                 zIndex: -1,
-                'label': i,
+                'label': c_date,
                 'left': i * width + c.plotLeft
             }).add();
 }
+        }
+    });
 }
-        });
-            
-    }
+
+function renderChart_1(site_id, data, action_name) {
+    var chart = new Highcharts.Chart({
+        chart: {
+            renderTo: "chart-1"
+        },
+        title: {
+            text: "商品PV和UV图"
+        },
+        xAxis: {
+            categories: data.categories,
+        labels: {
+         y: 20,
+         formatter: x_dateformatter
+      },
+
+        },
+        yAxis: [{
+                    title: {
+                        text: '次数'
+                    }
+                },
+                {
+                    title: {
+                        text: '比率'
+                    },
+                    opposite: true
+                }
+        ],
+        tooltip: {
+            crosshairs: {
+            width: 1,
+            color: '#333'
+            },
+            formatter: function() {
+                return '<b>' + this.series.name + '</b><br/>' +
+                    this.x + ':' + this.y + '次';
+            }
+        },
+
+        series: [{"name": "商品PV",
+                  "data": data.pv_v,
+                  "type": "areaspline",
+                  "dataLabels": {
+                    enabled: false
+                    }
+                  },
+                 {"name": "商品UV",
+                  "data": data.uv_v,
+                  "type": "areaspline",
+                  "dataLabels": {
+                    enabled: false
+                    }
+                  },
+                {"name": "PV/UV",
+                  "data": data.pv_uv,
+                  "type": "line",
+                  yAxis: 1
+                 }
+            ]
+        },
+        function(c){ x_add_weekend_shadow(c);}
     );
-    console.log(xAxisLabels);
     return chart;
 }
 
@@ -174,16 +258,11 @@ function renderChart_plo(site_id, data, action_name) {
             },
             title: {
                 text: "商品订单数",
-                x: -20
-            },
-            subtitle: {
-                //text: site_id,
-                x: -20
             },
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
 
             },
             yAxis: [{
@@ -210,19 +289,6 @@ function renderChart_plo(site_id, data, action_name) {
                         this.x + ':' + this.y + '单';
                 }
             },
-            plotOptions: {
-                /*column: {
-                    pointWidth: 20
-                }*/
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
-            },
             series: [{
                        "name": "订单数",
                        "data": data.pv_plo,
@@ -240,7 +306,6 @@ function renderChart_plo(site_id, data, action_name) {
     return chart;
 }
 
-{% if user.is_admin %}
 function renderChart_rec(site_id, data, action_name) {
     var sum_pv_v_wo = 0;
     var sum_clickrec = 0;
@@ -271,7 +336,7 @@ function renderChart_rec(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -310,14 +375,6 @@ function renderChart_rec(site_id, data, action_name) {
                             this.x + ':' + this.y + '次';
                     }
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
             },
             series: [{
                        "name": "商品PV数",
@@ -359,7 +416,6 @@ function renderChart_rec(site_id, data, action_name) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
-{% endif %}
 
 
 function renderChart_avg_order_total(site_id, data, action_name) {
@@ -380,7 +436,7 @@ function renderChart_avg_order_total(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -406,14 +462,6 @@ function renderChart_avg_order_total(site_id, data, action_name) {
                     return '<b>' + this.series.name + '</b><br/>' +
                         this.x + ':' + this.y + '元';
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
             },
             series: [{"name": "客单价",
                       "data": data.avg_order_total,
@@ -471,7 +519,7 @@ function renderChart_total_sales(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -510,14 +558,6 @@ function renderChart_total_sales(site_id, data, action_name) {
                             this.x + ':' + this.y + '';
                     }
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
             },
             series: [{"name": "总销售金额",
                       "data": data.total_sales,
@@ -567,7 +607,6 @@ function renderChart_total_sales(site_id, data, action_name) {
 }
 
 
-{% if user.is_admin %}
 function renderChart_unique_sku(site_id, data, action_name) {
     var chart_dict = {
             chart: {
@@ -585,7 +624,7 @@ function renderChart_unique_sku(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -601,14 +640,6 @@ function renderChart_unique_sku(site_id, data, action_name) {
                     return '<b>' + this.series.name + '</b><br/>' +
                         this.x + ':' + this.y;
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 10,
-                borderWidth: 0,
-                floating: true
             },
             series: [{
                        "name": "平均Unique SKU",
@@ -626,8 +657,6 @@ function renderChart_unique_sku(site_id, data, action_name) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
-{% endif %}
-
 
 function renderChart_rec_ratios(site_id, data, action_name) {
     var chart_dict = {
@@ -646,7 +675,7 @@ function renderChart_rec_ratios(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -662,14 +691,6 @@ function renderChart_rec_ratios(site_id, data, action_name) {
                     return '<b>' + this.series.name + '</b><br/>' +
                         this.x + ':' + this.y;
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 25,
-                borderWidth: 0,
-                floating: true
             },
             series: [
                     {
@@ -714,7 +735,6 @@ function renderChart_rec_ratios(site_id, data, action_name) {
 }
 
 
-{% if user.is_admin %}
 function renderChart_rec_by_type(site_id, data, action_name) {
     var action_name2cname = {
         "recvav": "看了也看",
@@ -741,7 +761,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             xAxis: {
                 categories: data.categories,
                 labels: {
-                    formatter: x_formatter}
+                    formatter: x_dateformatter}
             },
             yAxis: [{
                         title: {
@@ -766,14 +786,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                     return '<b>' + this.series.name + '</b><br/>' +
                         this.x + ':' + this.y + '次';
                 }
-            },
-            legend: {
-                layout: 'horizontal',
-                align: 'right',
-                verticalAlign: 'top',
-                y: 25,
-                borderWidth: 0,
-                floating: true
             },
             series: [{
                        "name": "推荐请求数",
@@ -802,10 +814,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     var chart = new Highcharts.Chart(chart_dict);
     return chart;
 }
-{% endif %}
-</script>
-
-<script type="text/javascript">
     function fillCharts(site_id, statistics) {
         try{
             renderChart_{{ chart }}(site_id, statistics, "{{ type }}");
@@ -859,8 +867,10 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         $("#update_category_groups_link").attr("href", 
                         "/update_category_groups?site_id=" + site_id);
     }
+</script>
 
-    $(function() {
+<script type="text/javascript">
+    $(document).ready(function() {
         on_selectors_change();
         $("#site_selector").change(function() {
             on_selectors_change();
@@ -876,8 +886,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             on_selectors_change();
         });
     });
-
-    
 </script>
 {% endblock %}
 
