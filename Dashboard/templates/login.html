@@ -1,43 +1,43 @@
-{% extends "base.html" %}
-{% block content-area %}
+{% extends "base.html" %} {% block content-area %}
+
 <div class="whole-container">
-    <div class="container">
-      <div class="span-10 prepend-top sub-header page-sub-header">
-        登录
-      </div>
-      <div class="span-9 push-3 last prepend-top">
-          <a href="#" class="regist-big-button">马上申请推荐宝</a>
-      </div>
+  <div class="container">
+    <div class="span-10 prepend-top sub-header page-sub-header">
+      登录
     </div>
+
+    <div class="span-9 push-3 last prepend-top">
+      <a href="/apply" class="regist-big-button">马上申请推荐宝</a>
+    </div>
+  </div>
 </div>
-<br />
+
+<br>
+
 <div class="container large">
   <div class="span-24">
-  {% if msg == "login_failed" %}
-  <div class="span-19 error">
-  登录失败，请检查您输入的用户名和密码是否正确
-  </div>
-  {% endif %}
-  <div class="span-20">
-        <form action="/login" method="post">
-          <fieldset>
-            <legend>登陆后台查看分析报告</legend>
-            <p>
-              <label for="name">用户: </label>
-              <input name="name" id="name" type="text" class="title" value="">
-              <a href="#">还没有用户？</a>
-            </p>
+    {% if msg == "login_failed" %}
 
-            <p>
-              <label for="password">密码: </label>
-              <input id="password" name="password" type="password" class="title" value="">
-            </p>
-            <p>
-              <input name="submit" type="submit" value="登录" style="font-size:18px;width:62px;"/>
-            </p>
-          </fieldset>
-  {% csrf_token %} 
-        </form>
-      </div>
+    <div class="span-22 error">
+      登录失败，请检查您输入的用户名和密码是否正确
+    </div>
+    
+    {% endif %}
+
+    <div class="span-22">
+      <form action="/login" method="post">
+        <fieldset>
+          <legend>登陆后台查看分析报告</legend>
+
+          <p><label for="name">用户:</label> <input name="name" id="name" type="text" class="title" value=""> <a href="/apply">还没有用户？</a></p>
+
+          <p><label for="password">密码:</label> <input id="password" name="password" type="password" class="title" value=""></p>
+
+          <p><input name="submit" type="submit" value="登录" style="font-size:18px;width:62px;"></p>
+        </fieldset>
+        {% csrf_token %}
+      </form>
+    </div>
+  </div>
 </div>
-  {% endblock content-area %}
+{% endblock content-area %}
