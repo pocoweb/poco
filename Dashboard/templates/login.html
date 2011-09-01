@@ -29,11 +29,11 @@
         <fieldset>
           <legend>登陆后台查看分析报告</legend>
 
-          <p><label for="name">用户:</label> <input name="name" id="name" type="text" class="title" value=""> <a href="/apply">还没有用户？</a></p>
+          <p><label for="name">用户:</label> <input name="name" id="name" type="text" class="title" value=""> </p>
 
           <p><label for="password">密码:</label> <input id="password" name="password" type="password" class="title" value=""></p>
 
-          <p><input name="submit" type="submit" value="登录" style="font-size:18px;width:62px;"></p>
+          <p><input name="submit" type="submit" value="登录" style="font-size:18px;width:62px;"> <a href="/apply">还没有用户？</a> </p>
         </fieldset>
         {% csrf_token %}
       </form>
