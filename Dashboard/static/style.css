@@ -106,3 +106,6 @@ ul.date-menu li a:hover{
 ul.date-menu li a.date-selected {
   background: yellow;
 }
+
+#chart-menu {float:left;width:17%;}
+#chart-container{float:right;width:80%}
