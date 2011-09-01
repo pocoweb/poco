@@ -74,11 +74,24 @@
   </div>
   <!-- Footer End -->
 
-  <!-- Mixpanel --><script type="text/javascript">
+  <!-- Mixpanel -->
+  <script type="text/javascript">
     var mpq=[];
     mpq.push(["init","ca1548318e3fce196a53ef614bf78dc2"]);
     mpq.push(['name_tag', '{{ user_name }}']);
     (function(){var a=document.createElement("script");a.type="text/javascript";a.async=true;a.src=(document.location.protocol==="https:"?"https:":"http:")+"//api.mixpanel.com/site_media/js/api/mixpanel.js";var b=document.getElementsByTagName("script")[0];b.parentNode.insertBefore(a,b)})();
-  </script><!-- End Mixpanel -->
+  </script>
+  <!-- End Mixpanel -->
+
+<script type="text/javascript"> 
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-23503737-1']);
+  _gaq.push(['_trackPageview']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script> 
 </body>
 </html>
