@@ -29,7 +29,7 @@
       <div id="header-logo" class="span-6">
         <a href="/" ><img src="{{STATIC_URL}}images/logo.png" alt="推荐宝"></a>
       </div>
-      <div id="primary-nav-menu" class="span-12 pull-3 primary-nav">
+      <div id="primary-nav-menu" class="span-1 pull-3 primary-nav">
         <ul class="menu" style="display:none">
           <li><a href="/">首页</a></li>
           <li><a href="#">什么是推荐宝</a></li>
@@ -37,10 +37,21 @@
           <li><a href="#">关于我们</a></li>
         </ul>
       </div>
+      {% if user_name != None %}
+      <div class="last push-1 primary-nav" style="padding-left:18em">
+        <ul class="menu">
+          <li><a href="/apply">申请推荐宝</a></li>
+          <li>欢迎, {{user_name}}
+          <a href="/dashboard">控制台</a>
+          <a href="/logout">退出</a></li>
+        </ul>
+      </div>
+      {% else %}
       <div class="last push-1 primary-nav" style="padding-left:35em">
         <ul class="menu">
           <li><a href="/apply">申请推荐宝</a></li>
           <li><a href="/login">登录</a></li>
+          {% endif %}
         </ul>
       </div>
     </div>

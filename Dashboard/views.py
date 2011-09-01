@@ -161,10 +161,13 @@ def dashboard(request):
     current_site_id = request.GET.get("site_id", sites[0].get("site_id",""))
     chart = request.GET.get("chart", "1")
     type = request.GET.get("type", None)
+    chart_menu_id = "chart" + "_" + chart + "_"
+    if type != None:
+        chart_menu_id += type
     return render_to_response("dashboard/index.html", 
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name),
-             "chart": chart, "type":type,
+             "chart": chart, "type":type, "chart_menu_id": chart_menu_id,
              "site_id": current_site_id
              },
             context_instance=RequestContext(request))

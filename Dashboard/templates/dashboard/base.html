@@ -19,14 +19,36 @@
 {% endblock %}
 </head>
 <body>
-<h1><a href=/>首页</a></h1>
-<h1>{{page_name}}</h1>
-<div>{% block breadscrumb %}{% endblock %}</div>
-<p>用户名： {{ user_name }} <a href="/logout">登出</a></p>
-
-<div id="content-area">
-{% block content-area %}{% endblock content-area %}
+  <div class="whole-container">
+    <div id="header-logo" class="span-6">
+        <a href="/" ><img src="{{STATIC_URL}}images/logo.png" alt="推荐宝"></a>
+     </div>
 </div>
+<hr >
+<div>{% block breadscrumb %}{% endblock %}</div>
+<div class="whole-container">
+    <div>
+     <a href="/dashboard">{{page_name}}</a>
+        <select id="site_selector">
+        {% for site in sites %}
+            {% if site.site_id == site_id %}
+                <option value="{{site.site_id}}" selected>{{site.site_name}}</option>
+            {% else %}
+                <option value="{{site.site_id}}">{{site.site_name}}</option>
+            {% endif %}
+        {% endfor %}
+        </select>
+
+        
+        收录商品数：<span id="items-count">载入数据...</span>
+        <a id="site_items_list_link" href="/site_items_list?site_id={{site_id}}">查看商品列表</a>
+        <a id="update_category_groups_link" href="/update_category_groups?site_id={{site_id}}">编辑商品分类组别</a>
+        用户名： {{ user_name }} <a href="/logout">退出</a>
+    </div>
+</div>
+<hr >
+        <span id="status-line"></span>
+{% block content-area %}{% endblock content-area %}
 
 <!-- Mixpanel --><script type="text/javascript">
 var mpq=[];

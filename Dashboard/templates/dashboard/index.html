@@ -31,8 +31,10 @@ Highcharts.theme = {
       plotBorderWidth: 1
    },
    
-   colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
-  
+//   colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+   colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", 
+      "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
+ 
    credits: {
       href: "http://tuijanbao.net",
       text: "推荐宝"
@@ -827,7 +829,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 
     function updateSiteStatistics(site_id, timespan) {
         $("#chart-1").html("<center style='margin-top:3em'>载入数据 ... </center>");
-        $("#date-space").html("");
+        $("#date-space").html("载入日期...");
         $.getJSON("/ajax/get_site_statistics", {site_id: site_id, timespan: timespan},
                 function(data, textStatus, jqXHR) {
                     if (data.code == 0) {
@@ -883,6 +885,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             $(this).addClass("date-selected");
             reload_chart();
         });
+        $("#{{chart_menu_id}}").addClass("chart-menu-selected");
         $(".date-selected").removeClass("date-selected");
         $("#date-link_"+$("#timespan_selector").val()).addClass("date-selected");
         reload_chart();
@@ -891,53 +894,61 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 {% endblock %}
 
 {% block content-area %}
-    <div>
-        <select id="site_selector">
-        {% for site in sites %}
-            {% if site.site_id == site_id %}
-                <option value="{{site.site_id}}" selected>{{site.site_name}}</option>
-            {% else %}
-                <option value="{{site.site_id}}">{{site.site_name}}</option>
-            {% endif %}
-        {% endfor %}
-        </select>
-<!--
-        <select id="timespan_selector1">
-            <option value="15">15天</option>
-            <option value="30" selected>30天</option>
-            <option value="60">60天</option>
-            <option value="90">90天</option>
-        </select>
-        <a id="refresh_chart" href="#">刷新</a>
--->
+<style>
+#chart-menu {
+background-color:#ffcb2d;
+}
+#chart-menu ul{
+margin-top: 20px;
+list-style:none;
+padding: 10px 0 0 10px;
+}
+#chart-menu li {
+margin:0;
+padding:0;
+font-size: 105%
+}
+#chart-menu li a{
+display: block;
+padding: 4px 8px;
+color: #333;
+text-decoration: none;
+border: 1px solid #9b8748;
+border-bottom: none;
+background-color:#f9e9a9;
+}
+#chart-menu li a:hover{
+color: #444;
+background-color:#eee;
+}
 
-        <span id="status-line"></span>
-        
-        收录商品数：<span id="items-count">载入数据...</span>
-        <a id="site_items_list_link" href="/site_items_list?site_id={{site_id}}">查看商品列表</a>
-        <a id="update_category_groups_link" href="/update_category_groups?site_id={{site_id}}">编辑商品分类组别</a>
-    </div>
- 
+#chart-menu li a.chart-menu-selected {
+color: #333;
+background-color:#fff
+}
+
+</style> 
   <div class="whole-container">
     <div id="chart-menu">
       <ul>
-        <li><a href="?site_id={{site_id}}&chart=1">商品PV和UV</a></li>
-        <li><a href="?site_id={{site_id}}&chart=plo">商品订单数</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec">商品推荐占PV数</a></li>
-        <li><a href="?site_id={{site_id}}&chart=avg_order_total">平均客单价</a></li>
-        <li><a href="?site_id={{site_id}}&chart=total_sales">总销售金额</a></li>
-        <li><a href="?site_id={{site_id}}&chart=unique_sku">Unique SKU</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
-        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recsc">商品推荐攻击-根据购物车</a></li>
+        <li><a id="chart_1_" href="?site_id={{site_id}}&chart=1">商品PV和UV</a></li>
+        <li><a id="chart_plo_" href="?site_id={{site_id}}&chart=plo">商品订单数</a></li>
+        <li><a id="chart_rec_" href="?site_id={{site_id}}&chart=rec">商品推荐占PV数</a></li>
+        <li><a id="chart_avg_order_total_" href="?site_id={{site_id}}&chart=avg_order_total">平均客单价</a></li>
+        <li><a id="chart_total_sales_" href="?site_id={{site_id}}&chart=total_sales">总销售金额</a></li>
+        <li><a id="chart_unique_sku_" href="?site_id={{site_id}}&chart=unique_sku">Unique SKU</a></li>
+        <li><a id="chart_rec_by_type_recvav" href="?site_id={{site_id}}&chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
+        <li><a id="chart_rec_by_type_recph" href="?site_id={{site_id}}&chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
+        <li><a id="chart_rec_by_type_recbab" href="?site_id={{site_id}}&chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
+        <li><a id="chart_rec_by_type_recbtg" href="?site_id={{site_id}}&chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
+        <li><a id="chart_rec_by_type_recvub" href="?site_id={{site_id}}&chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
+        <li><a id="chart_rec_by_type_recbobh" href="?site_id={{site_id}}&chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
+        <li><a id="chart_rec_by_type_recsc" href="?site_id={{site_id}}&chart=rec_by_type&type=recsc" style="border-bottom:1px solid #9b8748">商品推荐攻击-根据购物车</a></li>
       </ul>
+      <br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br />
     </div>
     <div id="chart-container">
-      <div class="span-7" style="height:50px;padding-top:10px">
+      <div class="span-7" style="height:50px;padding-top:20px">
         <h3 id="date-space"></h3>
       </div>
       <div class="span-12 print-hide">

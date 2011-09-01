@@ -1,7 +1,7 @@
 .whole-container {
   width:100%;
-  background-color:#50a4d0;
   margin:0,auto;
+  float:left;
 }
 
 .primary-nav ul.menu {
