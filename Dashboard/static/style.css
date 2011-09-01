@@ -5,6 +5,10 @@
   background-color:#50a4d0;
 }
 
+.dashboard .whole-container{
+  background-color:#fff;
+}
+
 .primary-nav ul.menu {
   float:right;
   margin:0;
