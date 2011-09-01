@@ -158,12 +158,15 @@ def index(request):
 def dashboard(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
+    current_site_id = request.GET.get("site_id", sites[0].get("site_id",""))
     chart = request.GET.get("chart", "1")
     type = request.GET.get("type", None)
     return render_to_response("dashboard/index.html", 
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name),
-             "chart": chart, "type":type},
+             "chart": chart, "type":type,
+             "site_id": current_site_id
+             },
             context_instance=RequestContext(request))
 
 #@login_and_admin_only

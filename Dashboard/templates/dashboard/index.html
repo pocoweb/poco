@@ -91,6 +91,12 @@ Highcharts.theme = {
          font: 'bold 16px "Trebuchet MS", Verdana, sans-serif'
       }
    },
+   //tooltip: {
+   //    crosshairs: {
+   //    width: 1,
+   //    color: '#333'
+   //    }
+   //},
 
    xAxis: {
       gridLineWidth: 1,
@@ -157,8 +163,7 @@ function x_dateformatter() {
 
 function x_add_weekend_shadow(c)
 {
-    var top = c.plotTop + c.plotHeight+10,
-        left;
+    var left;
     var xcount = xAxisLabels.length; 
     $(xAxisLabels).each(function(i, label){
         var c_date = label.split("-");
@@ -170,22 +175,23 @@ function x_add_weekend_shadow(c)
             width = c.xAxis[0].translate(2) - c.xAxis[0].translate(1)
             left = Math.round(i * width + c.plotLeft+1)
             if(left < c.plotLeft + c.plotWidth)
-{
-            c.renderer.rect(left, c.plotTop, width, c.plotHeight,0).attr({
-                'stroke-width': 0,
-                stroke: '#000',
-                fill: '#ddd',
-                zIndex: -1,
-                'label': c_date,
-                'left': i * width + c.plotLeft
-            }).add();
-}
+            {
+                c.renderer.rect(left, c.plotTop, width, c.plotHeight,0).attr({
+                    'stroke-width': 0,
+                    stroke: '#000',
+                    fill: '#ddd',
+                    zIndex: -1,
+                    'label': c_date,
+                    'left': i * width + c.plotLeft
+                }).add();
+            }
         }
     });
 }
 
 function renderChart_1(site_id, data, action_name) {
-    var chart = new Highcharts.Chart({
+    xAxisLabels = [];
+    var chart_dict = {
         chart: {
             renderTo: "chart-1"
         },
@@ -213,10 +219,6 @@ function renderChart_1(site_id, data, action_name) {
                 }
         ],
         tooltip: {
-            crosshairs: {
-            width: 1,
-            color: '#333'
-            },
             formatter: function() {
                 return '<b>' + this.series.name + '</b><br/>' +
                     this.x + ':' + this.y + '次';
@@ -243,18 +245,17 @@ function renderChart_1(site_id, data, action_name) {
                   yAxis: 1
                  }
             ]
-        },
-        function(c){ x_add_weekend_shadow(c);}
-    );
+    };
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 
 function renderChart_plo(site_id, data, action_name) {
+    xAxisLabels = [];
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                marginBottom: 30
             },
             title: {
                 text: "商品订单数",
@@ -268,18 +269,12 @@ function renderChart_plo(site_id, data, action_name) {
             yAxis: [{
                         title: {
                             text: '订单数'
-                        },
-                        plotLines: [{
-                            value: 0, width: 1, color: '#808080'
-                        }]
+                        }
                     },
                     {
                         title: {
                             text: '比率'
                         },
-                        plotLines: [{
-                            value: 0, width: 1, color: '#808080'
-                        }],
                         opposite: true
                     }
             ],
@@ -302,11 +297,12 @@ function renderChart_plo(site_id, data, action_name) {
                      }
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 function renderChart_rec(site_id, data, action_name) {
+    xAxisLabels = [];
     var sum_pv_v_wo = 0;
     var sum_clickrec = 0;
     for (var index in data.pv_v) {
@@ -323,7 +319,6 @@ function renderChart_rec(site_id, data, action_name) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                marginBottom: 30
             },
             title: {
                 text: "商品推荐占PV数",
@@ -413,17 +408,16 @@ function renderChart_rec(site_id, data, action_name) {
                       }
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 
 function renderChart_avg_order_total(site_id, data, action_name) {
+    xAxisLabels = [];
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                //marginRight: 30,
-                marginBottom: 30
             },
             title: {
                 text: "平均客单价",
@@ -480,12 +474,13 @@ function renderChart_avg_order_total(site_id, data, action_name) {
                       }
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 
 function renderChart_total_sales(site_id, data, action_name) {
+    xAxisLabels = [];
     var sum_total_sales_without_rec = 0;
     var sum_total_sales_rec_delta = 0;
     for (var index in data.total_sales) {
@@ -505,8 +500,6 @@ function renderChart_total_sales(site_id, data, action_name) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                //marginRight: 30,
-                marginBottom: 30
             },
             title: {
                 text: "总销售金额",
@@ -602,16 +595,16 @@ function renderChart_total_sales(site_id, data, action_name) {
                       }
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 
 function renderChart_unique_sku(site_id, data, action_name) {
+    xAxisLabels = [];
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                marginBottom: 30
             },
             title: {
                 text: "平均Unique SKU",
@@ -654,15 +647,15 @@ function renderChart_unique_sku(site_id, data, action_name) {
 
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 function renderChart_rec_ratios(site_id, data, action_name) {
+    xAxisLabels = [];
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                marginBottom: 30
             },
             title: {
                 text: "推荐点击/请求比",
@@ -730,12 +723,13 @@ function renderChart_rec_ratios(site_id, data, action_name) {
                      }
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
 
 
 function renderChart_rec_by_type(site_id, data, action_name) {
+    xAxisLabels = [];
     var action_name2cname = {
         "recvav": "看了也看",
         "recph": "根据购买历史",
@@ -748,7 +742,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     var chart_dict = {
             chart: {
                 renderTo: "chart-1",
-                marginBottom: 30
             },
             title: {
                 text: "商品推荐统计 - " + action_name2cname[action_name],
@@ -811,7 +804,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                      },
                 ]
     };
-    var chart = new Highcharts.Chart(chart_dict);
+    var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
     function fillCharts(site_id, statistics) {
@@ -839,7 +832,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     };
 
     function updateSiteStatistics(site_id, timespan) {
-        $("#chart-1").html("<center style='margin-top:3em'>载入数据中 ... </center>");
+        $("#chart-1").html("<center style='margin-top:3em'>载入数据 ... </center>");
         $("#date-space").html("");
         $.getJSON("/ajax/get_site_statistics", {site_id: site_id, timespan: timespan},
                 function(data, textStatus, jqXHR) {
@@ -853,38 +846,52 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                         $("#status-line").html("");
                         }
                     else{
-                        $("#status-line").html("数据载入失败，请稍后再试。");
+                        $("#status-line").html("载入数据失败，请稍后再试。");
                     }
                 }
             );
     };
-    
+
+    function reload_chart()
+    {
+        var timespan = $("#timespan_selector").val();
+        var site_id = $("#site_selector").val();
+        updateSiteStatistics(site_id, timespan);
+    }
+
     function on_selectors_change() {
         var site_id = $("#site_selector").val();
-        var timespan = $("#timespan_selector").val();
-        updateSiteStatistics(site_id, timespan);
-        $("#site_items_list_link").attr("href", "/site_items_list?site_id=" + site_id);
-        $("#update_category_groups_link").attr("href", 
-                        "/update_category_groups?site_id=" + site_id);
+        //window.location.href = "?site={{site_id}}";
+        //var site_id = $("#site_selector").val();
+        //var timespan = $("#timespan_selector").val();
+        //updateSiteStatistics(site_id, timespan);
+        //$("#site_items_list_link").attr("href", "/site_items_list?site_id=" + site_id);
+        //$("#update_category_groups_link").attr("href", 
+        //                "/update_category_groups?site_id=" + site_id);
     }
 </script>
 
 <script type="text/javascript">
     $(document).ready(function() {
-        on_selectors_change();
         $("#site_selector").change(function() {
-            on_selectors_change();
+            window.location.href = "?site_id="+this.value;
         });
-        $("#timespan_selector").change(function() {
-            on_selectors_change();
+        //$("#timespan_selector").change(function() {
+        //    on_selectors_change();
+        //});
+        $("#refresh_chart").click(function() {
+            reload_chart();
         });
         $(".date-link").click(function() {
             var timespan_list = $(this).attr("id").split("_");
             $("#timespan_selector").val(timespan_list[1]);
             $(".date-selected").removeClass("date-selected");
             $(this).addClass("date-selected");
-            on_selectors_change();
+            reload_chart();
         });
+        $(".date-selected").removeClass("date-selected");
+        $("#date-link_"+$("#timespan_selector").val()).addClass("date-selected");
+        reload_chart();
     });
 </script>
 {% endblock %}
@@ -893,7 +900,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
     <div>
         <select id="site_selector">
         {% for site in sites %}
-            {% if forloop.first %}
+            {% if site.site_id == site_id %}
                 <option value="{{site.site_id}}" selected>{{site.site_name}}</option>
             {% else %}
                 <option value="{{site.site_id}}">{{site.site_name}}</option>
@@ -907,32 +914,32 @@ function renderChart_rec_by_type(site_id, data, action_name) {
             <option value="60">60天</option>
             <option value="90">90天</option>
         </select>
+        <a id="refresh_chart" href="#">刷新</a>
 -->
-        <a href="javascript:on_selectors_change()">刷新</a>
 
         <span id="status-line"></span>
         
-        收录商品数：<span id="items-count">计算中...</span>
-        <a id="site_items_list_link" href="/site_items_list?site_id={{site.site_id}}">查看商品列表</a>
-        <a id="update_category_groups_link" href="/update_category_groups?site_id={{site.site_id}}">编辑商品分类组别</a>
+        收录商品数：<span id="items-count">载入数据...</span>
+        <a id="site_items_list_link" href="/site_items_list?site_id={{site_id}}">查看商品列表</a>
+        <a id="update_category_groups_link" href="/update_category_groups?site_id={{site_id}}">编辑商品分类组别</a>
     </div>
  
-  <div class="whole-container showgrid">
+  <div class="whole-container">
     <div style="float:left;width:17%">
       <ul>
-        <li><a href="?chart=1">商品PV和UV</a></li>
-        <li><a href="?chart=plo">商品订单数</a></li>
-        <li><a href="?chart=rec">商品推荐占PV数</a></li>
-        <li><a href="?chart=avg_order_total">平均客单价</a></li>
-        <li><a href="?chart=total_sales">总销售金额</a></li>
-        <li><a href="?chart=unique_sku">Unique SKU</a></li>
-        <li><a href="?chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
-        <li><a href="?chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
-        <li><a href="?chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
-        <li><a href="?chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
-        <li><a href="?chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
-        <li><a href="?chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
-        <li><a href="?chart=rec_by_type&type=recsc">商品推荐攻击-根据购物车</a></li>
+        <li><a href="?site_id={{site_id}}&chart=1">商品PV和UV</a></li>
+        <li><a href="?site_id={{site_id}}&chart=plo">商品订单数</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec">商品推荐占PV数</a></li>
+        <li><a href="?site_id={{site_id}}&chart=avg_order_total">平均客单价</a></li>
+        <li><a href="?site_id={{site_id}}&chart=total_sales">总销售金额</a></li>
+        <li><a href="?site_id={{site_id}}&chart=unique_sku">Unique SKU</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
+        <li><a href="?site_id={{site_id}}&chart=rec_by_type&type=recsc">商品推荐攻击-根据购物车</a></li>
       </ul>
     </div>
     <div style="float:right;width:80%">
@@ -947,7 +954,7 @@ function renderChart_rec_by_type(site_id, data, action_name) {
            <li><a href="#" id="date-link_90" class="date-link">90天</a></li>
          </ul>
       </div>
-      <div id="chart-1" class="showgrid" style="float:left;width:90%;height:350px"></div>
+      <div id="chart-1" style="float:left;width:90%;height:350px"></div>
       </div>
     </div>
        <input type="hidden" id="timespan_selector" value="30" />
