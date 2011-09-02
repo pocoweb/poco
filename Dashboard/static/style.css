@@ -9,6 +9,7 @@
   background-color:#fff;
 }
 
+
 .primary-nav ul.menu {
   float:right;
   margin:0;
@@ -97,10 +98,12 @@ ul.date-menu li {
 }
 
 ul.date-menu li a{
-  padding:5px;
+  padding:8px;
   text-decoration:none;
-  color:#111;
+  color:#2D2A29;
   background-color: #aaa;
+  border-right: 2px solid #43566C;
+  border-bottom: 2px solid #43566C;
 }
 
 ul.date-menu li a:hover{
@@ -109,8 +112,12 @@ ul.date-menu li a:hover{
 }
 
 ul.date-menu li a.date-selected {
-  background: yellow;
+  color: #111;
+  background: #AAD2E8;
 }
+/*
+#chart-menu {float:left;width:20%;}
+#chart-container{float:right;width:71%}
 
-#chart-menu {float:left;width:17%;}
-#chart-container{float:right;width:80%}
+#footer{height:50px;margin:-50px auto 0;background:#999999;}
+*/

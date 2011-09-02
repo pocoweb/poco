@@ -14,21 +14,119 @@
 <style>
 {% block style %} {% endblock %}
 </style>
+<style type="text/css">
+html,body{height:100%;width:100%;}
+* html #wrapper{height:100%}
+#wrapper{
+  min-height:100%;
+  min-width:950px;
+}
+
+#header{
+  height:60px;background:#43566C;
+}
+
+#out-content{
+  height:1%;
+  width:auto;
+  min-height: 700px;
+}
+
+#out-content:after {
+  clear: both;
+  display: block;
+  height: 0;
+  visibility: hidden;
+}
+
+#chart-content {
+ margin-left:250px;
+ margin-right:30px;
+}
+
+#chart-menu {
+  float:left;
+  margin-right:-230px;
+  background-color:#fff;
+  width:220px;
+  border-left: 1px solid #9b8748;
+  border-right: 1px solid #9b8748;
+}
+
+
+#chart-menu ul{
+list-style:none;
+padding: 0;
+margin:0;
+}
+
+#chart-menu li {
+margin:0;
+padding:0;
+}
+
+#chart-menu li.menu-title {
+  border-bottom: 1px solid #9b8748;
+  border-top: 1px solid #9b8748;
+  background-color:#D1E5EE;
+  padding: 4px 8px;
+}
+
+#chart-menu li a{
+display: block;
+padding: 4px 8px 4px 20px;
+color: #333;
+text-decoration: none;
+border-bottom: none;
+}
+
+#chart-menu li a:hover{
+color: #444;
+background-color:#EAF2FA;
+}
+
+#chart-menu li a.chart-menu-selected {
+  color: #111;
+  font-weight:bold;
+}
+
+#dashboard-nav{
+  margin-top:12px;
+  font-size: 12px;
+  padding: 7px 0 1px 12px;
+  float:left;
+  color: #fff;
+}
+#dashboard-nav a{
+  color: #fff;
+}
+
+#footer{
+  height:30px;margin:-30px auto 0;
+  background:#43566C;
+  padding: 0;
+  color: #fff;
+  background-color:#7798BF;
+}
+
+</style>
 <title>{{page_name}} | Dashboard</title>
 {% block head %}
 {% endblock %}
 </head>
 <body class="dashboard">
-  <div class="whole-container">
-    <div id="header-logo" class="span-6">
+<div id="wrapper">
+  <div id="header">
+    <div id="header-logo" class="span-4">
         <a href="/" ><img src="{{STATIC_URL}}images/logo.png" alt="推荐宝"></a>
      </div>
-</div>
-<hr >
-<div>{% block breadscrumb %}{% endblock %}</div>
-<div class="whole-container">
-    <div>
+     <div id="dashboard-nav">
+       &nbsp;&nbsp;&nbsp;
+       &nbsp;&nbsp;&nbsp;
+     <a href="/">返回首页</a>
+       &nbsp;&nbsp;&nbsp;
      <a href="/dashboard">{{page_name}}</a>
+       &nbsp;&nbsp;&nbsp;
         <select id="site_selector">
         {% for site in sites %}
             {% if site.site_id == site_id %}
@@ -38,25 +136,29 @@
             {% endif %}
         {% endfor %}
         </select>
-
         
+       &nbsp;&nbsp;&nbsp;
         收录商品数：<span id="items-count">载入数据...</span>
+       &nbsp;&nbsp;&nbsp;
         <a id="site_items_list_link" href="/site_items_list?site_id={{site_id}}">查看商品列表</a>
+       &nbsp;&nbsp;&nbsp;
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site_id}}">编辑商品分类组别</a>
+       &nbsp;&nbsp;&nbsp;
+       &nbsp;&nbsp;&nbsp;
+       &nbsp;&nbsp;&nbsp;
         用户名： {{ user_name }} <a href="/logout">退出</a>
     </div>
+ </div>
+
+ <div id="out-content">
+    {% block content-area %}{% endblock content-area %}
+  </div>
 </div>
-<hr >
-        <span id="status-line"></span>
-{% block content-area %}{% endblock content-area %}
-
-<!-- Mixpanel --><script type="text/javascript">
-var mpq=[];
-mpq.push(["init","ca1548318e3fce196a53ef614bf78dc2"]);
-mpq.push(['name_tag', '{{ user_name }}']);
-(function(){var a=document.createElement("script");a.type="text/javascript";a.async=true;a.src=(document.location.protocol==="https:"?"https:":"http:")+"//api.mixpanel.com/site_media/js/api/mixpanel.js";var b=document.getElementsByTagName("script")[0];b.parentNode.insertBefore(a,b)})();
-</script><!-- End Mixpanel -->
-
-
+<div id="footer">
+  <center>Copyright &copy; 2011 推荐宝 &trade;</center>
+</div>
+<!--
+<div>{% block breadscrumb %}{% endblock %}</div>
+-->
 </body>
 </html>

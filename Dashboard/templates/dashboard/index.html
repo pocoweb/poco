@@ -28,7 +28,14 @@ Highcharts.theme = {
       borderWidth: 1,
       plotBackgroundColor: 'rgba(255, 255, 255, .9)',
       plotShadow: true,
-      plotBorderWidth: 1
+      plotBorderWidth: 1,
+      events: {
+       redraw: function() {
+          $(".rec_weekend_shadow").remove();
+          x_add_weekend_shadow(this);
+       }
+      }
+
    },
    
 //   colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
@@ -177,7 +184,6 @@ function x_add_weekend_shadow(c)
         var c_date = label.split("-");
         var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
         var week = d.getUTCDay();
-    
         if(week == 5 || week == 6)
         {
             width = c.xAxis[0].translate(2) - c.xAxis[0].translate(1)
@@ -190,7 +196,8 @@ function x_add_weekend_shadow(c)
                     fill: '#ddd',
                     zIndex: -1,
                     'label': c_date,
-                    'left': i * width + c.plotLeft
+                    'left': i * width + c.plotLeft,
+                    'class': 'rec_weekend_shadow'
                 }).add();
             }
         }
@@ -800,12 +807,15 @@ function renderChart_rec_by_type(site_id, data, action_name) {
                      },
                 ]
     };
+ 
     var chart = new Highcharts.Chart(chart_dict,function(c){ x_add_weekend_shadow(c);});
     return chart;
 }
     function fillCharts(site_id, statistics) {
         try{
-            renderChart_{{ chart }}(site_id, statistics, "{{ type }}");
+
+            var char = renderChart_{{ chart }}(site_id, statistics, "{{ type }}");
+
             //renderChart_1(site_id, statistics);
             //renderChart_plo(site_id, statistics);
             //{% if user.is_admin %}
@@ -895,94 +905,66 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 
 {% block content-area %}
 <style>
-#chart-menu {
-background-color:#ffcb2d;
+#content-box {
+ float: right;
+ width: 100%;
 }
-#chart-menu ul{
-margin-top: 20px;
-list-style:none;
-padding: 10px 0 0 10px;
+#sidebar {
+ float: left;
+ background:#f6f6f6;
+ margin-right:-200px;
+ width:200px;
 }
-#chart-menu li {
-margin:0;
-padding:0;
-font-size: 105%
-}
-#chart-menu li a{
-display: block;
-padding: 4px 8px;
-color: #333;
-text-decoration: none;
-border: 1px solid #9b8748;
-border-bottom: none;
-background-color:#f9e9a9;
-}
-#chart-menu li a:hover{
-color: #444;
-background-color:#eee;
-}
-
-#chart-menu li a.chart-menu-selected {
-color: #333;
-background-color:#fff
+#content-box {
+ float: right;
+ width: 100%;
 }
 
 </style> 
-  <div class="whole-container">
+<!--
+<div id="out-content">
+	<div id="content-box">
+		<div id="content">11111</div>
+
+	</div>
+	<div id="sidebar">fdafdafas</div>
+</div>
+-->
+
+<div id="content-box">
+  <div id="chart-content">
+      <div>
+        <span id="date-space"></span>
+         <ul class="date-menu print-hide">
+           <li><a href="#" id="date-link_15" class="date-link">15天</a></li>
+           <li><a href="#" id="date-link_30" class="date-link date-selected">30天</a></li>
+           <li><a href="#" id="date-link_60" class="date-link">60天</a></li>
+           <li><a href="#" id="date-link_90" class="date-link">90天</a></li>
+         </ul>
+       </div>
+       <br />
+       <br />
+       <div id="chart-1"></div>
+   </div>
+</div>
     <div id="chart-menu">
       <ul>
+        <li class="menu-title">整体统计</li>
         <li><a id="chart_1_" href="?site_id={{site_id}}&chart=1">商品PV和UV</a></li>
         <li><a id="chart_plo_" href="?site_id={{site_id}}&chart=plo">商品订单数</a></li>
         <li><a id="chart_rec_" href="?site_id={{site_id}}&chart=rec">商品推荐占PV数</a></li>
         <li><a id="chart_avg_order_total_" href="?site_id={{site_id}}&chart=avg_order_total">平均客单价</a></li>
         <li><a id="chart_total_sales_" href="?site_id={{site_id}}&chart=total_sales">总销售金额</a></li>
         <li><a id="chart_unique_sku_" href="?site_id={{site_id}}&chart=unique_sku">Unique SKU</a></li>
+        <li class="menu-title">推荐统计</li>
         <li><a id="chart_rec_by_type_recvav" href="?site_id={{site_id}}&chart=rec_by_type&type=recvav">商品推荐统计-看了也看</a></li>
         <li><a id="chart_rec_by_type_recph" href="?site_id={{site_id}}&chart=rec_by_type&type=recph">商品推荐统计-根据购买历史</a></li>
         <li><a id="chart_rec_by_type_recbab" href="?site_id={{site_id}}&chart=rec_by_type&type=recbab">商品推荐统计-买了也买</a></li>
         <li><a id="chart_rec_by_type_recbtg" href="?site_id={{site_id}}&chart=rec_by_type&type=recbtg">商品推荐统计-一起买</a></li>
         <li><a id="chart_rec_by_type_recvub" href="?site_id={{site_id}}&chart=rec_by_type&type=recvub">商品推荐统计-看了最终买</a></li>
         <li><a id="chart_rec_by_type_recbobh" href="?site_id={{site_id}}&chart=rec_by_type&type=recbobh">商品推荐统计-根据浏览历史</a></li>
-        <li><a id="chart_rec_by_type_recsc" href="?site_id={{site_id}}&chart=rec_by_type&type=recsc" style="border-bottom:1px solid #9b8748">商品推荐攻击-根据购物车</a></li>
+        <li><a id="chart_rec_by_type_recsc" href="?site_id={{site_id}}&chart=rec_by_type&type=recsc" style="border-bottom:1px solid #9b8748">商品推荐统计-根据购物车</a></li>
       </ul>
-      <br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><br />
     </div>
-    <div id="chart-container">
-      <div class="span-7" style="height:50px;padding-top:20px">
-        <h3 id="date-space"></h3>
-      </div>
-      <div class="span-12 print-hide">
-         <ul class="date-menu">
-           <li><a href="#" id="date-link_15" class="date-link">15天</a></li>
-           <li><a href="#" id="date-link_30" class="date-link date-selected">30天</a></li>
-           <li><a href="#" id="date-link_60" class="date-link">60天</a></li>
-           <li><a href="#" id="date-link_90" class="date-link">90天</a></li>
-         </ul>
-      </div>
-      <div id="chart-1" style="float:left;width:90%;height:350px"></div>
-      </div>
-    </div>
-       <input type="hidden" id="timespan_selector" value="30" />
-<!-- 
-<div>
-   <div id="chart-plo" style="width:800px;height:300px;"></div>
-    {% if user.is_admin %}
-    <div id="chart-rec" style="width:800px;height:300px; margin-top: 30px;"></div>
-    {% endif %}
-    <div id="chart-avg-order-total" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-total-sales" style="width:800px;height:300px; margin-top: 30px;"></div>
-    {% if user.is_admin %}
-    <div id="chart-unique-sku" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recvav" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recph" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recbab" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recbtg" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recvub" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recbobh" style="width:800px;height:300px; margin-top: 30px;"></div>
-    <div id="chart-rec-recsc" style="width:800px;height:300px; margin-top: 30px;"></div>
-    {% endif %}
-    <div id="chart-rec-ratios" style="width:800px;height:600px; margin-top: 30px;"></div>
-</div>
--->
-
+ <input type="hidden" name="timespan_selector" id="timespan_selector" value="30" />
 {% endblock %}
