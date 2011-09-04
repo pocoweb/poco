@@ -8,6 +8,9 @@ from common.utils import getSiteDBCollection, getSiteDB
 
 import settings
 
+print "This script is outdated. do not use it."
+sys.exit(1)
+
 from mongo_client import MongoClient
 
 mongo_client = MongoClient(pymongo.Connection(settings.mongodb_host))

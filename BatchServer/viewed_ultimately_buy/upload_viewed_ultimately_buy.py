@@ -1,5 +1,4 @@
 from common.utils import getSiteDBCollection
-from common.utils import updateCollectionRecord
 from common.utils import sign
 
 

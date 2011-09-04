@@ -17,6 +17,6 @@ def behavior_date_row(input_path, output_path):
         row = json.loads(line.strip())
         req_id = row.get("req_id", "null")
         tjbid = row.get("tjbid", "null")
-        date_str = getDateStr(row["timestamp"])
+        date_str = getDateStr(row["created_on"])
         f.write("%s,%s\n" % (row["behavior"], date_str, ))
     f.close()

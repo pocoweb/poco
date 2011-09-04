@@ -24,16 +24,16 @@ last_user_id = None
 last_click_recs = {}
 already_viewed = {}
 for line in sys.stdin:
-    user_id, timestamp, behavior, item_id, price, amount = line.strip().split("\t")
-    timestamp = float(timestamp)
+    user_id, created_on, uniq_order_id, behavior, item_id, price, amount = line.strip().split("\t")
+    created_on = float(created_on)
     if price != "NULL" and amount != "NULL":
         price = float(price.strip())
         amount = int(amount)
     else:
         price = 0
         amount = 0
-    date_str = getCalendarInfo(timestamp)["date_str"]
-    hour = getCalendarInfo(timestamp)["hour"]
+    date_str = getCalendarInfo(created_on)["date_str"]
+    hour = getCalendarInfo(created_on)["hour"]
 
     if last_user_id != user_id:
         last_click_recs = {}
@@ -41,24 +41,24 @@ for line in sys.stdin:
         last_user_id = user_id
 
     if behavior == "V":
-        already_viewed[item_id] = timestamp
+        already_viewed[item_id] = created_on
     elif behavior == "ClickRec":
         if not already_viewed.has_key(item_id):
-            last_click_recs[item_id] = (timestamp, True)
+            last_click_recs[item_id] = (created_on, True)
         else:
-            last_click_recs[item_id] = (timestamp, False)
+            last_click_recs[item_id] = (created_on, False)
     elif behavior == "PLO":
         if last_click_recs.has_key(item_id):
             click_ts, is_rec_first = last_click_recs[item_id]
             influence_type = None
-            if (timestamp - click_ts) < MAX_DIRECT_TIME:
+            if (created_on - click_ts) < MAX_DIRECT_TIME:
                 influence_type = "DIRECT"
-            elif (timestamp - click_ts) < MAX_INDIRECT_TIME:
+            elif (created_on - click_ts) < MAX_INDIRECT_TIME:
                 influence_type = "INDIRECT"
             if influence_type is not None:
                 if is_rec_first:
                     influence_type += "_REC_FIRST"
                 else:
                     influence_type += "_REC_LATER"
-                print "\t".join([repr(timestamp), user_id, item_id])
+                print "\t".join([repr(created_on), uniq_order_id, user_id, item_id])
 

@@ -10,7 +10,7 @@ except getopt.GetoptError, err:
     # print help information and exit:
     print str(err) # will print something like "option -a not recognized"
     print "give a site_name"
-    sys.exit(2) 
+    sys.exit(2)
 
 print host
 
