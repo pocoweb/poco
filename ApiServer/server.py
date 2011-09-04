@@ -8,7 +8,7 @@ import pymongo
 import simplejson as json
 import copy
 import re
-import time
+import datetime
 import os
 import os.path
 import signal
@@ -59,12 +59,13 @@ class LogWriter:
         self.local_file.flush()
 
     def writeToLocalLog(self, site_id, content):
-        line = json.dumps(content)
+        local_content = copy.copy(content)
+        local_content["created_on"] = repr(local_content["created_on"])
+        line = json.dumps(local_content)
         self.writeLineToLocalLog(site_id, line)
 
     def writeEntry(self, site_id, content):
-        timestamp = time.time()
-        content["timestamp"] = timestamp
+        content["created_on"] = datetime.datetime.now()
         if settings.print_raw_log:
             print "RAW LOG: site_id: %s, %s" % (site_id, content)
         self.writeToLocalLog(site_id, content)
@@ -344,9 +345,11 @@ class PlaceOrderProcessor(ActionProcessor):
         return result
 
     def _process(self, site_id, args):
+        uniq_order_id = str(uuid.uuid4())
         self.logAction(site_id, args,
                        {"user_id":  args["user_id"], 
                         "order_id": args["order_id"],
+                        "uniq_order_id": uniq_order_id,
                         "order_content": self._convertOrderContent(args["order_content"])})
         mongo_client.updateUserPurchasingHistory(site_id=site_id, user_id=args["user_id"])
         return {"code": 0}

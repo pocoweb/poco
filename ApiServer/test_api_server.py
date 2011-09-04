@@ -893,7 +893,8 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         )
         last_line = self.readLastLine()
         self.assert_(last_line.has_key("tjbid"))
-        self.assert_(last_line.has_key("timestamp"))
+        self.assert_(last_line.has_key("created_on"))
+        self.assert_(not last_line.has_key("timestamp"))
         self.assertSomeKeys(last_line, 
                 {"user_id": "hah",
                  "behavior": "RecEBI",
@@ -959,7 +960,8 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         )
         last_line = self.readLastLine()
         self.assert_(last_line.has_key("tjbid"))
-        self.assert_(last_line.has_key("timestamp"))
+        self.assert_(last_line.has_key("created_on"))
+        self.assert_(not last_line.has_key("timestamp"))
         self.assertSomeKeys(last_line, 
                 {"user_id": "hah",
                  "behavior": "RecEBI",
@@ -1227,6 +1229,7 @@ class PlaceOrderTest(BaseTestCase):
                                {"item_id": "5", "price": "1.3", "amount": "2"}
                                ],
              "order_id": "ORDER_ID"})
+        self.assertEquals(self.readLastLine().has_key("uniq_order_id"), True)
         self.assertPurchasingHistoryCount(1)
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
                 {"purchasing_history": ['3', '5'],
@@ -1249,6 +1252,7 @@ class PlaceOrderTest(BaseTestCase):
                                ],
              "order_id": None
             })
+        self.assertEquals(self.readLastLine().has_key("uniq_order_id"), True)
         self.assertPurchasingHistoryCount(1)
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
                 {"purchasing_history": ['3', '5'],

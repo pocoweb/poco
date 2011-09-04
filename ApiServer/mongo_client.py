@@ -101,7 +101,7 @@ class MongoClient:
         ph_in_db = self.getPurchasingHistory(site_id, user_id)
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
         cursor = c_raw_logs.find({"user_id": user_id, "behavior": "PLO"}).\
-                sort("timestamp", -1).limit(self.MAX_PURCHASING_HISTORY_AMOUNT)
+                sort("created_on", -1).limit(self.MAX_PURCHASING_HISTORY_AMOUNT)
         is_items_enough = False
         purchasing_history = []
         ph_map = {}
@@ -351,6 +351,5 @@ class MongoClient:
     # Logging Part
     def writeLogToMongo(self, site_id, content):
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
-        #c_raw_logs.ensure_index([("timestamp", pymongo.DESCENDING)])
         c_raw_logs.insert(content)
 

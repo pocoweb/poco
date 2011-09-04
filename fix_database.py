@@ -1,4 +1,6 @@
 import sys
+import datetime
+import uuid
 import pymongo
 from common.utils import getSiteDBCollection
 from common.utils import smart_split
@@ -121,13 +123,30 @@ if False:
                     c_raw_logs.save(raw_log)
 
 
-print "set is_empty_result "
+    print "set is_empty_result "
+    sites = connection["tjb-db"]["sites"]
+    for site in sites.find():
+        print "Work on:", site["site_name"]
+        c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
+        for raw_log in c_raw_logs.find({"recommended_items": {"$exists": True}, "is_empty_result": {"$exists": False}}):
+            #print raw_log
+            if raw_log["behavior"].startswith("Rec") and not raw_log.has_key("is_empty_result"):
+                raw_log["is_empty_result"] = len(raw_log["recommended_items"]) == 0
+                c_raw_logs.save(raw_log)
+
+
+print "Convert Timestamp from float to datetime and add uniq_order_id"
 sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
-    for raw_log in c_raw_logs.find({"recommended_items": {"$exists": True}, "is_empty_result": {"$exists": False}}):
-        #print raw_log
-        if raw_log["behavior"].startswith("Rec") and not raw_log.has_key("is_empty_result"):
-            raw_log["is_empty_result"] = len(raw_log["recommended_items"]) == 0
-            c_raw_logs.save(raw_log)
+    for raw_log in c_raw_logs.find():
+        if raw_log.has_key("timestamp"):
+            if isinstance(raw_log["timestamp"], float):
+                raw_log["timestamp"] = datetime.datetime.fromtimestamp(raw_log["timestamp"])
+            raw_log["created_on"] = raw_log["timestamp"]
+            del raw_log["timestamp"]
+        if raw_log["behavior"] == "PLO" and not raw_log.has_key("uniq_order_id"):
+            raw_log["uniq_order_id"] = str(uuid.uuid4())
+        c_raw_logs.save(raw_log)
+    c_raw_logs.ensure_index("created_on", -1, background=True, unique=False)

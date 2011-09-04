@@ -14,6 +14,6 @@ def extract_behavior_date_tjbid(input_path, output_path):
         row = json.loads(line.strip())
         if row.has_key("tjbid"):
             tjbid = row["tjbid"]
-            date_str = getDateStr(row["timestamp"])
+            date_str = getDateStr(row["created_on"])
             f.write("%s,%s,%s\n" % (row["behavior"], date_str, tjbid))
     f.close()
