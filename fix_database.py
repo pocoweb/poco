@@ -140,13 +140,12 @@ sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
-    #c_raw_logs.drop_index([("timestamp", -1)])
-    #c_raw_logs.drop_index([("timestamp", 1)])
     for raw_log in c_raw_logs.find():
-        if isinstance(raw_log["timestamp"], float):
-            raw_log["timestamp"] = datetime.datetime.fromtimestamp(raw_log["timestamp"])
-        raw_log["created_on"] = raw_log["timestamp"]
-        del raw_log["timestamp"]
+        if raw_log.has_key("timestamp"):
+            if isinstance(raw_log["timestamp"], float):
+                raw_log["timestamp"] = datetime.datetime.fromtimestamp(raw_log["timestamp"])
+            raw_log["created_on"] = raw_log["timestamp"]
+            del raw_log["timestamp"]
         if raw_log["behavior"] == "PLO" and not raw_log.has_key("uniq_order_id"):
             raw_log["uniq_order_id"] = str(uuid.uuid4())
         c_raw_logs.save(raw_log)
