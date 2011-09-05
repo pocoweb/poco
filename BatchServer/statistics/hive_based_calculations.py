@@ -78,7 +78,6 @@ def load_recommendation_logs(work_dir, client):
     client.execute("CREATE TABLE recommendation_logs ( "
                      "date_str STRING, "
                      "created_on DOUBLE, "
-                     "uniq_order_id STRING, "
                      "behavior STRING, "
                      "req_id STRING, "
                      "is_empty_result BOOLEAN "
@@ -141,13 +140,11 @@ def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client
     calc_recommendations_request_by_type(site_id, connection, client)
     calc_recommendations_show_by_type(site_id, connection, client)
     calc_click_rec_by_type(site_id, connection, client)
-    
     client.execute("SELECT rrbt.date_str, rrbt.behavior, rrbt.count AS recommendation_request_count, rsbt.count AS recommendation_show_count, cbt.count AS click_rec_count, cbt.count / rsbt.count "
                    "FROM recommendations_request_by_type rrbt "
                    "LEFT OUTER JOIN recommendations_show_by_type rsbt ON (rrbt.date_str = rsbt.date_str AND rrbt.behavior = rsbt.behavior) "
                    "LEFT OUTER JOIN click_rec_by_type cbt ON (rrbt.date_str = cbt.date_str AND rrbt.behavior = cbt.behavior) "
                    )
-
     data_map = {}
     for row in yieldClientResults(client):
         row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_request_count", as_int), 
@@ -160,7 +157,6 @@ def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client
         data["recommendation_show_count_" + behavior_lower] = row_dict["recommendation_show_count"]
         data["click_rec_count_" + behavior_lower] = row_dict["click_rec_count"]
         data["click_rec_show_ratio_" + behavior_lower] = row_dict["click_rec_show_ratio"]
-
     for data in data_map.values():
         upload_statistics(site_id, connection, client, data)
 
