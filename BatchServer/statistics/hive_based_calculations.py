@@ -170,7 +170,7 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
         calendar_info = getCalendarInfo(row["created_on"])
         date_str = calendar_info["date_str"]
         hour = calendar_info["hour"]
-        uniq_order_id = row.get("uniq_order_id", "")
+        uniq_order_id = row.get("uniq_order_id", "NONE")
         output = [date_str, repr(hour), repr(row["created_on"]), uniq_order_id,
                   row["filled_user_id"], row["behavior"], row["tjbid"]]
         if row["behavior"] == "V":
@@ -258,15 +258,17 @@ def result_as_dict(result, columns):
     return result_dict
 
 
-@log_function
-def calc_daily_order_money_related(site_id, connection, client):
-    client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
-                   "FROM (SELECT date_str, uniq_order_id,  SUM(price * amount) AS total_money "
-                   '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, uniq_order_id) a '
-                   "GROUP BY a.date_str ")
-    for row in yieldClientResults(client):
-        data = result_as_dict(row, ["date_str", ("order_count", as_int), ("avg_order_total", as_float), ("total_sales", as_float)])
-        upload_statistics(site_id, connection, client, data)
+#@log_function
+#def calc_daily_order_money_related(site_id, connection, client):
+#    client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
+#                   "FROM (SELECT date_str, uniq_order_id,  SUM(price * amount) AS total_money "
+#                   '      FROM backfilled_raw_logs WHERE behavior="PLO" GROUP BY date_str, uniq_order_id) a '
+#                   "GROUP BY a.date_str ")
+#    print "CALC_DOMR"
+#    for row in yieldClientResults(client):
+#        data = result_as_dict(row, ["date_str", ("order_count", as_int), ("avg_order_total", as_float), ("total_sales", as_float)])
+#        print "KAKA:", data
+#        upload_statistics(site_id, connection, client, data)
 
 
 def calc_ClickRec_by_type(site_id, connection, client):
@@ -308,7 +310,7 @@ def calc_place_order_with_rec_info(site_id, connection, client):
     client.execute("CREATE TABLE place_order_with_rec_info ( "
                      "date_str STRING, "
                      "hour INT, "
-                     "uniq_order_id DOUBLE, "
+                     "uniq_order_id STRING, "
                      "filled_user_id STRING, "
                      "tjbid STRING, "
                      "item_id STRING,"
@@ -325,7 +327,7 @@ def calc_place_order_with_rec_info(site_id, connection, client):
                    "         a.tjbid, a.item_id, a.price, a.amount, a.rb1_uoid IS NOT NULL, "
                    "                         (a.rb1_uoid IS NOT NULL AND a.rb1_item_id == a.item_id)  "
                    "  FROM "
-                   "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id, brl.filled_user_id, "
+                   "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id as uniq_order_id, brl.filled_user_id, "
                    "    brl.tjbid, brl.item_id, brl.price, brl.amount, rb1.uniq_order_id AS rb1_uoid, rb1.item_id AS rb1_item_id "
                    "    FROM rec_buy rb1 "
                    "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id) "
@@ -443,8 +445,6 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
     load_recommendation_logs(work_dir, client)
     #load_items(connection, site_id, work_dir, client)
     #calc_daily_item_pv_coverage(client)
-
-    #calc_daily_order_money_related(site_id, connection, client)
 
     calc_unique_sku(site_id, connection, client)
     calc_avg_item_amount(site_id, connection, client)
