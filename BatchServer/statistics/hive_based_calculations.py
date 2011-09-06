@@ -322,6 +322,7 @@ def calc_place_order_with_rec_info(site_id, connection, client):
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
                      "STORED AS TEXTFILE")
+    # TODO: remove has_rec_item
     client.execute("INSERT OVERWRITE TABLE place_order_with_rec_info "
                    "  SELECT a.date_str, a.hour, a.uniq_order_id, a.filled_user_id, "
                    "         a.tjbid, a.item_id, a.price, a.amount, a.rb1_uoid IS NOT NULL, "
@@ -330,7 +331,7 @@ def calc_place_order_with_rec_info(site_id, connection, client):
                    "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id as uniq_order_id, brl.filled_user_id, "
                    "    brl.tjbid, brl.item_id, brl.price, brl.amount, rb1.uniq_order_id AS rb1_uoid, rb1.item_id AS rb1_item_id "
                    "    FROM rec_buy rb1 "
-                   "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id) "
+                   "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id AND rb1.item_id = brl.item_id) "
                    '    WHERE brl.behavior = "PLO" '
                    "   ) a"
                    )
@@ -353,7 +354,7 @@ def calc_click_rec_buy(site_id, connection, client):
                    "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount "
                    "FROM backfilled_raw_logs brl "
                    'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
-                   'ORDER BY filled_user_id, uniq_order_id) a ')
+                   'ORDER BY filled_user_id, created_on) a ')
 
 
 @log_function
