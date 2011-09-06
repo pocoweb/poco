@@ -1,28 +1,124 @@
 {% extends "dashboard/base.html" %}
+{% block style %}
+table {
+  border-collapse: collapse;
+  widht: 100%;
+  border: 1px solid #9B8748;
+  background: #fff;
+}
+
+table th, table td {
+  margin: 0;
+  padding: 8px 20px;
+  border-bottom: 1px solid #b5b5b5;
+}
+
+table td a {
+  display: block;
+  font-weight: bold;
+}
+
+
+table.items {
+float:left;
+}
+
+table.items tr td img {
+  margin:0;
+  height:0;
+  padding:0;
+  background: #000;
+  position: absolute;
+  display:none;
+}
+
+table.items tr td img.hover {
+  /*background:url(thumb_bg.png) no-repeat center center;*/
+  border: 1px solid #9B8748;
+  display:block;
+}
+
+{% endblock %}
+
+{% block head %}
+<script type="text/javascript">
+    $(document).ready(function() {
+
+$("table.items tr").hover(function() {
+  var p_top = parseInt($(this).find('td').css('padding-top'));
+  var m_left =  parseInt($(this).find('td').css('padding-left')) + 1;
+  var m_top = $(this).height() - p_top - 1;
+  var height = 180;
+  if(m_top+height+$(this).offset().top > $(window).height() + $(window).scrollTop())
+  {
+    m_top = -1*(height + p_top + 1);
+  }
+	$(this).find('img').addClass("hover").stop()
+		.animate({
+			marginTop: m_top + 'px',
+			marginLeft: '-' + m_left + 'px', 
+			height: height + 'px',
+      zIndex: 10
+		}, 0);
+	
+	} , function() {
+	$(this).find('img').removeClass("hover").stop()
+		.animate({
+			marginTop: '0',
+			marginLeft: '-' + m_left + 'px', 
+			height: '0',
+      zIndex: 0 
+		}, 0);
+});
+
+
+        $("#site_selector").change(function() {
+            window.location.href = "?site_id="+this.value;
+        });
+        $("#items-count").html("{{items_count}}件");
+    });
+</script>
+{% endblock %}
+
 
 {% block breadscrumb %}<a href="/dashboard">首页</a> &gt;&gt; {{site.site_name}}商品列表{% endblock %}
 
 {% block content-area %}
-    <p>共收录{{items_count}}件商品</p>
-    {% if not curr_left_reached %} 
-    <a href="/site_items_list?site_id={{site.site_id}}&page_num=1">&lt;&lt;</a>&nbsp;
-    <a href="/site_items_list?site_id={{site.site_id}}&page_num={{prev_page_num}}">&lt;</a>
-    {% endif %}&nbsp;
-    {% for pn in page_nums %}
-    {% ifnotequal pn page_num %}
-    <a href="/site_items_list?site_id={{site.site_id}}&page_num={{pn}}">{{pn}}</a>&nbsp;
-    {% else %}
-    {{pn}}&nbsp;
-    {% endifnotequal %}
-    {% endfor %}
-    {% if not curr_right_reached %}
-        <a href="/site_items_list?site_id={{site.site_id}}&page_num={{next_page_num}}">&gt;</a>&nbsp;
-        <a href="/site_items_list?site_id={{site.site_id}}&page_num={{max_page_num}}">&gt;&gt;</a>
-    {% endif %}
-    <table>
-    <tr><th>商品名称</th><th>价格</th></tr>
-    {% for item in items %}
-        <tr><td><a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}">{{item.item_name}}</a></td><td>{{item.price}}</td></tr>
-    {% endfor %}
-    </table>
+<div class="container">
+  <div class="span-24">
+      <table class="items">
+      <caption>
+      {% if not curr_left_reached %} 
+      <a href="/site_items_list?site_id={{site.site_id}}&page_num=1">&lt;&lt;</a>&nbsp;
+      <a href="/site_items_list?site_id={{site.site_id}}&page_num={{prev_page_num}}">&lt;</a>
+      {% endif %}&nbsp;
+      {% for pn in page_nums %}
+      {% ifnotequal pn page_num %}
+      <a href="/site_items_list?site_id={{site.site_id}}&page_num={{pn}}">{{pn}}</a>&nbsp;
+      {% else %}
+      {{pn}}&nbsp;
+      {% endifnotequal %}
+      {% endfor %}
+      {% if not curr_right_reached %}
+          <a href="/site_items_list?site_id={{site.site_id}}&page_num={{next_page_num}}">&gt;</a>&nbsp;
+          <a href="/site_items_list?site_id={{site.site_id}}&page_num={{max_page_num}}">&gt;&gt;</a>
+      {% endif %}
+      </caption>
+      <tr>
+         <th>商品名称</th>
+         <th>价格</th>
+      </tr>
+      {% for item in items %}
+        <tr id="tr_{{item.item_id}}">
+            <td>
+            <a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}"><img src="{{item.image_link}}" /></a>
+            <a href="/show_item?site_id={{site.site_id}}&item_id={{item.item_id}}">{{item.item_name}}</a></td>
+            <td>{{item.price}}</td>
+         </tr>
+      {% endfor %}
+      </table>
+  </div>
+</div>
+<br />
+<br />
 {% endblock %}

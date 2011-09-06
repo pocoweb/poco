@@ -119,6 +119,7 @@ def _getUserSites(user_name):
     c_sites = connection["tjb-db"]["sites"]
     user = c_users.find_one({"user_name": user_name})
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
+    sites.sort(key=lambda x: x["site_name"]) 
     return sites
 
 def _getUserSiteIds(user_name):
@@ -296,12 +297,16 @@ def getItemsAndCount(connection, site_id, page_num):
 
 @login_required
 def site_items_list(request):
-    site_id = request.GET["site_id"]
+    user_name = request.session["user_name"]
+    sites = _getUserSites(user_name)
+    site_id = request.GET.get("site_id", sites[0].get("site_id",""))
     page_num = int(request.GET.get("page_num", "1"))
     connection = mongo_client.connection
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     result = {"page_name": u"%s商品列表" % site["site_name"],
              "site": site, 
+             "sites": sites, 
+             "site_id": site_id,
              "user_name": request.session["user_name"]}
     result.update(getItemsAndCount(connection, site_id, page_num))
     return render_to_response("dashboard/site_items_list.html", 
