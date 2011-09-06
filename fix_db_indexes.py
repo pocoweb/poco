@@ -37,6 +37,7 @@ def fix_raw_logs(connection, site_id):
     c_raw_logs = getSiteDBCollection(connection, site_id, "raw_logs")
     c_raw_logs.drop_indexes()
     c_raw_logs.ensure_index("created_on", -1, background=True, unique=False)
+    c_raw_logs.ensure_index("created_on", 1, background=True, unique=False)
 
 
 def fix_statistics(connection, site_id):

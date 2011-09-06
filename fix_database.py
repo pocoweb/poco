@@ -150,3 +150,4 @@ for site in sites.find():
             raw_log["uniq_order_id"] = str(uuid.uuid4())
         c_raw_logs.save(raw_log)
     c_raw_logs.ensure_index("created_on", -1, background=True, unique=False)
+    c_raw_logs.ensure_index("created_on", 1, background=True, unique=False)
