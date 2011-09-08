@@ -1,10 +1,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html lang="en">
+<html lang="en" class="dashboard">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <!-- Framework CSS --> 
 <link rel="stylesheet" href="static/blueprint/screen.css" type="text/css" media="screen, projection"> 
-<link rel="stylesheet" href="static/blueprint/print.css" type="text/css" media="print"> 
+<link rel="stylesheet" href="static/blueprint/print.css?4392429048" type="text/css" media="print"> 
 <!--[if lt IE 8]><link rel="stylesheet" href="static/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
 <link rel="stylesheet" href="{{STATIC_URL}}style.css" type="text/css" media="screen, projection"> 
 
@@ -14,112 +14,16 @@
 <style>
 {% block style %} {% endblock %}
 </style>
-<style type="text/css">
-html,body{height:100%;width:100%;}
-* html #wrapper{height:100%}
-#wrapper{
-  min-height:100%;
-  min-width:950px;
-}
-
-#header{
-  height:60px;background:#43566C;
-}
-
-#out-content{
-  height:1%;
-  width:auto;
-  min-height: 700px;
-}
-
-#out-content:after {
-  clear: both;
-  display: block;
-  height: 0;
-  visibility: hidden;
-}
-
-#chart-content {
- margin-left:250px;
- margin-right:30px;
-}
-
-#chart-menu {
-  float:left;
-  margin-right:-230px;
-  background-color:#fff;
-  width:220px;
-  border-left: 1px solid #9b8748;
-  border-right: 1px solid #9b8748;
-}
-
-
-#chart-menu ul{
-list-style:none;
-padding: 0;
-margin:0;
-}
-
-#chart-menu li {
-margin:0;
-padding:0;
-}
-
-#chart-menu li.menu-title {
-  border-bottom: 1px solid #9b8748;
-  border-top: 1px solid #9b8748;
-  background-color:#D1E5EE;
-  padding: 4px 8px;
-}
-
-#chart-menu li a{
-display: block;
-padding: 4px 8px 4px 20px;
-color: #333;
-text-decoration: none;
-border-bottom: none;
-}
-
-#chart-menu li a:hover{
-color: #444;
-background-color:#EAF2FA;
-}
-
-#chart-menu li a.chart-menu-selected {
-  color: #111;
-  font-weight:bold;
-}
-
-#dashboard-nav{
-  margin-top:12px;
-  font-size: 12px;
-  padding: 7px 0 1px 12px;
-  float:left;
-  color: #fff;
-}
-#dashboard-nav a{
-  color: #fff;
-}
-
-#footer{
-  height:30px;margin:-30px auto 0;
-  background:#43566C;
-  padding: 0;
-  color: #fff;
-  background-color:#7798BF;
-}
-
-</style>
 <title>{{page_name}} | Dashboard</title>
 {% block head %}
 {% endblock %}
 </head>
 <body class="dashboard">
 <div id="wrapper">
-  <div id="header">
-    <div id="header-logo" class="span-4">
-        <a href="/" ><img src="{{STATIC_URL}}images/logo-white.png" alt="推荐宝"></a>
-     </div>
+  <div id="dashboard-header">
+    <div id="dashboard-header-logo" class="span-4">
+      <a href="/"><div id="dashboard-header-logo-link" class=""></div></a>
+    </div>
      <div id="dashboard-nav">
        &nbsp;&nbsp;&nbsp;
        &nbsp;&nbsp;&nbsp;
@@ -154,7 +58,7 @@ background-color:#EAF2FA;
     {% block content-area %}{% endblock content-area %}
   </div>
 </div>
-<div id="footer">
+<div id="dashboard-footer">
   <center>Copyright &copy; 2011 推荐宝 &trade;</center>
 </div>
 <!--

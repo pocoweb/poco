@@ -38,9 +38,8 @@ Highcharts.theme = {
 
    },
    
-//   colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
-   colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", 
-      "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
+   colors: ['#005BC8', '#54B428', '#B7461C', '#FF9655', '#54B428', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+//   colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
  
    credits: {
       href: "http://tuijianbao.net",
@@ -76,6 +75,9 @@ Highcharts.theme = {
       }
    },
    plotOptions: {
+      area: {
+         fillOpacity: .25 
+      },
       areaspline: {
          marker: {
             enabled: false,
@@ -402,11 +404,13 @@ function renderChart_rec(site_id, data, action_name) {
                       "name": "汇总",
                       "data": [
                         {name: "非推荐PV",
-                        y: sum_pv_v_wo
+                        y: sum_pv_v_wo,
+                        color: '#005BC8'
                         //color: highchartsOptions.colors[0]
                         },
                         {name: "推荐点击PV",
-                        y: sum_clickrec
+                        y: sum_clickrec,
+                        color: '#54B428'
                         //color: highchartsOptions.colors[1]
                         }
                       ],
@@ -587,12 +591,12 @@ function renderChart_total_sales(site_id, data, action_name) {
                       "name": "汇总",
                       "data": [
                         {name: "非推荐销售金额",
-                        y: sum_total_sales_without_rec
-                        //color: highchartsOptions.colors[0]
+                        y: sum_total_sales_without_rec,
+                        color: '#005BC8'
                         },
                         {name: "推荐销售金额",
-                        y: sum_total_sales_rec_delta
-                        //color: highchartsOptions.colors[1]
+                        y: sum_total_sales_rec_delta,
+                        color: '#54B428'
                         }
                       ],
                       center: [30, 30],
@@ -907,33 +911,6 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 {% endblock %}
 
 {% block content-area %}
-<style>
-#content-box {
- float: right;
- width: 100%;
-}
-#sidebar {
- float: left;
- background:#f6f6f6;
- margin-right:-200px;
- width:200px;
-}
-#content-box {
- float: right;
- width: 100%;
-}
-
-</style> 
-<!--
-<div id="out-content">
-	<div id="content-box">
-		<div id="content">11111</div>
-
-	</div>
-	<div id="sidebar">fdafdafas</div>
-</div>
--->
-
 <div id="content-box">
   <div id="chart-content">
       <div>
