@@ -17,18 +17,18 @@
 <script type="text/javascript">
 Highcharts.theme = {
    chart: {
-      margin: [50, 55, 60, 55],
-      backgroundColor: {
-         linearGradient: [0, 0, 500, 500],
-         stops: [
-            [0, 'rgb(240, 240, 255)'],
-            [1, 'rgb(255, 255, 255)']
-         ]
-      },
-      borderWidth: 1,
-      plotBackgroundColor: 'rgba(255, 255, 255, .9)',
-      plotShadow: true,
-      plotBorderWidth: 1,
+      margin: [50, 80, 60, 80],
+      //backgroundColor: {
+      //   linearGradient: [0, 0, 500, 500],
+      //   stops: [
+      //      [0, 'rgb(240, 240, 255)'],
+      //      [1, 'rgb(255, 255, 255)']
+      //   ]
+      //},
+      //borderWidth: 1,
+      //plotBackgroundColor: 'rgba(255, 255, 255, .9)',
+      //plotShadow: true,
+      //plotBorderWidth: 1,
       events: {
        redraw: function() {
           $(".rec_weekend_shadow").remove();
@@ -44,7 +44,10 @@ Highcharts.theme = {
  
    credits: {
       href: "http://tuijianbao.net",
-      text: "推荐宝"
+      text: "推荐宝",
+      style: {
+           color: '#ccc'
+      }
    },
 
    labels: {
@@ -238,14 +241,14 @@ function renderChart_1(site_id, data, action_name) {
 
         series: [{"name": "商品PV",
                   "data": data.pv_v,
-                  "type": "areaspline",
+                  "type": "area",
                   "dataLabels": {
                     enabled: false
                     }
                   },
                  {"name": "商品UV",
                   "data": data.uv_v,
-                  "type": "areaspline",
+                  "type": "area",
                   "dataLabels": {
                     enabled: false
                     }
