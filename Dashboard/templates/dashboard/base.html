@@ -31,6 +31,9 @@
        &nbsp;&nbsp;&nbsp;
      <a href="/dashboard">控制台首页</a>
        &nbsp;&nbsp;&nbsp;
+
+	{% if not item_id %}
+
         <select id="site_selector">
         {% for site in sites %}
             {% if site.site_id == site_id %}
@@ -43,7 +46,11 @@
         
        &nbsp;&nbsp;&nbsp;
         收录商品数：<span id="items-count">载入数据...</span>
+	
        &nbsp;&nbsp;&nbsp;
+
+       {% endif %}
+
         <a id="site_items_list_link" href="/site_items_list?site_id={{site_id}}">查看商品列表</a>
        &nbsp;&nbsp;&nbsp;
         <a id="update_category_groups_link" href="/update_category_groups?site_id={{site_id}}">编辑商品分类组别</a>
