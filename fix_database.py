@@ -140,7 +140,12 @@ sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     c_raw_logs = getSiteDBCollection(connection, site["site_id"], "raw_logs")
+    total_raw_logs = c_raw_logs.count()
+    count = 0
     for raw_log in c_raw_logs.find():
+        count += 1
+        if count % 2000 == 0:
+            print "%s/%s" % (count, total_raw_logs)
         if raw_log.has_key("timestamp"):
             if isinstance(raw_log["timestamp"], float):
                 raw_log["timestamp"] = datetime.datetime.fromtimestamp(raw_log["timestamp"])
