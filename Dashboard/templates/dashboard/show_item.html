@@ -90,7 +90,10 @@
 </script>
 <ul>
     <li>商品名称：<a href="{{item.item_link}}">{{item.item_name}}</a></li>
-    <li>商品价格：{{item.price}}</li>
+    <li>市场价：{{item.market_price}}</li>
+    <li>折扣价：{{item.price}}</li>
+    <li>分类：{% for cat in item.categories %} {{cat}} {% endfor %}</li>
+    <li>图片：<img src="{{item.image_link}}" style="height:96px"></img></li>
 </ul>
 
 <h3>看了本商品的顾客还看了：</h3>
