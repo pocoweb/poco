@@ -94,13 +94,13 @@ ul.date-menu li {
   float: left;
   list-style: none outside none;
   padding-left: 3em;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   margin-top: 18px;
 }
 
 ul.date-menu li a{
-  padding:8px;
+  padding:5px;
   text-decoration:none;
   color:#2D2A29;
   background-color: #aaa;
