@@ -27,14 +27,14 @@ mongo_client = MongoClient(getConnection())
 
 def getSiteStatistics(site_id, days=45):
     c_statistics = getSiteDBCollection(mongo_client.connection, site_id, "statistics")
-    today_date = datetime.date.today()
-    today_str = today_date.strftime("%Y-%m-%d")
-    the_date = today_date - datetime.timedelta(days)
-    the_date_str = the_date.strftime("%Y-%m-%d")
-    rows = c_statistics.find({"date" : {"$gte" : the_date_str, "$lte": today_str}}).sort("date",pymongo.ASCENDING)
+    to_date = datetime.date.today() - datetime.timedelta(1)
+    to_date_str = to_date.strftime("%Y-%m-%d")
+    from_date = to_date - datetime.timedelta(days)
+    from_date_str = from_date.strftime("%Y-%m-%d")
+    rows = c_statistics.find({"date" : {"$gte" : from_date_str, "$lte": to_date_str}}).sort("date",pymongo.ASCENDING)
     result = {}
     for day_delta in range(days, -1, -1):
-        the_date = today_date - datetime.timedelta(days=day_delta)
+        the_date = to_date - datetime.timedelta(days=day_delta)
         the_date_str = the_date.strftime("%Y-%m-%d")
         row = {"date": the_date_str, "is_available": False}
         result[the_date_str] = row
@@ -265,7 +265,9 @@ def ajax_get_site_statistics(request):
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
                        "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
-        date_str = (datetime.date.today() - datetime.timedelta(days=timespan)).strftime("%Y-%m-%d") + " 至 " + datetime.date.today().strftime("%Y-%m-%d")
+        to_date = datetime.date.today() - datetime.timedelta(days=1)
+        from_date = to_date - datetime.timedelta(days=timespan)
+        date_str = from_date.strftime("%Y-%m-%d") + " 至 " + to_date.strftime("%Y-%m-%d")
         result["append"] = {"date_space": date_str}
         return HttpResponse(json.dumps(result))
     else:
@@ -485,3 +487,4 @@ def _getCurrentUser(request):
     else:
         return None
 
+    
