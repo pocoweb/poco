@@ -450,7 +450,8 @@ viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 def createCalculationRecord(site_id):
     calculation_id = str(uuid.uuid4())
-    record = {"calculation_id": calculation_id, "begin_timestamp": time.time(), "flows": {}}
+    record = {"calculation_id": calculation_id, "begin_datetime": datetime.datetime.now(), 
+              "flows": {}}
     calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
     calculation_records.save(record)
     return calculation_id
@@ -476,7 +477,7 @@ def writeFailedJob(site_id, flow_name, failed_job_name):
 def writeFlowBegin(site_id, flow_name):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
     logging.info("FlowBegin: RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
-    record["flows"][flow_name] = {"begin_timestamp": time.time()}
+    record["flows"][flow_name] = {"begin_datetime": datetime.datetime.now()}
     updateCalculationRecord(SITE_ID, record)
 
 
@@ -484,7 +485,7 @@ def writeFlowEnd(site_id, flow_name, is_successful, is_skipped, err_msg = None):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
     logging.info("FlowEnd: RECORD:%s, CALCULATION_ID:%s" % (record, CALCULATION_ID))
     flow_record = record["flows"][flow_name] 
-    flow_record["end_timestamp"] = time.time()
+    flow_record["end_datetime"] = datetime.datetime.now()
     flow_record["is_successful"] = is_successful
     flow_record["is_skipped"] = is_skipped
     if not is_successful:
@@ -494,26 +495,11 @@ def writeFlowEnd(site_id, flow_name, is_successful, is_skipped, err_msg = None):
 
 def writeCalculationEnd(site_id, is_successful, err_msg = None):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
-    record["end_timestamp"] = time.time()
+    record["end_datetime"] = datetime.datetime.now()
     record["is_successful"] = is_successful
     if not is_successful:
         record["err_msg"] = err_msg
     updateCalculationRecord(SITE_ID, record)
-
-
-# format:
-#     {"event": "BEGIN_CALC", "timestamp": <timestamp>, "calculation_id": <calculation_id>}
-#     {"event": "BEGIN_FLOW", "timestamp": <timestamp>, "flow_name": "", "calculation_id": <calculation_id>}
-#     {"event": "BEGIN_JOB",  "timestamp": <timestamp>, "job_name": "", "calculation_id": <calculation_id>}
-#     {"event": "END_JOB",    "timestamp": <timestamp>, "job_name": "", "is_successful": <true or false>, "calculation_id": <calculation_id>}
-#     {"event": "END_FLOW", "timestamp": <timestamp>, "flow_name": "", "calculation_id": <calculation_id>, "is_successful": <true or false>, , "is_skipped": <True or False>}
-#     {"event": "END_CALC", "timestamp": <timestamp>, "calculation_id": <calculation_id>, "is_successful": <true or false>, "reason": ""}
-#     "timestamp" and calculation_id are automatically added by this function.
-def writeCalculationLog(site_id, content):
-    calculation_logs = getSiteDBCollection(connection, site_id, "calculation_logs")
-    content["timestamp"] = time.time()
-    content["calculation_id"] = CALCULATION_ID
-    calculation_logs.insert(content)
 
 
 def getManualCalculationSites():

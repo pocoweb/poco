@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, "../")
 import re
 import os.path
-import time
+import datetime
 import random
 import hashlib
 from django.shortcuts import render_to_response
@@ -13,7 +13,7 @@ from django.template import RequestContext
 import pymongo
 import simplejson as json
 from common.utils import getSiteDBCollection
-from common.utils import convertSecondsAsHoursMinutesSeconds
+from common.utils import convertTimedeltaAsDaysHoursMinutesSeconds
 
 from ApiServer.mongo_client import MongoClient
 
@@ -26,6 +26,7 @@ def getConnection():
 
 mongo_client = MongoClient(getConnection())
 
+
 def getSiteInfos():
     connection = mongo_client.connection
     sites = mongo_client.loadSites()
@@ -35,40 +36,35 @@ def getSiteInfos():
                "disabledFlows": site.get("disabledFlows", [])}
         calculation_records = getSiteDBCollection(connection, site["site_id"], 
                                     "calculation_records")
-        records = [row for row in calculation_records.find().sort("begin_timestamp", -1).limit(1)]
+        records = [row for row in calculation_records.find().sort("begin_datetime", -1).limit(1)]
         if records == []:
             sci["status"] = "NEVER_CALC"
         else:
+            now = datetime.datetime.now()
             record = records[0]
             sci["last_calculation_id"] = record["calculation_id"]
-            if record.has_key("end_timestamp"):
+            if record.has_key("end_datetime"):
                 if record["is_successful"]:
                     sci["status"] = "SUCCESSFUL"
-                    sci["since_last"] = convertSecondsAsHoursMinutesSeconds(time.time() - record["end_timestamp"])
-                    sci["time_spent"] = convertSecondsAsHoursMinutesSeconds(record["end_timestamp"] - record["begin_timestamp"])
-                    est_next_run = max(record["end_timestamp"] + site["calc_interval"] - time.time(), 0)
-                    if est_next_run == 0:
-                        sci["est_next_run"] = "as soon as possible"
-                    else:
-                        sci["est_next_run"] = convertSecondsAsHoursMinutesSeconds(est_next_run)
                 else:
                     sci["status"] = "FAILED"
-                    sci["since_last"] = convertSecondsAsHoursMinutesSeconds(time.time() - record["end_timestamp"])
-                    sci["time_spent"] = convertSecondsAsHoursMinutesSeconds(record["end_timestamp"] - record["begin_timestamp"])
-                    est_next_run = max(record["end_timestamp"] + site["calc_interval"] - time.time(), 0)
-                    if est_next_run == 0:
-                        sci["est_next_run"] = "as soon as possible"
-                    else:
-                        sci["est_next_run"] = convertSecondsAsHoursMinutesSeconds(est_next_run)
+                sci["since_last"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - record["end_datetime"])
+                sci["time_spent"] = convertTimedeltaAsDaysHoursMinutesSeconds(record["end_datetime"] - record["begin_datetime"])
+                est_next_run = max(record["end_datetime"] + datetime.timedelta(seconds=site["calc_interval"]) - now, 
+                                   datetime.timedelta(seconds=0))
+                if est_next_run == datetime.timedelta(seconds=0):
+                    sci["est_next_run"] = "as soon as possible"
+                else:
+                    sci["est_next_run"] = convertTimedeltaAsDaysHoursMinutesSeconds(est_next_run)
             else:
                 sci["status"] = "RUNNING"
-                sci["time_spent"] = convertSecondsAsHoursMinutesSeconds(time.time() - record["begin_timestamp"])
+                sci["time_spent"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - record["begin_datetime"])
 
         manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
         manual_calculation_request = manual_calculation_list.find_one({"site_id": site["site_id"]})
         if manual_calculation_request is not None:
-            request_timestamp = manual_calculation_request["request_timestamp"]
-            sci["request_waiting_time"] = convertSecondsAsHoursMinutesSeconds(time.time() - request_timestamp)
+            request_datetime = manual_calculation_request["request_datetime"]
+            sci["request_waiting_time"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - request_datetime)
 
         c_items = getSiteDBCollection(connection, site["site_id"], "items")
         sci["items_count"] = c_items.find().count()
@@ -82,9 +78,8 @@ def scheduleCalculation(site_id):
     connection = mongo_client.connection
     c_manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
     record_in_db = c_manual_calculation_list.find_one({"site_id": site_id})
-    print "RID:", record_in_db
     if record_in_db is None:
-        c_manual_calculation_list.insert({"site_id": site_id, "request_timestamp": time.time()})
+        c_manual_calculation_list.insert({"site_id": site_id, "request_datetime": datetime.datetime.now()})
 
 
 # Following are view functions(or callables)

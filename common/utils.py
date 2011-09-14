@@ -99,6 +99,15 @@ def convertSecondsAsHoursMinutesSeconds(seconds):
     return result_str
 
 
+def convertTimedeltaAsDaysHoursMinutesSeconds(timedelta):
+    if timedelta.days > 0:
+        result_str = "%s days " % timedelta.days
+    else:
+        result_str = ""
+    result_str += convertSecondsAsHoursMinutesSeconds(timedelta.seconds)
+    return result_str
+
+
 import urllib
 import httplib
 import re

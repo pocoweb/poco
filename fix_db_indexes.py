@@ -57,7 +57,8 @@ def fix_calculation_records(connection, site_id):
     c_calculation_records = getSiteDBCollection(connection, site_id, 
             "calculation_records")
     c_calculation_records.drop_indexes()
-    c_calculation_records.ensure_index("begin_timestamp", -1, background=True, unique=False)
+    c_calculation_records.ensure_index("begin_datetime", -1, background=True, unique=False)
+    c_calculation_records.ensure_index("end_datetime", -1, background=True, unique=False)
 
 
 def fix_tjb_db(connection):
