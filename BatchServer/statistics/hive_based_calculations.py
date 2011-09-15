@@ -16,7 +16,9 @@ from thrift.protocol import TBinaryProtocol
 from common.utils import getSiteDBCollection
 from common.utils import smart_split
 
-logger = logging.getLogger("HiveBased")
+def getLogger():
+    return logging.getLogger("HiveBased")
+
 
 def getCalendarInfo(timestamp):
     try:
@@ -46,9 +48,9 @@ def output_a_row(out_f, output):
 
 def log_function(function):
     def wrapped_function(*arg, **kws):
-        logger.info("HIVE_START %s" % function.__name__)
+        getLogger().info("HIVE_START %s" % function.__name__)
         result = function(*arg, **kws)
-        logger.info("HIVE_END %s" % function.__name__)
+        getLogger().info("HIVE_END %s" % function.__name__)
     return wrapped_function
 
 

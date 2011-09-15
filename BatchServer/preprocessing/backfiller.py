@@ -5,7 +5,6 @@ from common import utils
 import simplejson as json
 
 
-logger = logging.getLogger("Backfiller")
 
 
 
@@ -45,6 +44,7 @@ class BackFiller:
     # We use find(timeout=False) here and use "del cursor" to close it.
     # see http://stackoverflow.com/questions/5392318/how-to-close-cursor-in-mongokit
     def start(self):
+        logger = logging.getLogger("Backfiller")
         self.f_output = open(self.output_file_path, "w")
         latest_ts_this_time = None
         is_old_region = False
