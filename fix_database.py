@@ -158,7 +158,6 @@ if False:
         c_raw_logs.ensure_index("created_on", -1, background=True, unique=False)
         c_raw_logs.ensure_index("created_on", 1, background=True, unique=False)
 
-# TODO: drop index of timestamp of c_raw_logs
 
 print "convert begin_timestamp and end_timestamp to begin_datetime and end_datetime"
 sites = connection["tjb-db"]["sites"]
