@@ -85,22 +85,23 @@ a.login-white-link {
 
 /* For Dashboard */
 ul.date-menu {
-  float:right;
+  float:left;
   margin:0;
   padding:0;
+  padding-left: 50px;
 }
 ul.date-menu li {
   display: block;
   float: left;
   list-style: none outside none;
-  padding-left: 3em;
-  font-size: 13px;
+  padding-left: 20px;
+  font-size: 12px;
   font-weight: bold;
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 ul.date-menu li a{
-  padding:5px;
+  padding:3px;
   text-decoration:none;
   color:#2D2A29;
   background-color: #aaa;
@@ -117,12 +118,16 @@ ul.date-menu li a.date-selected {
   color: #111;
   background: #AAD2E8;
 }
-/*
-#chart-menu {float:left;width:20%;}
-#chart-container{float:right;width:71%}
 
-#footer{height:50px;margin:-50px auto 0;background:#999999;}
-*/
+#date-space {
+  float:left;
+  margin: 9px 0 0 40px;
+}
+
+#chart-1 {
+  float:left;
+  width: 100%;
+}
 
 * html #wrapper{height:100%}
 #wrapper{
