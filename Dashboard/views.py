@@ -25,12 +25,22 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=45):
+def getSiteStatistics(site_id, from_date_str, to_date_str):
     c_statistics = getSiteDBCollection(mongo_client.connection, site_id, "statistics")
-    to_date = datetime.date.today() - datetime.timedelta(1)
-    to_date_str = to_date.strftime("%Y-%m-%d")
-    from_date = to_date - datetime.timedelta(days)
-    from_date_str = from_date.strftime("%Y-%m-%d")
+    #to_date = datetime.date.today() - datetime.timedelta(1)
+    #to_date_str = to_date.strftime("%Y-%m-%d")
+    year,month,day=from_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    from_date = datetime.datetime(year, month, day)
+    year,month,day=to_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    to_date = datetime.datetime(year, month, day)
+    days = (to_date-from_date).days
+    #from_date_str = from_date.strftime("%Y-%m-%d")
     rows = c_statistics.find({"date" : {"$gte" : from_date_str, "$lte": to_date_str}}).sort("date",pymongo.ASCENDING)
     result = {}
     for day_delta in range(days, -1, -1):
@@ -163,12 +173,18 @@ def dashboard(request):
     chart = request.GET.get("chart", "1")
     type = request.GET.get("type", None)
     chart_menu_id = "chart" + "_" + chart + "_"
+    to_date = datetime.date.today() - datetime.timedelta(1)
+    to_date_str = to_date.strftime("%Y-%m-%d")
+    from_date = to_date - datetime.timedelta(30)
+    from_date_str = from_date.strftime("%Y-%m-%d")
+
     if type != None:
         chart_menu_id += type
     return render_to_response("dashboard/index.html", 
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              "user": getUser(user_name),
              "chart": chart, "type":type, "chart_menu_id": chart_menu_id,
+             "to_date_str": to_date_str, "from_date_str": from_date_str,
              "site_id": current_site_id
              },
             context_instance=RequestContext(request))
@@ -255,24 +271,22 @@ def _prepareCharts(user, timespan, statistics):
 @login_required
 def ajax_get_site_statistics(request):
     site_id = request.GET.get("site_id", None)
-    timespan = int(request.GET.get("timespan", None))
+    from_date_str = request.GET.get("from_date_str", None)
+    to_date_str = request.GET.get("to_date_str", None)
     user_name = request.session["user_name"]
     user_site_ids = _getUserSiteIds(user_name)
     user = getUser(user_name)
+    timespan = ""
     if site_id in user_site_ids:
         result = {"code": 0}
         connection = mongo_client.connection
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
-                       "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
+                       "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, from_date_str, to_date_str))}
         to_date = datetime.date.today() - datetime.timedelta(days=1)
-        from_date = to_date - datetime.timedelta(days=timespan)
-        date_str = from_date.strftime("%Y-%m-%d") + " 至 " + to_date.strftime("%Y-%m-%d")
-        result["append"] = {"date_space": date_str}
         return HttpResponse(json.dumps(result))
     else:
         return HttpResponse(json.dumps({"code": 1}))
-
 
 
 # TODO: let's use ranged query later.  as described here: http://stackoverflow.com/questions/5049992/mongodb-paging
@@ -362,7 +376,7 @@ def show_item(request):
          "site": site,
          "site_id": site_id,
          "item": item_in_db, "user_name": request.session["user_name"], 
-	 "item_id": item_id,
+     "item_id": item_id,
          "getAlsoViewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
          "getAlsoBought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
          "getBoughtTogether": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),

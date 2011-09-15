@@ -11,7 +11,6 @@
 
 {% block head %}
 
-
 <script src="{{STATIC_URL}}highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
 
 <script type="text/javascript">
@@ -844,14 +843,12 @@ function renderChart_rec_by_type(site_id, data, action_name) {
         }catch(err){}
     };
 
-    function updateSiteStatistics(site_id, timespan) {
+    function updateSiteStatistics(site_id, from_date_str, to_date_str) {
         $("#chart-1").html("<center style='margin-top:3em'>载入数据 ... </center>");
-        $("#date-space").html("载入日期...");
-        $.getJSON("/ajax/get_site_statistics", {site_id: site_id, timespan: timespan},
+        $.getJSON("/ajax/get_site_statistics", {site_id: site_id, from_date_str: from_date_str, to_date_str: to_date_str},
                 function(data, textStatus, jqXHR) {
                     if (data.code == 0) {
                         if (data.site.items_count > 0) {
-                            $("#date-space").html(data.append.date_space);
                             var site_data = data.site;
                             $("#items-count").html(site_data["items_count"]);
                             fillCharts(site_data.site_id, site_data.statistics);
@@ -867,45 +864,87 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 
     function reload_chart()
     {
-        var timespan = $("#timespan_selector").val();
         var site_id = $("#site_selector").val();
-        updateSiteStatistics(site_id, timespan);
+        updateSiteStatistics(site_id, $("#from_date").val(), $("#to_date").val());
     }
 
     function on_selectors_change() {
         var site_id = $("#site_selector").val();
-        //window.location.href = "?site={{site_id}}";
-        //var site_id = $("#site_selector").val();
-        //var timespan = $("#timespan_selector").val();
-        //updateSiteStatistics(site_id, timespan);
-        //$("#site_items_list_link").attr("href", "/site_items_list?site_id=" + site_id);
-        //$("#update_category_groups_link").attr("href", 
-        //                "/update_category_groups?site_id=" + site_id);
     }
+Date.prototype.format = function(format)
+{
+    var o =
+    {
+        "M+" : this.getMonth()+1, //month
+        "d+" : this.getDate(),    //day
+        "h+" : this.getHours(),   //hour
+        "m+" : this.getMinutes(), //minute
+        "s+" : this.getSeconds(), //second
+        "q+" : Math.floor((this.getMonth()+3)/3),  //quarter
+        "S" : this.getMilliseconds() //millisecond
+    }
+    if(/(y+)/.test(format))
+    format=format.replace(RegExp.$1,(this.getFullYear()+"").substr(4 - RegExp.$1.length));
+    for(var k in o)
+    if(new RegExp("("+ k +")").test(format))
+    format = format.replace(RegExp.$1,RegExp.$1.length==1 ? o[k] : ("00"+ o[k]).substr((""+ o[k]).length));
+    return format;
+}
+
 </script>
 
 <script type="text/javascript">
-    $(document).ready(function() {
-        $("#site_selector").change(function() {
-            window.location.href = "?site_id="+this.value;
-        });
-        //$("#timespan_selector").change(function() {
-        //    on_selectors_change();
-        //});
-        $("#refresh_chart").click(function() {
-            reload_chart();
-        });
-        $(".date-link").click(function() {
-            var timespan_list = $(this).attr("id").split("_");
-            $("#timespan_selector").val(timespan_list[1]);
-            $(".date-selected").removeClass("date-selected");
-            $(this).addClass("date-selected");
-            reload_chart();
-        });
-        $("#{{chart_menu_id}}").addClass("chart-menu-selected");
-        $(".date-selected").removeClass("date-selected");
-        $("#date-link_"+$("#timespan_selector").val()).addClass("date-selected");
-        reload_chart();
+  $(document).ready(function(){
+      $.datepicker.setDefaults( $.datepicker.regional[ "" ] );
+      var dates = $('#from_date,#to_date').datepicker({
+      dateFormat:"yy-mm-dd",
+      minDate: -100, 
+      maxDate: "-1D",
+      showOtherMonths: true,
+      selectOtherMonths: true,
+      changeMonth: true,
+      numberOfMonths: 3,
+			onSelect: function( selectedDate ) {
+				var option = this.id == "from_date" ? "minDate" : "maxDate",
+					instance = $( this ).data( "datepicker" ),
+					date = $.datepicker.parseDate(
+						instance.settings.dateFormat ||
+						$.datepicker._defaults.dateFormat,
+            selectedDate, instance.settings );
+            console.log(date);
+            console.log(option);
+				    dates.not( this ).datepicker( "option", option, date );
+			    }
+      });
+      $( "#from_date,#to_date" ).datepicker("option", $.datepicker.regional[ "zh-CN" ] );
+
+      $("#submit").click(function(){
+          $(".date-selected").removeClass("date-selected");
+          reload_chart();
+      });
+      $("#site_selector").change(function() {
+          window.location.href = "?site_id="+this.value;
+      });
+      $("#refresh_chart").click(function() {
+          reload_chart();
+      });
+      $(".date-link").click(function() {
+          var timespan_list = $(this).attr("id").split("_");
+          $("#timespan_selector").val(timespan_list[1]);
+          $(".date-selected").removeClass("date-selected");
+          $(this).addClass("date-selected");
+          var from_date = new Date();
+          var to_date = new Date();
+          from_date.setDate(to_date.getDate() - timespan_list[1]-1);
+          to_date.setDate(to_date.getDate() - 1);
+          $("#from_date").val(from_date.format('yyyy-MM-dd'));
+          $("#to_date").val(to_date.format('yyyy-MM-dd'));
+          reload_chart();
+      });
+      $("#{{chart_menu_id}}").addClass("chart-menu-selected");
+      $(".date-selected").removeClass("date-selected");
+      $("#date-link_"+$("#timespan_selector").val()).addClass("date-selected");
+      reload_chart();
     });
 </script>
 {% endblock %}
@@ -913,17 +952,18 @@ function renderChart_rec_by_type(site_id, data, action_name) {
 {% block content-area %}
 <div id="content-box">
   <div id="chart-content">
-      <div>
-        <span id="date-space"></span>
+     <div>
          <ul class="date-menu print-hide">
            <li><a href="#" id="date-link_15" class="date-link">15天</a></li>
            <li><a href="#" id="date-link_30" class="date-link date-selected">30天</a></li>
            <li><a href="#" id="date-link_60" class="date-link">60天</a></li>
            <li><a href="#" id="date-link_90" class="date-link">90天</a></li>
          </ul>
+  <span id="date-space">
+        <input type="text" name="from_date" id="from_date" value="{{from_date_str}}" readonly="readonly" />至
+      <input type="text" name="to_date" id="to_date" value="{{to_date_str}}" readonly="readonly" />
+         <input type="button" name="submit" id="submit" value="确定" /></span>
        </div>
-       <br />
-       <br />
        <div id="chart-1"></div>
    </div>
 </div>
