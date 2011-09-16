@@ -76,7 +76,8 @@ Highcharts.theme = {
    },
    plotOptions: {
       area: {
-         fillOpacity: .25 
+         fillOpacity: .20,
+         lineWidth: 3 
       },
       areaspline: {
          marker: {
@@ -93,6 +94,9 @@ Highcharts.theme = {
       column: {
         borderWidth: 1,
         groupPadding: 0
+      },
+      line: {
+        lineWidth: 1
       }
    },
    subtitle: {
@@ -138,7 +142,7 @@ Highcharts.theme = {
       }
    },
    yAxis: {
-      minorTickInterval: 'auto',
+      //minorTickInterval: 'auto',
       lineColor: '#000',
       lineWidth: 1,
       tickWidth: 1,
