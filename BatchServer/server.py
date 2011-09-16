@@ -16,24 +16,48 @@ from common.utils import getSiteDBCollection
 
 sys.path.insert(0, "../")
 
-def reconfigLogging(site_id, calculation_id):
-    site_log_dir = os.path.join(settings.log_dir, site_id)
-    if not os.path.isdir(site_log_dir):
-        os.makedirs(site_log_dir)
-    formatted_date_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file_name = "%s_%s.log" % (formatted_date_time, calculation_id)
-    log_file_path = os.path.join(site_log_dir, log_file_name)
+class LoggingManager:
+    def __init__(self):
+        self.h_console = None
+        self.h_file = None
+        logging.getLogger('').setLevel(logging.INFO)
 
-    logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
-                        level=logging.INFO,
-                        datefmt="%Y-%m-%d %I:%M:%S",
-                        filename=log_file_path,
-                        filemode="w")
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s|" + calculation_id + "|%(levelname)s|%(name)s|%(message)s")
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+    def reconfig_h_console(self, site_id, calculation_id):
+        if self.h_console is not None:
+            self.h_console.flush()
+            logging.getLogger('').removeHandler(self.h_console)
+        self.h_console = logging.StreamHandler()
+        self.h_console.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s|" + calculation_id + "|%(levelname)s|%(name)s|%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        self.h_console.setFormatter(formatter)
+        logging.getLogger('').addHandler(self.h_console)
+
+    def getLogFilePath(self, site_id, calculation_id):
+        site_log_dir = os.path.join(settings.log_dir, site_id)
+        if not os.path.isdir(site_log_dir):
+            os.makedirs(site_log_dir)
+        formatted_date_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_name = "%s_%s.log" % (formatted_date_time, calculation_id)
+        log_file_path = os.path.join(site_log_dir, log_file_name)
+        return log_file_path
+
+    def reconfig_h_file(self, site_id, calculation_id):
+        if self.h_file is not None:
+            self.h_file.flush()
+            self.h_file.close()
+            logging.getLogger('').removeHandler(self.h_file)
+        self.h_file = logging.FileHandler(self.getLogFilePath(site_id, calculation_id))
+        self.h_file.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s|%(levelname)s|%(name)s|%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        self.h_file.setFormatter(formatter)
+        logging.getLogger('').addHandler(self.h_file)
+
+    def reconfig(self, site_id, calculation_id):
+        self.reconfig_h_console(site_id, calculation_id)
+        self.reconfig_h_file(site_id, calculation_id)
+
+
+logging_manager = LoggingManager()
 
 
 def getLogger():
@@ -568,7 +592,7 @@ def workOnSite(site, is_manual_calculation=False):
         DISABLEDFLOWS = site.get("disabledFlows", [])
         CALC_SUCC = True
         CALCULATION_ID = createCalculationRecord(SITE_ID)
-        reconfigLogging(SITE_ID, CALCULATION_ID)
+        logging_manager.reconfig(SITE_ID, CALCULATION_ID)
         BASE_WORK_DIR = getBaseWorkDir(SITE_ID, CALCULATION_ID)
         try:
             try:
