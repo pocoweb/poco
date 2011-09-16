@@ -16,24 +16,48 @@ from common.utils import getSiteDBCollection
 
 sys.path.insert(0, "../")
 
-def reconfigLogging(site_id, calculation_id):
-    site_log_dir = os.path.join(settings.log_dir, site_id)
-    if not os.path.isdir(site_log_dir):
-        os.makedirs(site_log_dir)
-    formatted_date_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file_name = "%s_%s.log" % (formatted_date_time, calculation_id)
-    log_file_path = os.path.join(site_log_dir, log_file_name)
+class LoggingManager:
+    def __init__(self):
+        self.h_console = None
+        self.h_file = None
+        logging.getLogger('').setLevel(logging.INFO)
 
-    logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
-                        level=logging.INFO,
-                        datefmt="%Y-%m-%d %I:%M:%S",
-                        filename=log_file_path,
-                        filemode="w")
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s|" + calculation_id + "|%(levelname)s|%(name)s|%(message)s")
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+    def reconfig_h_console(self, site_id, calculation_id):
+        if self.h_console is not None:
+            self.h_console.flush()
+            logging.getLogger('').removeHandler(self.h_console)
+        self.h_console = logging.StreamHandler()
+        self.h_console.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s|" + calculation_id + "|%(levelname)s|%(name)s|%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        self.h_console.setFormatter(formatter)
+        logging.getLogger('').addHandler(self.h_console)
+
+    def getLogFilePath(self, site_id, calculation_id):
+        site_log_dir = os.path.join(settings.log_dir, site_id)
+        if not os.path.isdir(site_log_dir):
+            os.makedirs(site_log_dir)
+        formatted_date_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_name = "%s_%s.log" % (formatted_date_time, calculation_id)
+        log_file_path = os.path.join(site_log_dir, log_file_name)
+        return log_file_path
+
+    def reconfig_h_file(self, site_id, calculation_id):
+        if self.h_file is not None:
+            self.h_file.flush()
+            self.h_file.close()
+            logging.getLogger('').removeHandler(self.h_file)
+        self.h_file = logging.FileHandler(self.getLogFilePath(site_id, calculation_id))
+        self.h_file.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s|%(levelname)s|%(name)s|%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        self.h_file.setFormatter(formatter)
+        logging.getLogger('').addHandler(self.h_file)
+
+    def reconfig(self, site_id, calculation_id):
+        self.reconfig_h_console(site_id, calculation_id)
+        self.reconfig_h_file(site_id, calculation_id)
+
+
+logging_manager = LoggingManager()
 
 
 def getLogger():
@@ -133,58 +157,6 @@ class PreprocessingFlow(BaseFlow):
         input_path  = self.getWorkFile("reversed_backfilled_raw_logs")
         output_path = self.getWorkFile("backfilled_raw_logs")
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
-
-
-class StatisticsFlow(BaseFlow):
-    def __init__(self):
-        BaseFlow.__init__(self, "statistics")
-        self.jobs += [self.do_behavior_date_row, self.do_count_behaviors,
-                      self.do_upload_count_behaviors,
-                      self.do_extract_behavior_date_tjbid,
-                      self.do_sort_uniq_behavior_date_tjbid,
-                      self.do_count_behavior_by_unique_visitor,
-                      self.do_upload_count_behavior_by_unique_visitor]
-
-    # Begin Count Behaviors
-    def do_behavior_date_row(self):
-        from statistics import behavior_date_row
-        input_path  = self.parent.getWorkFile("backfilled_raw_logs")
-        output_path = self.getWorkFile("behavior_date_row")
-        behavior_date_row.behavior_date_row(input_path, output_path)
-
-    def do_count_behaviors(self):
-        input_path  = self.getWorkFile("behavior_date_row")
-        output_path = self.getWorkFile("count_by_behavior_date")
-        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
-
-    def do_upload_count_behaviors(self):
-        from statistics import upload_count_behaviors
-        input_path  = self.getWorkFile("count_by_behavior_date")
-        upload_count_behaviors.upload_count_behaviors(connection, SITE_ID, input_path)
-    # End Count Behaviors
-
-    # Begin Count "behavior by unique visitor"
-    def do_extract_behavior_date_tjbid(self):
-        from statistics import extract_behavior_date_tjbid
-        input_path  = self.parent.getWorkFile("backfilled_raw_logs")
-        output_path = self.getWorkFile("behavior_date_tjbid")
-        extract_behavior_date_tjbid.extract_behavior_date_tjbid(input_path, output_path)
-
-    def do_sort_uniq_behavior_date_tjbid(self):
-        input_path  = self.getWorkFile("behavior_date_tjbid")
-        output_path = self.getWorkFile("uniq_behavior_date_tjbid")
-        self._exec_shell("sort %s | uniq | cut -f 1-2 -d , >%s" % (input_path, output_path))
-
-    def do_count_behavior_by_unique_visitor(self):
-        input_path  = self.getWorkFile("uniq_behavior_date_tjbid")
-        output_path = self.getWorkFile("unique_visit_by_behavior_date")
-        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
-
-    def do_upload_count_behavior_by_unique_visitor(self):
-        from statistics import upload_count_behaviors_by_unique_visitors
-        input_path  = self.getWorkFile("unique_visit_by_behavior_date")
-        upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
-    # End Count "behavior by unique visitor"
 
 
 class HiveBasedStatisticsFlow(BaseFlow):
@@ -445,9 +417,6 @@ begin_flow = BeginFlow()
 preprocessing_flow = PreprocessingFlow()
 preprocessing_flow.dependOn(begin_flow)
 
-statistics_flow = StatisticsFlow()
-statistics_flow.dependOn(preprocessing_flow)
-
 hive_based_statistics_flow = HiveBasedStatisticsFlow()
 hive_based_statistics_flow.dependOn(preprocessing_flow)
 
@@ -568,7 +537,7 @@ def workOnSite(site, is_manual_calculation=False):
         DISABLEDFLOWS = site.get("disabledFlows", [])
         CALC_SUCC = True
         CALCULATION_ID = createCalculationRecord(SITE_ID)
-        reconfigLogging(SITE_ID, CALCULATION_ID)
+        logging_manager.reconfig(SITE_ID, CALCULATION_ID)
         BASE_WORK_DIR = getBaseWorkDir(SITE_ID, CALCULATION_ID)
         try:
             try:
