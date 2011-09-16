@@ -373,6 +373,58 @@ def calc_avg_item_amount(site_id, connection, client):
         upload_statistics(site_id, connection, client, data)
 
 
+def _calc_pv_rec(client):
+    client.execute("SELECT date_str, 'Rec', COUNT(*) "
+                   "FROM recommendation_logs "
+                   "GROUP BY date_str ")
+    return [row for row in yieldClientResults(client)]
+
+def _calc_pv_v_pv_clickrec(client):
+    client.execute("SELECT date_str, behavior, COUNT(*) "
+                   "FROM backfilled_raw_logs brl "
+                   "WHERE behavior='V' OR behavior='ClickRec'"
+                   "GROUP BY date_str, behavior ")
+    return [row for row in yieldClientResults(client)]
+
+def _calc_pv_plo(client):
+    client.execute("SELECT date_str, behavior, COUNT(DISTINCT uniq_order_id) "
+                   "FROM backfilled_raw_logs brl "
+                   "WHERE behavior='PLO' "
+                   "GROUP BY date_str, behavior ")
+    return [row for row in yieldClientResults(client)]
+
+@log_function
+def calc_pvs(site_id, connection, client):
+    stat_row_by_date = {}
+    rows = _calc_pv_v_pv_clickrec(client) + _calc_pv_rec(client) + _calc_pv_plo(client)
+    for row in rows:
+        data = result_as_dict(row, ["date_str", "behavior", ("pv", int)])
+        stat_row = stat_row_by_date.setdefault(data["date_str"], 
+                            {"date_str": data["date_str"], "PV_V": 0, "PV_Rec": 0, 
+                             "PV_PLO": 0, "ClickRec": 0})
+        if data["behavior"] == "V":
+            stat_row["PV_V"] = data["pv"]
+        elif data["behavior"] == "Rec":
+            stat_row["PV_Rec"] += data["pv"]
+        elif data["behavior"] == "ClickRec":
+            stat_row["ClickRec"] = data["pv"]
+        elif data["behavior"] == "PLO":
+            stat_row["PV_PLO"] = data["pv"]
+    for stat_row in stat_row_by_date.values():
+        upload_statistics(site_id, connection, client, stat_row)
+
+
+@log_function
+def calc_uv_v(site_id, connection, client):
+    client.execute("SELECT date_str, COUNT(DISTINCT tjbid) "
+                   "FROM backfilled_raw_logs brl "
+                   "WHERE behavior='V'"
+                   "GROUP BY date_str, behavior ")
+    for row in yieldClientResults(client):
+        data = result_as_dict(row, ["date_str", ("UV_V", int)])
+        upload_statistics(site_id, connection, client, data)
+
+
 @log_function
 def calc_unique_sku(site_id, connection, client):
     client.execute("SELECT date_str, AVG(sku) AS avg_unique_sku "
@@ -448,6 +500,9 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
     load_recommendation_logs(work_dir, client)
     #load_items(connection, site_id, work_dir, client)
     #calc_daily_item_pv_coverage(client)
+
+    calc_pvs(site_id, connection, client)
+    calc_uv_v(site_id, connection, client)
 
     calc_unique_sku(site_id, connection, client)
     calc_avg_item_amount(site_id, connection, client)

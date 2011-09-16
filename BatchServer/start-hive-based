@@ -36,6 +36,7 @@ hive_based_calculations.hive_based_calculations(
         "kuaishubao",
         settings.work_dir,
         os.path.join(settings.work_dir, "backfilled_raw_logs"),
+        #"work_dir/kuaishubao/20110916_143242_d9c6d7f8-04ad-4765-9b61-e59004a1d19c/preprocessing/backfilled_raw_logs",
         hive_based_calculations.do_calculations
         #do_calculations2
         )

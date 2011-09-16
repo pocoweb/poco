@@ -159,58 +159,6 @@ class PreprocessingFlow(BaseFlow):
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
 
 
-class StatisticsFlow(BaseFlow):
-    def __init__(self):
-        BaseFlow.__init__(self, "statistics")
-        self.jobs += [self.do_behavior_date_row, self.do_count_behaviors,
-                      self.do_upload_count_behaviors,
-                      self.do_extract_behavior_date_tjbid,
-                      self.do_sort_uniq_behavior_date_tjbid,
-                      self.do_count_behavior_by_unique_visitor,
-                      self.do_upload_count_behavior_by_unique_visitor]
-
-    # Begin Count Behaviors
-    def do_behavior_date_row(self):
-        from statistics import behavior_date_row
-        input_path  = self.parent.getWorkFile("backfilled_raw_logs")
-        output_path = self.getWorkFile("behavior_date_row")
-        behavior_date_row.behavior_date_row(input_path, output_path)
-
-    def do_count_behaviors(self):
-        input_path  = self.getWorkFile("behavior_date_row")
-        output_path = self.getWorkFile("count_by_behavior_date")
-        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
-
-    def do_upload_count_behaviors(self):
-        from statistics import upload_count_behaviors
-        input_path  = self.getWorkFile("count_by_behavior_date")
-        upload_count_behaviors.upload_count_behaviors(connection, SITE_ID, input_path)
-    # End Count Behaviors
-
-    # Begin Count "behavior by unique visitor"
-    def do_extract_behavior_date_tjbid(self):
-        from statistics import extract_behavior_date_tjbid
-        input_path  = self.parent.getWorkFile("backfilled_raw_logs")
-        output_path = self.getWorkFile("behavior_date_tjbid")
-        extract_behavior_date_tjbid.extract_behavior_date_tjbid(input_path, output_path)
-
-    def do_sort_uniq_behavior_date_tjbid(self):
-        input_path  = self.getWorkFile("behavior_date_tjbid")
-        output_path = self.getWorkFile("uniq_behavior_date_tjbid")
-        self._exec_shell("sort %s | uniq | cut -f 1-2 -d , >%s" % (input_path, output_path))
-
-    def do_count_behavior_by_unique_visitor(self):
-        input_path  = self.getWorkFile("uniq_behavior_date_tjbid")
-        output_path = self.getWorkFile("unique_visit_by_behavior_date")
-        self._exec_shell("sort %s |uniq -c >%s" % (input_path, output_path))
-
-    def do_upload_count_behavior_by_unique_visitor(self):
-        from statistics import upload_count_behaviors_by_unique_visitors
-        input_path  = self.getWorkFile("unique_visit_by_behavior_date")
-        upload_count_behaviors_by_unique_visitors.upload_count_behaviors_by_unique_visitors(connection, SITE_ID, input_path)
-    # End Count "behavior by unique visitor"
-
-
 class HiveBasedStatisticsFlow(BaseFlow):
     def __init__(self):
         BaseFlow.__init__(self, "hive-based-statistics")
@@ -468,9 +416,6 @@ begin_flow = BeginFlow()
 
 preprocessing_flow = PreprocessingFlow()
 preprocessing_flow.dependOn(begin_flow)
-
-statistics_flow = StatisticsFlow()
-statistics_flow.dependOn(preprocessing_flow)
 
 hive_based_statistics_flow = HiveBasedStatisticsFlow()
 hive_based_statistics_flow.dependOn(preprocessing_flow)
