@@ -37,7 +37,8 @@ Highcharts.theme = {
 
    },
    
-   colors: ['#005BC8', '#54B428', '#B7461C', '#FF9655', '#54B428', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+   //colors: ['#005BC8', '#54B428', '#B7461C', '#FF9655', '#54B428', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+   colors: ['#058DC7', '#50b432', '#ed7e17', '#FF9655', '#50b432', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
 //   colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
  
    credits: {
@@ -408,12 +409,12 @@ function renderChart_rec(site_id, data, action_name) {
                       "data": [
                         {name: "非推荐PV",
                         y: sum_pv_v_wo,
-                        color: '#005BC8'
+                        color: '#058dc7'
                         //color: highchartsOptions.colors[0]
                         },
                         {name: "推荐点击PV",
                         y: sum_clickrec,
-                        color: '#54B428'
+                        color: '#50b432'
                         //color: highchartsOptions.colors[1]
                         }
                       ],
@@ -595,11 +596,11 @@ function renderChart_total_sales(site_id, data, action_name) {
                       "data": [
                         {name: "非推荐销售金额",
                         y: sum_total_sales_without_rec,
-                        color: '#005BC8'
+                        color: '#058dc7'
                         },
                         {name: "推荐销售金额",
                         y: sum_total_sales_rec_delta,
-                        color: '#54B428'
+                        color: '#50b432'
                         }
                       ],
                       center: [30, 30],
