@@ -159,35 +159,82 @@ if False:
         c_raw_logs.ensure_index("created_on", 1, background=True, unique=False)
 
 
-print "convert begin_timestamp and end_timestamp to begin_datetime and end_datetime"
+if False:
+    print "convert begin_timestamp and end_timestamp to begin_datetime and end_datetime"
+    sites = connection["tjb-db"]["sites"]
+    for site in sites.find():
+        print "Work on:", site["site_name"]
+        c_calculation_records = getSiteDBCollection(connection, site["site_id"], "calculation_records")
+        for cal_rec in c_calculation_records.find():
+            if cal_rec.has_key("begin_timestamp"):
+                cal_rec["begin_datetime"] = datetime.datetime.fromtimestamp(cal_rec["begin_timestamp"])
+                del cal_rec["begin_timestamp"]
+            if cal_rec.has_key("end_timestamp"):
+                cal_rec["end_datetime"] = datetime.datetime.fromtimestamp(cal_rec["end_timestamp"])
+                del cal_rec["end_timestamp"]
+            for flow in cal_rec["flows"].values():
+                if flow.has_key("begin_timestamp"):
+                    flow["begin_datetime"] = datetime.datetime.fromtimestamp(flow["begin_timestamp"])
+                    del flow["begin_timestamp"]
+                if flow.has_key("end_timestamp"):
+                    flow["end_datetime"] = datetime.datetime.fromtimestamp(flow["end_timestamp"])
+                    del flow["end_timestamp"]
+
+            c_calculation_records.save(cal_rec)
+        c_calculation_records.drop_indexes()
+        c_calculation_records.ensure_index("begin_datetime", -1, background=True, unique=False)
+        c_calculation_records.ensure_index("end_datetime", -1, background=True, unique=False)
+
+    print "fix manual_calculation_list"
+    c_manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
+    for mcl in c_manual_calculation_list.find():
+        if mcl.has_key("request_timestamp"):
+            mcl["request_datetime"] = datetime.datetime.fromtimestamp(mcl["request_timestamp"])
+            del mcl["request_timestamp"]
+            c_manual_calculation_list.save(mcl)
+
+print "remove duplicated items"
+def work_on_same_ids(last_item_id, same_ids):
+    if last_item_id <> None:
+        if len(same_ids) > 1:
+            the_false_item = None
+            the_true_item = None
+            for same_id_item in same_ids:
+                assert same_id_item["item_id"] == last_item_id
+                if same_id_item["available"] == False:
+                    the_false_item = same_id_item
+                else:
+                    the_true_item = same_id_item
+            chosen_item = None
+            if the_false_item is None:
+                print "%s: no false item, we just delete other true items" % last_item_id
+                chosen_item = the_true_item
+            else:
+                print "%s: has false item, we choose the false item" % last_item_id
+                chosen_item = the_false_item
+            c_items.remove({"item_id": last_item_id, "_id": {"$ne": chosen_item["_id"]}})
+            remaining_items = [item for item in c_items.find({"item_id": last_item_id})]
+            assert len(remaining_items) == 1, "failed %s, \n %s" % (same_ids, remaining_items)
+            assert remaining_items[0]["_id"] == chosen_item["_id"]
+
+
 sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
-    c_calculation_records = getSiteDBCollection(connection, site["site_id"], "calculation_records")
-    for cal_rec in c_calculation_records.find():
-        if cal_rec.has_key("begin_timestamp"):
-            cal_rec["begin_datetime"] = datetime.datetime.fromtimestamp(cal_rec["begin_timestamp"])
-            del cal_rec["begin_timestamp"]
-        if cal_rec.has_key("end_timestamp"):
-            cal_rec["end_datetime"] = datetime.datetime.fromtimestamp(cal_rec["end_timestamp"])
-            del cal_rec["end_timestamp"]
-        for flow in cal_rec["flows"].values():
-            if flow.has_key("begin_timestamp"):
-                flow["begin_datetime"] = datetime.datetime.fromtimestamp(flow["begin_timestamp"])
-                del flow["begin_timestamp"]
-            if flow.has_key("end_timestamp"):
-                flow["end_datetime"] = datetime.datetime.fromtimestamp(flow["end_timestamp"])
-                del flow["end_timestamp"]
+    c_items = getSiteDBCollection(connection, site["site_id"], "items")
+    last_item_id = None
+    same_ids = []
+    for item in c_items.find().sort("item_id", 1):
+        if last_item_id <> item["item_id"]:
+            work_on_same_ids(last_item_id, same_ids)
+            same_ids = []
+            last_item_id = item["item_id"]
+        same_ids.append(item)
+    work_on_same_ids(last_item_id, same_ids)
 
-        c_calculation_records.save(cal_rec)
-    c_calculation_records.drop_indexes()
-    c_calculation_records.ensure_index("begin_datetime", -1, background=True, unique=False)
-    c_calculation_records.ensure_index("end_datetime", -1, background=True, unique=False)
-
-print "fix manual_calculation_list"
-c_manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
-for mcl in c_manual_calculation_list.find():
-    if mcl.has_key("request_timestamp"):
-        mcl["request_datetime"] = datetime.datetime.fromtimestamp(mcl["request_timestamp"])
-        del mcl["request_timestamp"]
-        c_manual_calculation_list.save(mcl)
+print "make item_id index unique"
+import fix_db_indexes
+sites = connection["tjb-db"]["sites"]
+for site in sites.find():
+    print "Work on:", site["site_name"]
+    fix_db_indexes.fix_items(connection, site["site_id"])

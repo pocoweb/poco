@@ -24,7 +24,7 @@ def fix_items(connection, site_id):
     c_items = getSiteDBCollection(connection, site_id, "items")
     c_items.drop_indexes()
     c_items.ensure_index("item_name", 1, background=True, unique=False)
-    c_items.ensure_index("item_id", 1, background=True, unique=False)#, drop_dups=True)
+    c_items.ensure_index("item_id", 1, background=True, unique=True)#, drop_dups=True)
 
 
 def fix_purchasing_history(connection, site_id):
@@ -69,17 +69,18 @@ def fix_tjb_db(connection):
     connection["tjb-db"]["admin-users"].ensure_index("user_name", 1, background=True, unique=True)
 
 
-for site in connection["tjb-db"]["sites"].find():
-    site_id = site["site_id"]
-    print "Work on %s" % site_id
-    # fix sites 
-    fix_tjb_db(connection)
+if __name__ == "__main__":
+    for site in connection["tjb-db"]["sites"].find():
+        site_id = site["site_id"]
+        print "Work on %s" % site_id
+        # fix sites 
+        fix_tjb_db(connection)
 
-    # fix site related dbs.
-    fix_item_similarities_collections(connection, site_id)
-    fix_items(connection, site_id)
-    fix_purchasing_history(connection, site_id)
-    fix_raw_logs(connection, site_id)
-    fix_statistics(connection, site_id)
-    fix_viewed_ultimately_buys(connection, site_id)
-    fix_calculation_records(connection, site_id)
+        # fix site related dbs.
+        fix_item_similarities_collections(connection, site_id)
+        fix_items(connection, site_id)
+        fix_purchasing_history(connection, site_id)
+        fix_raw_logs(connection, site_id)
+        fix_statistics(connection, site_id)
+        fix_viewed_ultimately_buys(connection, site_id)
+        fix_calculation_records(connection, site_id)

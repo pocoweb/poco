@@ -225,9 +225,17 @@ class MongoClient:
 
 
     def updateItem(self, site_id, item):
-        c_items = getSiteDBCollection(self.connection, site_id, "items")
         item["available"] = True
-        c_items.update({"item_id": item["item_id"], "available": True}, item, upsert=True) 
+        c_items = getSiteDBCollection(self.connection, site_id, "items")
+        item_in_db = c_items.find_one({"item_id": item["item_id"]})
+        if item_in_db is None:
+            item_in_db = {}
+        elif not item_in_db["available"]:
+            return
+        else:
+            item_in_db = {"_id": item_in_db["_id"]}
+        item_in_db.update(item)
+        c_items.save(item_in_db)
 
 
     def removeItem(self, site_id, item_id):

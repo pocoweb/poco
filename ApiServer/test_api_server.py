@@ -423,6 +423,11 @@ class UpdateItemTest(BaseTestCase):
                  "price": "15.0",
                  "categories": []})
 
+    def getItemAndAssertItemIDUnique(self, site_id, item_id):
+        c_items = getSiteDBCollection(self.connection, site_id, "items")
+        cursor = c_items.find({"item_id": item_id})
+        self.assertEquals(cursor.count(), 1)
+        return [item for item in cursor][0]
 
     def testDoNotUpdateRemovedItem(self):
         item_id = generate_uid()
@@ -462,7 +467,8 @@ class UpdateItemTest(BaseTestCase):
              "item_name": "Harry Potter 8"},
              assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
-        item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        #item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        item_in_db = self.getItemAndAssertItemIDUnique(SITE_ID, item_id)
         del item_in_db["_id"]
         self.assertEquals(item_in_db,
                 {"available": False,
