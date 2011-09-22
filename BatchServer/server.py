@@ -515,6 +515,7 @@ def loadSites(connection):
 
 
 def workOnSite(site, is_manual_calculation=False):
+    calculation_result = None
     manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
     record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
     if record_in_db is not None:
@@ -544,21 +545,36 @@ def workOnSite(site, is_manual_calculation=False):
                 getLogger().info("BEGIN CALCULATION ON:%s, CALCULATION_ID:%s" % (SITE_ID, CALCULATION_ID))
                 begin_flow()
                 writeCalculationEnd(SITE_ID, CALC_SUCC, err_msg = "SOME_FLOWS_FAILED")
+                if CALC_SUCC:
+                    calculation_result = "SUCC"
+                else:
+                    calculation_result = "FAIL"
             except:
                 getLogger().critical("Unexpected Exception:", exc_info=True)
                 writeCalculationEnd(SITE_ID, False, "UNEXPECTED_EXCEPTION")
+                calculation_result = "FAIL"
         finally:
-            getLogger().info("END CALCULATION ON:%s, CALCULATION_ID:%s" % (SITE_ID, CALCULATION_ID))
+            getLogger().info("END CALCULATION ON:%s, RESULT:%s, CALCULATION_ID:%s" % (SITE_ID, calculation_result, CALCULATION_ID))
         #FIXME: save last_update_ts
         updateSiteLastUpdateTs(site["site_id"])
+    return calculation_result
+
+
+def workOnSiteWithRetries(site, is_manual_calculation=False, max_attempts=2):
+    current_attempts = 0
+    while current_attempts < max_attempts:
+        calculation_result = workOnSite(site, is_manual_calculation)
+        if calculation_result <> "FAIL":
+            break
+        current_attempts += 1
 
 
 if __name__ == "__main__":
     while True:
         for site in loadSites(connection):
             for site in getManualCalculationSites():
-                workOnSite(site, is_manual_calculation=True)
-            workOnSite(site)
-
+                workOnSiteWithRetries(site, is_manual_calculation=True)
+            workOnSiteWithRetries(site)
+            
         sleep_seconds = 1
         time.sleep(sleep_seconds)
