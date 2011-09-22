@@ -61,6 +61,13 @@ def fix_calculation_records(connection, site_id):
     c_calculation_records.ensure_index("end_datetime", -1, background=True, unique=False)
 
 
+def fix_site_checking_daemon_logs(connection, site_id):
+    c_site_checking_daemon_logs = getSiteDBCollection(connection, site_id, "site_checking_daemon_logs")
+    c_site_checking_daemon_logs.drop_indexes()
+    c_site_checking_daemon_logs.ensure_index("created_on", -1, background=True, unique=False)
+    c_site_checking_daemon_logs.ensure_index("checking_id", 1, background=True, unique=True)
+
+
 def fix_tjb_db(connection):
     connection["tjb-db"]["sites"].ensure_index("site_id", 1, background=True, unique=True)
     connection["tjb-db"]["sites"].ensure_index("api_key", 1, background=True, unique=True)

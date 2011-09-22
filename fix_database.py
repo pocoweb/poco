@@ -246,3 +246,9 @@ for site in sites.find():
     print "Work on:", site["site_name"]
     fix_db_indexes.fix_raw_logs(connection, site["site_id"])
 
+print "fix indexes of site_checking_daemon_logs"
+import fix_db_indexes
+sites = connection["tjb-db"]["sites"]
+for site in sites.find():
+    print "Work on:", site["site_name"]
+    fix_db_indexes.fix_site_checking_daemon_logs(connection, site["site_id"])

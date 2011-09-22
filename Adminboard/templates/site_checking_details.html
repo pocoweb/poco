@@ -1,0 +1,48 @@
+<html>
+<head>
+    <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
+</head>
+<body>
+    <a href="/">Home</a><br/>
+    <ul>
+        <li>Site ID: <span id="site_id"></span></li>
+        <li>Checking ID: <span id="checking_id"></span></li>
+        <li>State: <span id="state"></span></li>
+    </ul>
+    <pre id="logs" style="border: 1px dotted black;">
+    </pre>
+    <script type="text/javascript">
+        var refreshing = false;
+        var reload_required = true;
+        function reloadData() {
+            if (!reload_required) return;
+            if (refreshing) return;
+            refreshing = true;
+            $.getJSON("/ajax/loadSiteCheckingDetails", {"site_id": "{{site_id}}", "checking_id": "{{checking_id}}" },
+                    function(data) {
+                        reload_required = (data.state == "RUNNING");
+                        $("#site_id").html(data.site_id);
+                        $("#checking_id").html(data.checking_id);
+                        var state_html = "";
+                        if (data.state == "NEVER_CHECKED") {state_html += '<span style="color: gray">'}
+                        else if (data.state == "SUCC") {state_html += '<span style="color:green">'}
+                        else if (data.state == "FAIL") {state_html += '<span style="color: red">'}
+                        else if (data.state == "RUNNING") {state_html += '<span style="color: yellow">'}
+                        else if (data.state == "UNKNOWN_STATE") {state_html += '<span style="color: red">'};
+                        state_html += data.state + "</span>";
+                        $("#state").html(state_html);
+                        
+                        var log_html = "";
+                        $.each(data.logs, function(idx, log_entry) {
+                            log_html += log_entry + "\n";
+                        });
+                        $("#logs").html(log_html);
+                        refreshing = false;
+                    }
+            );
+        };
+        reloadData();
+        setInterval("reloadData()", 2000);
+    </script>
+</body>
+</html>

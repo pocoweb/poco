@@ -27,6 +27,30 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
+def fillSiteCheckingDaemonInfo(connection, sci):
+    now = datetime.datetime.now()
+    c_site_checking_daemon_logs = getSiteDBCollection(connection, sci["site_id"], "site_checking_daemon_logs")
+    last_records = [row for row in c_site_checking_daemon_logs.find().sort("created_on", -1).limit(1)]
+    
+    sci["site_checking_status_msg"] = ""
+    if last_records == []:
+        sci["site_checking_status"] = "NEVER_CHECKED"
+    else:
+        last_record = last_records[0]
+        sci["site_checking_last_id"] = last_record["checking_id"]
+        if last_record["state"] in ("FAIL", "SUCC"):
+            sci["site_checking_status"] = last_record["state"]
+            sci["site_checking_since_last"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - last_record["ended_on"])
+            sci["site_checking_time_spent"] = convertTimedeltaAsDaysHoursMinutesSeconds(last_record["ended_on"] - last_record["created_on"])
+        elif last_record["state"] == "RUNNING":
+            sci["site_checking_status"] = last_record["state"]
+            sci["site_checking_time_spent"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - last_record["created_on"])
+        else:
+            sci["site_checking_status"] = "UNKNOWN_STATE"
+            sci["site_checking_status_msg"] = "unknown state: %s" % last_record["state"]
+    
+
+
 def getSiteInfos():
     connection = mongo_client.connection
     sites = mongo_client.loadSites()
@@ -34,6 +58,7 @@ def getSiteInfos():
     for site in sites:
         sci = {"site_id": site["site_id"], "site_name": site["site_name"], 
                "disabledFlows": site.get("disabledFlows", [])}
+        fillSiteCheckingDaemonInfo(connection, sci)
         calculation_records = getSiteDBCollection(connection, site["site_id"], 
                                     "calculation_records")
         records = [row for row in calculation_records.find().sort("begin_datetime", -1).limit(1)]
@@ -247,12 +272,33 @@ class EditUserHandler(BaseUserHandler):
 
 edit_user = login_required(EditUserHandler())
 
-
-def user_list(self):
+@login_required
+def user_list(request):
     connection = mongo_client.connection
     user_list = [user for user in connection["tjb-db"]["users"].find()]
     return render_to_response("user_list.html",
                 {"user_list": user_list})
+
+@login_required
+def ajax_load_site_checking_details(request):
+    site_id = request.GET["site_id"]
+    checking_id = request.GET["checking_id"]
+
+    c_site_checking_daemon_logs = getSiteDBCollection(mongo_client.connection, site_id, "site_checking_daemon_logs")
+    log = c_site_checking_daemon_logs.find_one({"checking_id": checking_id})
+
+    result = {"logs": log["logs"], "state": log["state"], "site_id": log["site_id"], "checking_id": log["checking_id"]}
+
+    return HttpResponse(json.dumps(result))
+
+@login_required
+def site_checking_details(request):
+    site_id = request.GET["site_id"]
+    checking_id = request.GET["checking_id"]
+
+    return render_to_response("site_checking_details.html",
+                {"site_id": site_id, "checking_id": checking_id},
+                context_instance=RequestContext(request))
 
 
 class BaseSiteHandler:
