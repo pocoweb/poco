@@ -401,14 +401,6 @@ class BeginFlow(BaseFlow):
     def begin(self):
         pass
 
-class FinishFlow(BaseFlow):
-    def __init__(self):
-        BaseFlow.__init__(self, "Root")
-        self.jobs += [self.finish]
-
-    def finish(self):
-        #TODO: set last finished work flag in database
-        getLogger().info("Finish Work on %s", SITE_ID)
 
 # TODO: removed items' similarities should also be removed.
 
