@@ -92,7 +92,8 @@ def getSiteInfos():
             sci["request_waiting_time"] = convertTimedeltaAsDaysHoursMinutesSeconds(now - request_datetime)
 
         c_items = getSiteDBCollection(connection, site["site_id"], "items")
-        sci["items_count"] = c_items.find().count()
+        sci["all_items_count"] = c_items.find().count()
+        sci["available_items_count"] = c_items.find({"available": True}).count()
 
         result.append(sci)
 
@@ -286,8 +287,15 @@ def ajax_load_site_checking_details(request):
 
     c_site_checking_daemon_logs = getSiteDBCollection(mongo_client.connection, site_id, "site_checking_daemon_logs")
     log = c_site_checking_daemon_logs.find_one({"checking_id": checking_id})
+    
+    log["formatted_created_on"] = log["created_on"].strftime("%Y-%m-%d %H:%M:%S")
+    if log.has_key("ended_on"):
+        log["formatted_ended_on"] = log["ended_on"].strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        log["formatted_ended_on"] = "N/A"
 
-    result = {"logs": log["logs"], "state": log["state"], "site_id": log["site_id"], "checking_id": log["checking_id"]}
+    result = {"logs": log["logs"], "state": log["state"], "site_id": log["site_id"], "checking_id": log["checking_id"],
+              "formatted_ended_on": log["formatted_ended_on"], "formatted_created_on": log["formatted_created_on"]}
 
     return HttpResponse(json.dumps(result))
 

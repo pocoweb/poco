@@ -8,6 +8,8 @@
    <p>User Name: {{ user_name }} <a href="/logout">Logout</a></p>
    <a href="/add_site">Add Site</a> | <a href="/add_user">Add User</a> | <a href="/user_list">User List</a>
     <script type="text/javascript">
+        var REFRESH_DATA_INTERVAL = 10000; // seconds * 1000
+        
         function calcAsap(site_id) {
             $.getJSON("/ajax/calcAsap", {site_id: site_id},
                 function(data) {
@@ -97,7 +99,7 @@
                         "</a>&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
                         html += "<ul>"
                         html += "<li>Name: " + site.site_name + "</li>";
-                        html += "<li>Items Count: " + site.items_count + "</li>";
+                        html += "<li>Available/All Items Count: " + site.available_items_count + "/" + site.all_items_count + "</li>";
                         html += _getBatchServerInfoHtml(site);
                         html += _getSiteCheckingDaemonInfoHtml(site);
                         html += "</ul>"
@@ -107,7 +109,7 @@
                 });
         };
         refreshData();
-        setInterval("refreshData()", 1000);
+        setInterval("refreshData()", REFRESH_DATA_INTERVAL);
     </script>
     <ul id="sites-container">
     </ul>

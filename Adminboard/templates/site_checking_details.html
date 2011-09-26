@@ -1,5 +1,6 @@
 <html>
 <head>
+    <title>site_id: {{site_id}} checking_id: {{checking_id}} | Site Checking Details | Adminboard</title>
     <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
 </head>
 <body>
@@ -8,10 +9,14 @@
         <li>Site ID: <span id="site_id"></span></li>
         <li>Checking ID: <span id="checking_id"></span></li>
         <li>State: <span id="state"></span></li>
+        <li>Created On: <span id="created_on"></span></li>
+        <li>Ended On: <span id="ended_on"></span></li>
     </ul>
     <pre id="logs" style="border: 1px dotted black;">
     </pre>
     <script type="text/javascript">
+        var REFRESH_DATA_INTERVAL = 5000; // seconds * 1000
+
         var refreshing = false;
         var reload_required = true;
         function reloadData() {
@@ -31,6 +36,9 @@
                         else if (data.state == "UNKNOWN_STATE") {state_html += '<span style="color: red">'};
                         state_html += data.state + "</span>";
                         $("#state").html(state_html);
+
+                        $("#created_on").html(data.formatted_created_on);
+                        $("#ended_on").html(data.formatted_ended_on);
                         
                         var log_html = "";
                         $.each(data.logs, function(idx, log_entry) {
@@ -42,7 +50,7 @@
             );
         };
         reloadData();
-        setInterval("reloadData()", 2000);
+        setInterval("reloadData()", REFRESH_DATA_INTERVAL);
     </script>
 </body>
 </html>
