@@ -12,6 +12,7 @@ import settings
 import simplejson as json
 import hashlib
 import time
+import datetime
 
 import items_for_test
 
@@ -351,8 +352,43 @@ class UpdateCategoryTest(BaseTestCase):
                  "category_name": "Five1"})
 
 
+class ItemRelatedTestMixin:
+    def _assertCreatedOnRemoveOnNotChanged(self, item_in_db, old_created_on, old_removed_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertTrue(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
 
-class UpdateItemTest(BaseTestCase):
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        self.assertEqual(item_in_db["removed_on"], old_removed_on)
+
+        del item_in_db["created_on"]
+        del item_in_db["removed_on"]
+
+
+    def _assertAlsoHasRemovedOn(self, item_in_db, old_created_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertTrue(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
+
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        self.assertTrue(datetime.datetime.now() - item_in_db["removed_on"] < datetime.timedelta(seconds=3))
+
+        del item_in_db["created_on"]
+        del item_in_db["removed_on"]
+
+    def _assertCreatedOnOnlyAndNotChanged(self, item_in_db, old_created_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        del item_in_db["created_on"]
+
+    def _assertCreatedOnOnly(self, item_in_db):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertFalse(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
+
+        self.assertTrue(datetime.datetime.now() - item_in_db["created_on"] < datetime.timedelta(seconds=3))
+
+        del item_in_db["created_on"]
+
+
+class UpdateItemTest(BaseTestCase, ItemRelatedTestMixin):
     def test_updateItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
@@ -363,6 +399,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -380,6 +418,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnlyAndNotChanged(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -397,6 +436,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnlyAndNotChanged(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -415,6 +455,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -439,6 +480,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -453,6 +496,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_removed_on = item_in_db["removed_on"]
+        self._assertAlsoHasRemovedOn(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -470,6 +515,7 @@ class UpdateItemTest(BaseTestCase):
         #item_in_db = mongo_client.getItem(SITE_ID, item_id)
         item_in_db = self.getItemAndAssertItemIDUnique(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnRemoveOnNotChanged(item_in_db, old_created_on, old_removed_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -478,7 +524,7 @@ class UpdateItemTest(BaseTestCase):
                  "categories": []})
 
 
-class RemoveItemTest(BaseTestCase):
+class RemoveItemTest(BaseTestCase, ItemRelatedTestMixin):
     def test_removeItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
@@ -489,6 +535,9 @@ class RemoveItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
+
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -503,6 +552,7 @@ class RemoveItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertAlsoHasRemovedOn(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -1309,7 +1359,7 @@ class PlaceOrderTest(BaseTestCase):
 
 
 import packed_request
-class PackedRequestTest(BaseTestCase):
+class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
     def setUp(self):
         BaseTestCase.setUp(self)
         self.updateItem("1")
@@ -1374,6 +1424,7 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result, {'code': 0, 'responses': {full_name: {'code': 0}}})
         item_in_db = mongo_client.getItem(SITE_ID, "35")
         del item_in_db["_id"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {'item_name': 'Something', 
                  'item_id': '35', 

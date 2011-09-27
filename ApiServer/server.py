@@ -530,6 +530,7 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
                 del by_item["_id"]
                 del by_item["available"]
                 del by_item["categories"]
+                del by_item["created_on"]
                 del recommendation_for_item["item_id"]
                 recommendation_for_item["by_item"] = by_item
             else:

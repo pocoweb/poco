@@ -3,6 +3,7 @@ import hashlib
 import urllib
 import random
 import time
+import datetime
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -229,11 +230,12 @@ class MongoClient:
         c_items = getSiteDBCollection(self.connection, site_id, "items")
         item_in_db = c_items.find_one({"item_id": item["item_id"]})
         if item_in_db is None:
-            item_in_db = {}
+            item_in_db = {"created_on": datetime.datetime.now()}
         elif not item_in_db["available"]:
             return
         else:
-            item_in_db = {"_id": item_in_db["_id"]}
+            item_in_db = {"_id": item_in_db["_id"], "created_on": item_in_db["created_on"]}
+
         item_in_db.update(item)
         c_items.save(item_in_db)
 
@@ -243,6 +245,7 @@ class MongoClient:
         item_in_db = c_items.find_one({"item_id": item_id})
         if item_in_db is not None:
             item_in_db["available"] = False
+            item_in_db["removed_on"] = datetime.datetime.now()
             c_items.save(item_in_db)
 
 
@@ -284,6 +287,7 @@ class MongoClient:
                 del item_in_db["_id"]
                 del item_in_db["available"]
                 del item_in_db["categories"]
+                del item_in_db["created_on"]
                 item_in_db["score"] = topn_row[1]
                 item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
                                                 item_in_db["item_id"], req_id)

@@ -252,3 +252,25 @@ sites = connection["tjb-db"]["sites"]
 for site in sites.find():
     print "Work on:", site["site_name"]
     fix_db_indexes.fix_site_checking_daemon_logs(connection, site["site_id"])
+
+
+print "add created_on and removed_on for items "
+import datetime
+sites = connection["tjb-db"]["sites"]
+for site in sites.find():
+    print "Work on:", site["site_name"]
+    c_items = getSiteDBCollection(connection, site["site_id"], "items")
+    for item in c_items.find().sort("item_id", 1):
+        if not item.has_key("created_on"):
+            item["created_on"] = datetime.datetime(2011,9,1,0,0,0)
+        if not item.has_key("removed_on"):
+            item["removed_on"] = datetime.datetime(2011,9,5,23,59,59)
+        c_items.save(item)
+
+
+print "added indexes for items.created_on and items.removed_on"
+import fix_db_indexes
+sites = connection["tjb-db"]["sites"]
+for site in sites.find():
+    print "Work on:", site["site_name"]
+    fix_db_indexes.fix_items(connection, site["site_id"])
