@@ -239,3 +239,15 @@ background-color:#EAF2FA;
   background:url('images/logo-sprite.png') left -70px no-repeat;
 }
 
+#index-header-logo{
+  height:60px;
+  width:180px;
+}
+
+#index-header-logo-link{
+  height:60px;
+  width:180px;
+  padding: -30px;
+  background:url('images/logo-sprite.png') left 0px no-repeat;
+}
+
