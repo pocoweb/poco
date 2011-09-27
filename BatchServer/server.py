@@ -338,7 +338,7 @@ class BuyTogetherSimilarityFlow(BaseSimilarityCalcFlow):
 
 class ViewedUltimatelyBuyFlow(BaseFlow):
     def __init__(self):
-        BaseFlow.__init__(self, "preprocessing")
+        BaseFlow.__init__(self, "ViewedUltimatelyBuy")
         self.jobs += [self.do_extract_user_view_buy_logs,
                       self.do_sort_user_view_buy_logs,
                       self.do_pair_view_buy,
