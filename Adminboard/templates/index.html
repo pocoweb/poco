@@ -6,8 +6,10 @@
    <body>
    <h1>Admin Board</h1>
    <p>User Name: {{ user_name }} <a href="/logout">Logout</a></p>
-   <a href="/add_site">Add Site</a>
+   <a href="/add_site">Add Site</a> | <a href="/add_user">Add User</a> | <a href="/user_list">User List</a>
     <script type="text/javascript">
+        var REFRESH_DATA_INTERVAL = 10000; // seconds * 1000
+        
         function calcAsap(site_id) {
             $.getJSON("/ajax/calcAsap", {site_id: site_id},
                 function(data) {
@@ -15,6 +17,75 @@
                 });
         };
 
+
+
+        function _getBatchServerInfoHtml(site) {
+            html = "";
+            html += "<li>Batch Server Info: <ul>";
+            if (typeof(site.disabledFlows) != "undefined") {
+                html += "<li>Disabled Calculation Flows: " 
+                $.each(site.disabledFlows, function(idx, item) {
+                    html += item + "&nbsp;&nbsp;"; 
+                });
+                html += "</li>";
+            }
+            if (site.status != "NEVER_CALC") {
+                html += "<li>Last Calculation ID:&nbsp;" + site.last_calculation_id + "</li>";
+            };
+            html += "<li>Status:&nbsp;";
+            if (site.status == "NEVER_CALC") {html += '<span style="color: gray">'}
+            else if (site.status == "SUCCESSFUL") {html += '<span style="color:green">'}
+            else if (site.status == "FAILED") {html += '<span style="color: red">'}
+            else if (site.status == "RUNNING") {html += '<span style="color: yellow">'};
+            html += site.status;
+            html += "</span>(";
+            if (site.status == "SUCCESSFUL" || site.status == "FAILED") {
+                html += site.since_last + "&nbsp;ago. " + site.time_spent + "&nbsp;spent.";
+            }
+            else if (site.status == "RUNNING") {
+                html += site.time_spent + "&nbsp;since the beginning of calculation.";
+            };
+            html += ")";
+            html += "</li>";
+
+            if (typeof(site.est_next_run) != "undefined") {
+                html += "<li>Estimated Next Calculation: " + site.est_next_run + "&nbsp;later</li>";
+            }
+
+            if (typeof(site.request_waiting_time) != "undefined") {
+                html += "<li>Pending calculation request(waited " + site.request_waiting_time + ")</li>";
+            }
+            html += "</ul></li>";
+            return html;
+        };
+
+        function _getSiteCheckingDaemonInfoHtml(site) {
+            html = "";
+            html += "<li>Site Checking Daemon Info:<ul>";
+            if (site.site_checking_status != "NEVER_CHECKED") {
+                html += "<li>Last Checking ID: <a href='/site_checking_details?site_id=" + site.site_id + "&checking_id=" + site.site_checking_last_id + "'>" + site.site_checking_last_id +  "</a></li>";
+            };
+            html += "<li>Status:&nbsp;";
+            if (site.site_checking_status == "NEVER_CHECKED") {html += '<span style="color: gray">'}
+            else if (site.site_checking_status == "SUCC") {html += '<span style="color:green">'}
+            else if (site.site_checking_status == "FAIL") {html += '<span style="color: red">'}
+            else if (site.site_checking_status == "RUNNING") {html += '<span style="color: yellow">'}
+            else if (site.site_checking_status == "UNKNOWN_STATE") {html += '<span style="color: red">'};
+            html += site.site_checking_status + "</span>";
+            if (site.site_checking_status == "SUCC" || site.site_checking_status == "FAIL") {
+                html += "&nbsp;(" + site.site_checking_since_last + "&nbsp; ago. " + site.site_checking_time_spent + "&nbsp; spent.)";
+            }
+            else if (site.site_checking_status == "RUNNING") {
+                html += "&nbsp;(" + site.site_checking_time_spent + "&nbsp; since the beginning of checking.)";
+            }
+            else if (site.site_checking_status == "UNKNOWN_STATE") {
+                html += "&nbsp;(" + site.site_checking_status_msg + ")";
+            };
+            
+            html += "</li>";
+            html += "</ul></li>"
+            return html;
+        };
 
         var refreshing = false;
         function refreshData() {
@@ -28,41 +99,9 @@
                         "</a>&nbsp;&nbsp;<a href=\"javascript:calcAsap('" + site.site_id + "');\">Calculate ASAP</a></li>";
                         html += "<ul>"
                         html += "<li>Name: " + site.site_name + "</li>";
-                        html += "<li>Items Count: " + site.items_count + "</li>";
-                        if (typeof(site.disabledFlows) != "undefined") {
-                            html += "<li>Disabled Calculation Flows: " 
-                            $.each(site.disabledFlows, function(idx, item) {
-                                html += item + "&nbsp;&nbsp;"; 
-                            });
-                            html += "</li>";
-                        }
-                        if (site.status != "NEVER_CALC") {
-                            html += "<li>Last Calculation ID:&nbsp;" + site.last_calculation_id + "</li>";
-                        };
-                        html += "<li>Status:&nbsp;";
-                        if (site.status == "NEVER_CALC") {html += '<span style="color: gray">'}
-                        else if (site.status == "SUCCESSFUL") {html += '<span style="color:green">'}
-                        else if (site.status == "FAILED") {html += '<span style="color: red">'}
-                        else if (site.status == "RUNNING") {html += '<span style="color: yellow">'};
-                        html += site.status;
-                        html += "</span>(";
-                        if (site.status == "SUCCESSFUL" || site.status == "FAILED") {
-                            html += site.since_last + "&nbsp;ago. " + site.time_spent + "&nbsp;spent.";
-                        }
-                        else if (site.status == "RUNNING") {
-                            html += site.time_spent + "&nbsp;since the beginning of calculation.";
-                        };
-                        html += ")";
-                        html += "</li>";
-
-                        if (typeof(site.est_next_run) != "undefined") {
-                            html += "<li>Estimated Next Calculation: " + site.est_next_run + "&nbsp;later</li>";
-                        }
-
-                        if (typeof(site.request_waiting_time) != "undefined") {
-                            html += "<li>Pending calculation request(waited " + site.request_waiting_time + ")</li>";
-                        }
-
+                        html += "<li>Available/All Items Count: " + site.available_items_count + "/" + site.all_items_count + "</li>";
+                        html += _getBatchServerInfoHtml(site);
+                        html += _getSiteCheckingDaemonInfoHtml(site);
                         html += "</ul>"
                     });
                     $("#sites-container").html(html);
@@ -70,7 +109,7 @@
                 });
         };
         refreshData();
-        setInterval("refreshData()", 1000);
+        setInterval("refreshData()", REFRESH_DATA_INTERVAL);
     </script>
     <ul id="sites-container">
     </ul>

@@ -136,7 +136,13 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "c": "include_item_info",
                         "t": "rec_row_max_amount",
                         "a": "amount_for_each_item"
-                }
+                },
+                "ulk": {"action_name": "UNLIKE",
+                        "full_name": "unlike",
+                        "index": 20,
+                        "u": "user_id",
+                        "i": "item_id"
+                },
              }
 
 def generateALL_ATTR_NAMES_js():
@@ -158,6 +164,7 @@ def generateALL_ATTR_NAMES_js():
 
 
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
+    print 'WARNING: this result does not contain the hacky "updateItem:cateories"'
     result = "var FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
     kv_pairs = []

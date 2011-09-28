@@ -1,2 +1,5 @@
 tornado
 simplejson
+pymongo
+gunicorn
+django

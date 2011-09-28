@@ -17,6 +17,7 @@ from ApiServer.mongo_client import MongoClient
 
 import settings
 
+import re
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
@@ -24,10 +25,47 @@ def getConnection():
 mongo_client = MongoClient(getConnection())
 
 
-def getSiteStatistics(site_id, days=45):
+def getSiteStatistics(site_id, from_date_str, to_date_str):
     c_statistics = getSiteDBCollection(mongo_client.connection, site_id, "statistics")
-    today_date = datetime.date.today()
-    result = []
+    #to_date = datetime.date.today() - datetime.timedelta(1)
+    #to_date_str = to_date.strftime("%Y-%m-%d")
+    year,month,day=from_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    from_date = datetime.datetime(year, month, day)
+    year,month,day=to_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    to_date = datetime.datetime(year, month, day)
+    days = (to_date-from_date).days
+    #from_date_str = from_date.strftime("%Y-%m-%d")
+    rows = c_statistics.find({"date" : {"$gte" : from_date_str, "$lte": to_date_str}}).sort("date",pymongo.ASCENDING)
+    result = {}
+    for day_delta in range(days, -1, -1):
+        the_date = to_date - datetime.timedelta(days=day_delta)
+        the_date_str = the_date.strftime("%Y-%m-%d")
+        row = {"date": the_date_str, "is_available": False}
+        result[the_date_str] = row
+    
+    for row in rows:
+        if result.has_key(row["date"]):
+            del row["_id"]
+            row["is_available"] = True
+
+            uv_v = float(row["UV_V"])
+            pv_v = float(row["PV_V"])
+            pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
+            row["PV_UV"] = float("%.2f" % pv_uv)
+
+            pv_plo = float(row["PV_PLO"])
+            pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
+            row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
+            
+            result[row["date"]].update(row)
+    
+    '''
     for day_delta in range(days, -1, -1):
         the_date = today_date - datetime.timedelta(days=day_delta)
         the_date_str = the_date.strftime("%Y-%m-%d")
@@ -44,10 +82,13 @@ def getSiteStatistics(site_id, days=45):
 
             pv_plo = float(row["PV_PLO"])
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
-            row["PV_PLO_D_UV"] = float("%.2f" % pv_plo_d_uv)
+            row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
 
         result.append(row)
-    return result
+    '''
+    keys = result.keys()
+    keys.sort()
+    return map(result.get, keys)
 
 def convertColumns(row, column_names):
     for column_name in column_names:
@@ -88,6 +129,7 @@ def _getUserSites(user_name):
     c_sites = connection["tjb-db"]["sites"]
     user = c_users.find_one({"user_name": user_name})
     sites = [c_sites.find_one({"site_id": site_id}) for site_id in user["sites"]]
+    sites.sort(key=lambda x: x["site_name"]) 
     return sites
 
 def _getUserSiteIds(user_name):
@@ -102,15 +144,50 @@ def getUser(user_name):
     user = c_users.find_one({"user_name": user_name})
     return user
 
-@login_required
 def index(request):
+    referer = request.META.get('HTTP_REFERER') 
+    if not referer and request.session.has_key("user_name"):
+        return redirect('/dashboard')
+    else :
+        #if 
+        #        referer = re.sub("https?:\/\/", '', referer).split('/')
+        #        if referer[0] == request.META.get('HTTP_HOST'))
+        #    user_name = request.session["user_name"]
+        #    sites = _getUserSites(user_name)
+        #    return render_to_response("dashboard/index.html", 
+        #            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
+        #             "user": getUser(user_name)},
+        #            context_instance=RequestContext(request))
+        #else:
+        user_name = request.session.get("user_name", None)
+        return render_to_response("index.html",
+                                 {"page_name":"推荐宝",
+                                  "user_name":user_name},
+                                 context_instance=RequestContext(request))
+   
+@login_required
+def dashboard(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
-    return render_to_response("index.html", 
-            {"page_name": "首页", "sites": sites, "user_name": user_name,
-             "user": getUser(user_name)},
-            context_instance=RequestContext(request))
+    current_site_id = request.GET.get("site_id", sites[0].get("site_id",""))
+    chart = request.GET.get("chart", "1")
+    type = request.GET.get("type", None)
+    chart_menu_id = "chart" + "_" + chart + "_"
+    to_date = datetime.date.today() - datetime.timedelta(1)
+    to_date_str = to_date.strftime("%Y-%m-%d")
+    from_date = to_date - datetime.timedelta(30)
+    from_date_str = from_date.strftime("%Y-%m-%d")
 
+    if type != None:
+        chart_menu_id += type
+    return render_to_response("dashboard/index.html", 
+            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
+             "user": getUser(user_name),
+             "chart": chart, "type":type, "chart_menu_id": chart_menu_id,
+             "to_date_str": to_date_str, "from_date_str": from_date_str,
+             "site_id": current_site_id
+             },
+            context_instance=RequestContext(request))
 
 #@login_and_admin_only
 #def admin_charts(request):
@@ -194,20 +271,22 @@ def _prepareCharts(user, timespan, statistics):
 @login_required
 def ajax_get_site_statistics(request):
     site_id = request.GET.get("site_id", None)
-    timespan = int(request.GET.get("timespan", None))
+    from_date_str = request.GET.get("from_date_str", None)
+    to_date_str = request.GET.get("to_date_str", None)
     user_name = request.session["user_name"]
     user_site_ids = _getUserSiteIds(user_name)
     user = getUser(user_name)
+    timespan = ""
     if site_id in user_site_ids:
         result = {"code": 0}
         connection = mongo_client.connection
         result["site"] = {"site_id": site_id,
                        "items_count": getItemsAndCount(connection, site_id, 0)["items_count"],
-                       "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, timespan))}
+                       "statistics": _prepareCharts(user, timespan, getSiteStatistics(site_id, from_date_str, to_date_str))}
+        to_date = datetime.date.today() - datetime.timedelta(days=1)
         return HttpResponse(json.dumps(result))
     else:
         return HttpResponse(json.dumps({"code": 1}))
-
 
 
 # TODO: let's use ranged query later.  as described here: http://stackoverflow.com/questions/5049992/mongodb-paging
@@ -234,15 +313,19 @@ def getItemsAndCount(connection, site_id, page_num):
 
 @login_required
 def site_items_list(request):
-    site_id = request.GET["site_id"]
+    user_name = request.session["user_name"]
+    sites = _getUserSites(user_name)
+    site_id = request.GET.get("site_id", sites[0].get("site_id",""))
     page_num = int(request.GET.get("page_num", "1"))
     connection = mongo_client.connection
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     result = {"page_name": u"%s商品列表" % site["site_name"],
              "site": site, 
+             "sites": sites, 
+             "site_id": site_id,
              "user_name": request.session["user_name"]}
     result.update(getItemsAndCount(connection, site_id, page_num))
-    return render_to_response("site_items_list.html", 
+    return render_to_response("dashboard/site_items_list.html", 
             result,
              context_instance=RequestContext(request))
 
@@ -288,10 +371,12 @@ def show_item(request):
     site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
     c_items = getSiteDBCollection(connection, site_id, "items")
     item_in_db = c_items.find_one({"item_id": item_id})
-    return render_to_response("show_item.html",
+    return render_to_response("dashboard/show_item.html",
         {"page_name": item_in_db["item_name"],
          "site": site,
+         "site_id": site_id,
          "item": item_in_db, "user_name": request.session["user_name"], 
+     "item_id": item_id,
          "getAlsoViewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
          "getAlsoBought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
          "getBoughtTogether": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),
@@ -313,7 +398,7 @@ def update_category_groups(request):
         site_id = request.GET["site_id"]
         site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         category_groups_src = loadCategoryGroupsSrc(site_id)
-        return render_to_response("update_category_groups.html",
+        return render_to_response("dashboard/update_category_groups.html",
                 {"site_id": site_id, "category_groups_src": category_groups_src,
                  "user_name": request.session["user_name"],
                  "page_name": u"编辑%s分类组别" % site["site_name"]},
@@ -373,10 +458,11 @@ def logout(request):
 
 
 def login(request):
+    if request.session.has_key("user_name"):
+        return redirect("/dashboard")
     if request.method == "GET":
         msg = request.GET.get("msg", None)
-        return render_to_response("login.html", {"msg": msg}, 
-                  context_instance=RequestContext(request))
+        return render_to_response("login.html", {"page_name": "登录 | 推荐宝", "msg": msg}, context_instance=RequestContext(request))
     else:
         conn = mongo_client.connection
         users = conn["tjb-db"]["users"]
@@ -387,9 +473,24 @@ def login(request):
 
         if login_succ:
             request.session["user_name"] = request.POST["name"]
-            return redirect("/")
+            return redirect("/dashboard")
         else:
             return redirect("/login?msg=login_failed")
+            
+def apply(request):
+    if request.method == "GET":
+        msg = request.GET.get("msg", None)
+        if request.session.has_key("applied_success"):
+            msg = "already_applied"
+        return render_to_response("apply.html", {"msg": msg}, context_instance=RequestContext(request)) 
+    else:
+        conn = mongo_client.connection
+        applicants = conn["tjb-db"]["applicants"]
+        applicants.insert({"email": request.POST["email"], "phone": request.POST["phone"]})
+        request.session["applied_success"] = True
+        # TODO
+        # avoid apply more than once
+        return redirect("/apply?msg=succ")
 
 
 import copy
@@ -400,3 +501,4 @@ def _getCurrentUser(request):
     else:
         return None
 
+    

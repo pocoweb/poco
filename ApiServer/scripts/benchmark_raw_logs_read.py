@@ -10,6 +10,6 @@ coll = getSiteDBCollection(connection, "demo1", "raw_logs")
 t0 = time.time()
 #for row in coll.find().sort("$natural", -1):
 #    pass
-for row in coll.find().sort("timestamp", -1):
+for row in coll.find().sort("created_on", -1):
     pass
 print time.time() - t0

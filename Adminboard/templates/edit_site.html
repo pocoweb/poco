@@ -4,6 +4,7 @@
       <script type="text/javascript" src="/s/jquery-1.6.1.min.js"></script>
    </head>
    <body>
+        <a href="/">Home</a>
         <form action="{% if is_add_site %}/add_site{% else %}/edit_site{% endif %}" 
               method="POST">
             {% if is_add_site %} Site ID: <input type="text" name="site_id" value=""><br />

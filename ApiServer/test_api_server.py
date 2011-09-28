@@ -12,6 +12,7 @@ import settings
 import simplejson as json
 import hashlib
 import time
+import datetime
 
 import items_for_test
 
@@ -112,7 +113,8 @@ class BaseTestCase(unittest.TestCase):
 
     def assertSomeKeys(self, theDict, keyValuesToCheck):
         for key in keyValuesToCheck.keys():
-            self.assertEquals(theDict[key], keyValuesToCheck[key])
+            self.assertEquals(theDict[key], keyValuesToCheck[key], 
+              "key: %r %r != %r" % (key, theDict[key], keyValuesToCheck[key]))
 
     def cleanUpPurchasingHistory(self):
         c_purchasing_history = getSiteDBCollection(self.connection, SITE_ID, "purchasing_history")
@@ -260,6 +262,47 @@ class ViewItemTest(BaseTestCase):
                  'behavior': 'V'})
 
 
+class UnlikeTest(BaseTestCase):
+    def test_unlike_withUserID(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        result = api_access("/unlike",
+            {"api_key": API_KEY, "user_id": user_id,
+             "item_id": item_id},
+             tuijianbaoid="9a1abe5d-d2aa-421c-b4da-4a9c4328c732")
+        self.assertSomeKeys(result,{"code": 0})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": user_id, "item_id": item_id, 
+              "tjbid": "9a1abe5d-d2aa-421c-b4da-4a9c4328c732"})
+
+    def test_unlike_withoutUserID(self):
+        self.assertCurrentLinesCount(0)
+        item_id = generate_uid()
+        result = api_access("/unlike",
+            {"api_key": API_KEY,
+             "item_id": item_id},
+             tuijianbaoid="817ce8f2-1f47-4e89-afc0-b070fa0f45be")
+        self.assertSomeKeys(result,{"code": 0})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": None, "item_id": item_id, 
+             "tjbid": "817ce8f2-1f47-4e89-afc0-b070fa0f45be"})
+
+    def test_unlike_byPackedRequest(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        pr = packed_request.PackedRequest()
+        pr.addRequest("UNLIKE", {"user_id": user_id, "item_id": item_id})
+        result, response_tuijianbaoid = api_access("/packedRequest",
+                    pr.getUrlArgs(API_KEY), return_tuijianbaoid=True,
+                    tuijianbaoid="9a1abe5d-d2aa-421c-b4da-4a9c4328c732")
+        full_name = packed_request.ACTION_NAME2FULL_NAME["UNLIKE"]
+        self.assertEquals(result, {"code": 0, "responses": {full_name: {"code": 0}}})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": user_id, "item_id": item_id, 
+              "tjbid": "9a1abe5d-d2aa-421c-b4da-4a9c4328c732"})
 
 class FavoriteItemTest(BaseTestCase):
     def test_addFavorite(self):
@@ -351,8 +394,43 @@ class UpdateCategoryTest(BaseTestCase):
                  "category_name": "Five1"})
 
 
+class ItemRelatedTestMixin:
+    def _assertCreatedOnRemoveOnNotChanged(self, item_in_db, old_created_on, old_removed_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertTrue(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
 
-class UpdateItemTest(BaseTestCase):
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        self.assertEqual(item_in_db["removed_on"], old_removed_on)
+
+        del item_in_db["created_on"]
+        del item_in_db["removed_on"]
+
+
+    def _assertAlsoHasRemovedOn(self, item_in_db, old_created_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertTrue(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
+
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        self.assertTrue(datetime.datetime.now() - item_in_db["removed_on"] < datetime.timedelta(seconds=3))
+
+        del item_in_db["created_on"]
+        del item_in_db["removed_on"]
+
+    def _assertCreatedOnOnlyAndNotChanged(self, item_in_db, old_created_on):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertEqual(item_in_db["created_on"], old_created_on)
+        del item_in_db["created_on"]
+
+    def _assertCreatedOnOnly(self, item_in_db):
+        self.assertTrue(item_in_db.has_key("created_on"), msg="item_in_db:%s" % item_in_db)
+        self.assertFalse(item_in_db.has_key("removed_on"), msg="item_in_db:%s" % item_in_db)
+
+        self.assertTrue(datetime.datetime.now() - item_in_db["created_on"] < datetime.timedelta(seconds=3))
+
+        del item_in_db["created_on"]
+
+
+class UpdateItemTest(BaseTestCase, ItemRelatedTestMixin):
     def test_updateItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
@@ -363,6 +441,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -380,6 +460,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnlyAndNotChanged(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -397,6 +478,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnlyAndNotChanged(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -415,6 +497,7 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -423,6 +506,11 @@ class UpdateItemTest(BaseTestCase):
                  "price": "15.0",
                  "categories": []})
 
+    def getItemAndAssertItemIDUnique(self, site_id, item_id):
+        c_items = getSiteDBCollection(self.connection, site_id, "items")
+        cursor = c_items.find({"item_id": item_id})
+        self.assertEquals(cursor.count(), 1)
+        return [item for item in cursor][0]
 
     def testDoNotUpdateRemovedItem(self):
         item_id = generate_uid()
@@ -434,6 +522,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -448,6 +538,8 @@ class UpdateItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_removed_on = item_in_db["removed_on"]
+        self._assertAlsoHasRemovedOn(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -462,8 +554,10 @@ class UpdateItemTest(BaseTestCase):
              "item_name": "Harry Potter 8"},
              assert_returns_tuijianbaoid=False)
         self.assertEquals(result, {"code": 0})
-        item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        #item_in_db = mongo_client.getItem(SITE_ID, item_id)
+        item_in_db = self.getItemAndAssertItemIDUnique(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertCreatedOnRemoveOnNotChanged(item_in_db, old_created_on, old_removed_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -472,7 +566,7 @@ class UpdateItemTest(BaseTestCase):
                  "categories": []})
 
 
-class RemoveItemTest(BaseTestCase):
+class RemoveItemTest(BaseTestCase, ItemRelatedTestMixin):
     def test_removeItem(self):
         item_id = generate_uid()
         result = api_access("/updateItem",
@@ -483,6 +577,9 @@ class RemoveItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        old_created_on = item_in_db["created_on"]
+        self._assertCreatedOnOnly(item_in_db)
+
         self.assertEquals(item_in_db,
                 {"available": True,
                  "item_id": item_id, 
@@ -497,6 +594,7 @@ class RemoveItemTest(BaseTestCase):
         self.assertEquals(result, {"code": 0})
         item_in_db = mongo_client.getItem(SITE_ID, item_id)
         del item_in_db["_id"]
+        self._assertAlsoHasRemovedOn(item_in_db, old_created_on)
         self.assertEquals(item_in_db,
                 {"available": False,
                  "item_id": item_id, 
@@ -893,7 +991,8 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         )
         last_line = self.readLastLine()
         self.assert_(last_line.has_key("tjbid"))
-        self.assert_(last_line.has_key("timestamp"))
+        self.assert_(last_line.has_key("created_on"))
+        self.assert_(not last_line.has_key("timestamp"))
         self.assertSomeKeys(last_line, 
                 {"user_id": "hah",
                  "behavior": "RecEBI",
@@ -959,7 +1058,8 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         )
         last_line = self.readLastLine()
         self.assert_(last_line.has_key("tjbid"))
-        self.assert_(last_line.has_key("timestamp"))
+        self.assert_(last_line.has_key("created_on"))
+        self.assert_(not last_line.has_key("timestamp"))
         self.assertSomeKeys(last_line, 
                 {"user_id": "hah",
                  "behavior": "RecEBI",
@@ -1046,6 +1146,28 @@ class GetByBrowsingHistoryTest(BaseRecommendationTest):
                  ])
 
 
+class GetByShoppingCartTest2(BaseRecommendationTest):
+    def setUp(self):
+        BaseRecommendationTest.setUp(self)
+        self.updateItem("8")
+        self.updateItem("21")
+        self.updateItem("29")
+        self.updateItem("30")
+        self.updateItem("11")
+
+    def test(self):
+        # to test byShoppingCart combines buy together and plo similarities.
+        result = api_access("/getByShoppingCart", 
+                {"api_key": API_KEY, "user_id": "ha",
+                "shopping_cart": "8",
+                "amount": "5",
+                "include_item_info": "no"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["topn"],
+                            [{'item_id': '21', 'score': 0.99280000000000002}, 
+                             {'item_id': '29', 'score': 0.98309999999999997}, 
+                             {'item_id': '30', 'score': 0.97209999999999996}, 
+                             {'item_id': '11', 'score': 0.96209999999999996}])
 
 
 class GetByShoppingCartTest(BaseRecommendationTest):
@@ -1205,6 +1327,7 @@ class PlaceOrderTest(BaseTestCase):
                                {"item_id": "5", "price": "1.3", "amount": "2"}
                                ],
              "order_id": "ORDER_ID"})
+        self.assertEquals(self.readLastLine().has_key("uniq_order_id"), True)
         self.assertPurchasingHistoryCount(1)
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
                 {"purchasing_history": ['3', '5'],
@@ -1227,6 +1350,7 @@ class PlaceOrderTest(BaseTestCase):
                                ],
              "order_id": None
             })
+        self.assertEquals(self.readLastLine().has_key("uniq_order_id"), True)
         self.assertPurchasingHistoryCount(1)
         self.assertSomeKeys(self.readLastLine("purchasing_history"), 
                 {"purchasing_history": ['3', '5'],
@@ -1277,7 +1401,7 @@ class PlaceOrderTest(BaseTestCase):
 
 
 import packed_request
-class PackedRequestTest(BaseTestCase):
+class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
     def setUp(self):
         BaseTestCase.setUp(self)
         self.updateItem("1")
@@ -1342,6 +1466,7 @@ class PackedRequestTest(BaseTestCase):
         self.assertEquals(result, {'code': 0, 'responses': {full_name: {'code': 0}}})
         item_in_db = mongo_client.getItem(SITE_ID, "35")
         del item_in_db["_id"]
+        self._assertCreatedOnOnly(item_in_db)
         self.assertEquals(item_in_db,
                 {'item_name': 'Something', 
                  'item_id': '35', 

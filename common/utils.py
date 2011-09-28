@@ -17,14 +17,6 @@ def sign(float):
         return -1
 
 
-def updateCollectionRecord(collection, key_name, key_value, initial_dict, content_dict):
-    record_in_db = collection.find_one({key_name: key_value})
-    if record_in_db is None:
-        record_in_db = initial_dict
-    record_in_db.update(content_dict)
-    collection.save(record_in_db)
-
-
 def updateCategoryGroups(connection, site_id, category_groups_src):
     c_sites = connection["tjb-db"]["sites"]
     site = c_sites.find_one({"site_id": site_id})
@@ -72,8 +64,7 @@ class UploadItemSimilarities:
 
     def updateSimOneRow(self):
         self.item_similarities.update({"item_id": self.last_item1},
-                {"item_id": self.last_item1, "mostSimilarItems": self.last_rows},
-                True, False)
+                {"item_id": self.last_item1, "mostSimilarItems": self.last_rows}, upsert=True)
         self.last_item1 = self.item_id1
         self.last_rows = []
 
@@ -105,6 +96,15 @@ def convertSecondsAsHoursMinutesSeconds(seconds):
     if minutes > 0:
         result_str += "%s minutes " % minutes
     result_str += "%s seconds" % seconds_remain
+    return result_str
+
+
+def convertTimedeltaAsDaysHoursMinutesSeconds(timedelta):
+    if timedelta.days > 0:
+        result_str = "%s days " % timedelta.days
+    else:
+        result_str = ""
+    result_str += convertSecondsAsHoursMinutesSeconds(timedelta.seconds)
     return result_str
 
 

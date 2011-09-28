@@ -1,12 +1,12 @@
 import logging
 
-
-logger = logging.getLogger("emit_cooccurances")
+def getLogger():
+    return logging.getLogger("emit_cooccurances")
 
 
 def output_cooccurance(f, last_user, item_ids):
     if len(item_ids) > 800:
-        logger.info("One User Skipped: id=%s len(item_ids)=%s" % (last_user, len(item_ids)))
+        getLogger().info("One User Skipped: id=%s len(item_ids)=%s" % (last_user, len(item_ids)))
         return
     for i in xrange(0, len(item_ids)):
         for j in xrange(i+1, len(item_ids)):
@@ -25,7 +25,7 @@ def emit_cooccurances(input_path, output_path):
         line = line.strip()
         count += 1
         if count % 5000 == 0:
-            logger.debug("progress:%s" % (count / float(6185990) * 100))
+            getLogger().debug("progress:%s" % (count / float(6185990) * 100))
         user, item_id = line.split(',')
         if user != last_user:
             if len(item_ids) <> 0:

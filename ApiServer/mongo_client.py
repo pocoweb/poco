@@ -3,6 +3,7 @@ import hashlib
 import urllib
 import random
 import time
+import datetime
 
 from common.utils import getSiteDBName
 from common.utils import getSiteDBCollection
@@ -101,7 +102,7 @@ class MongoClient:
         ph_in_db = self.getPurchasingHistory(site_id, user_id)
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
         cursor = c_raw_logs.find({"user_id": user_id, "behavior": "PLO"}).\
-                sort("timestamp", -1).limit(self.MAX_PURCHASING_HISTORY_AMOUNT)
+                sort("created_on", -1).limit(self.MAX_PURCHASING_HISTORY_AMOUNT)
         is_items_enough = False
         purchasing_history = []
         ph_map = {}
@@ -225,9 +226,18 @@ class MongoClient:
 
 
     def updateItem(self, site_id, item):
-        c_items = getSiteDBCollection(self.connection, site_id, "items")
         item["available"] = True
-        c_items.update({"item_id": item["item_id"], "available": True}, item, upsert=True) 
+        c_items = getSiteDBCollection(self.connection, site_id, "items")
+        item_in_db = c_items.find_one({"item_id": item["item_id"]})
+        if item_in_db is None:
+            item_in_db = {"created_on": datetime.datetime.now()}
+        elif not item_in_db["available"]:
+            return
+        else:
+            item_in_db = {"_id": item_in_db["_id"], "created_on": item_in_db["created_on"]}
+
+        item_in_db.update(item)
+        c_items.save(item_in_db)
 
 
     def removeItem(self, site_id, item_id):
@@ -235,6 +245,7 @@ class MongoClient:
         item_in_db = c_items.find_one({"item_id": item_id})
         if item_in_db is not None:
             item_in_db["available"] = False
+            item_in_db["removed_on"] = datetime.datetime.now()
             c_items.save(item_in_db)
 
 
@@ -276,6 +287,7 @@ class MongoClient:
                 del item_in_db["_id"]
                 del item_in_db["available"]
                 del item_in_db["categories"]
+                del item_in_db["created_on"]
                 item_in_db["score"] = topn_row[1]
                 item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
                                                 item_in_db["item_id"], req_id)
@@ -339,14 +351,17 @@ class MongoClient:
             purchasing_history = []
         else:
             purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
-        topn = self.calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
+        topn1 = self.calc_weighted_top_list_method1(site_id, "BuyTogether", shopping_cart,
                     extra_excludes_list=purchasing_history)
-        return topn
+        topn2 = self.calc_weighted_top_list_method1(site_id, "PLO", shopping_cart,
+                    extra_excludes_list=purchasing_history)
+        topn1_item_set = set([topn1_item[0] for topn1_item in topn1])
+        
+        return topn1 + [topn2_item for topn2_item in topn2 if topn2_item[0] not in topn1_item_set]
 
 
     # Logging Part
     def writeLogToMongo(self, site_id, content):
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
-        #c_raw_logs.ensure_index([("timestamp", pymongo.DESCENDING)])
         c_raw_logs.insert(content)
 
