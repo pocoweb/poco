@@ -14,7 +14,7 @@ except getopt.GetoptError, err:
 
 print host
 
-conn = pymongo.Connection("cube2")
+conn = pymongo.Connection("cube13")
 
 def datetime2ts(datetime):
     return time.mktime(datetime.timetuple())
