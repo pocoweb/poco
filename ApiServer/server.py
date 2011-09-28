@@ -227,12 +227,30 @@ class ViewItemHandler(SingleRequestHandler):
     processor_class = ViewItemProcessor
 
 
+class UnlikeProcessor(ActionProcessor):
+    action_name = "UNLIKE"
+    ap = ArgumentProcessor(
+        (
+         ("item_id", True),
+         ("user_id", False),
+        )
+    )
+    def _process(self, site_id, args):
+        self.logAction(site_id, args,
+                        {"user_id": args["user_id"], 
+                         "item_id": args["item_id"]})
+        return {"code": 0}
+
+class UnlikeHandler(SingleRequestHandler):
+    processor_class = UnlikeProcessor
+
+
 class AddFavoriteProcessor(ActionProcessor):
     action_name = "AF"
     ap = ArgumentProcessor(
         (
          ("item_id", True),
-         ("user_id", True),
+         ("user_id", False),
         )
     )
     def _process(self, site_id, args):
@@ -982,6 +1000,7 @@ handlers = [
     (r"/1.0/viewItem", ViewItemHandler),
     (r"/1.0/addFavorite", AddFavoriteHandler),
     (r"/1.0/removeFavorite", RemoveFavoriteHandler),
+    (r"/1.0/unlike", UnlikeHandler),
     (r"/1.0/rateItem", RateItemHandler),
     (r"/1.0/removeItem", RemoveItemHandler),
     (r"/1.0/updateItem", UpdateItemHandler),

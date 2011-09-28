@@ -113,7 +113,8 @@ class BaseTestCase(unittest.TestCase):
 
     def assertSomeKeys(self, theDict, keyValuesToCheck):
         for key in keyValuesToCheck.keys():
-            self.assertEquals(theDict[key], keyValuesToCheck[key])
+            self.assertEquals(theDict[key], keyValuesToCheck[key], 
+              "key: %r %r != %r" % (key, theDict[key], keyValuesToCheck[key]))
 
     def cleanUpPurchasingHistory(self):
         c_purchasing_history = getSiteDBCollection(self.connection, SITE_ID, "purchasing_history")
@@ -261,6 +262,47 @@ class ViewItemTest(BaseTestCase):
                  'behavior': 'V'})
 
 
+class UnlikeTest(BaseTestCase):
+    def test_unlike_withUserID(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        result = api_access("/unlike",
+            {"api_key": API_KEY, "user_id": user_id,
+             "item_id": item_id},
+             tuijianbaoid="9a1abe5d-d2aa-421c-b4da-4a9c4328c732")
+        self.assertSomeKeys(result,{"code": 0})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": user_id, "item_id": item_id, 
+              "tjbid": "9a1abe5d-d2aa-421c-b4da-4a9c4328c732"})
+
+    def test_unlike_withoutUserID(self):
+        self.assertCurrentLinesCount(0)
+        item_id = generate_uid()
+        result = api_access("/unlike",
+            {"api_key": API_KEY,
+             "item_id": item_id},
+             tuijianbaoid="817ce8f2-1f47-4e89-afc0-b070fa0f45be")
+        self.assertSomeKeys(result,{"code": 0})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": None, "item_id": item_id, 
+             "tjbid": "817ce8f2-1f47-4e89-afc0-b070fa0f45be"})
+
+    def test_unlike_byPackedRequest(self):
+        self.assertCurrentLinesCount(0)
+        item_id, user_id = generate_uid(), generate_uid()
+        pr = packed_request.PackedRequest()
+        pr.addRequest("UNLIKE", {"user_id": user_id, "item_id": item_id})
+        result, response_tuijianbaoid = api_access("/packedRequest",
+                    pr.getUrlArgs(API_KEY), return_tuijianbaoid=True,
+                    tuijianbaoid="9a1abe5d-d2aa-421c-b4da-4a9c4328c732")
+        full_name = packed_request.ACTION_NAME2FULL_NAME["UNLIKE"]
+        self.assertEquals(result, {"code": 0, "responses": {full_name: {"code": 0}}})
+        self.assertCurrentLinesCount(1)
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "UNLIKE", "user_id": user_id, "item_id": item_id, 
+              "tjbid": "9a1abe5d-d2aa-421c-b4da-4a9c4328c732"})
 
 class FavoriteItemTest(BaseTestCase):
     def test_addFavorite(self):

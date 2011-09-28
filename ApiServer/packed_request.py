@@ -136,7 +136,13 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "c": "include_item_info",
                         "t": "rec_row_max_amount",
                         "a": "amount_for_each_item"
-                }
+                },
+                "ulk": {"action_name": "UNLIKE",
+                        "full_name": "unlike",
+                        "index": 20,
+                        "u": "user_id",
+                        "i": "item_id"
+                },
              }
 
 def generateALL_ATTR_NAMES_js():
