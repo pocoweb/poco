@@ -54,8 +54,8 @@ def getSiteStatistics(site_id, from_date_str, to_date_str):
             del row["_id"]
             row["is_available"] = True
 
-            uv_v = float(row["UV_V"])
-            pv_v = float(row["PV_V"])
+            uv_v = row.has_key("UV_V") and float(row["UV_V"]) or 0.0
+            pv_v = row.has_key("PV_V") and float(row["PV_V"]) or 0.0
             pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
             row["PV_UV"] = float("%.2f" % pv_uv)
 
