@@ -12,3 +12,4 @@ BatchServer/work_dir
 ApiServer/test_directory/tester
 demo/frontend/UserDb.sqlite3
 */session_store
+*ropeproject*
