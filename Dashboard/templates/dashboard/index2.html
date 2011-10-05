@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" class="dashboard">
+  <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <!-- Framework CSS --> 
+  <link rel="stylesheet" href="static/blueprint/print.css?4392429048" type="text/css" media="print"> 
+  <!--[if lt IE 8]><link rel="stylesheet" href="static/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
+  <link rel="stylesheet" href="{{STATIC_URL}}style.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}bootstrap/bootstrap.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}datepicker/css/datepicker.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}datepicker/css/layout.css" type="text/css" media="screen, projection"> 
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+      }
+    </style>
+  <link rel="stylesheet" href="{{STATIC_URL}}jquery-ui-1.8.16/css/redmond/jquery-ui-1.8.16.custom.css" rel="Stylesheet">
+  <script src="{{STATIC_URL}}jquery-1.6.1.min.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}jquery-ui-1.8.16/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}jquery-ui-1.8.16/development-bundle/ui/i18n/jquery.ui.datepicker-zh-CN.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}underscore-1.1.6.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}backbone.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
+  <script src="{{STATIC_URL}}bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}datepicker/js/datepicker.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}dashboard.js" type="text/javascript" ></script>
+</head>
+<body>
+  <div class="topbar" style="position:absolute">
+    <div class="topbar-inner">
+      <div class="container-fluid" style="background-color:">
+        <a class="brand" href="#" style="margin-right:160px;">推荐宝</a>
+        <form class="pull-left">
+          <select class="medium" id="stackedSelect" name="stackedSelect">
+            <option>快书包</option>
+            <option>初刻</option>
+          </select>
+        </form>
+        <ul class="nav">
+          <li><a href="/dashboard#">概要</a></li>
+          <li class="active"><a href="/dashboard#">推荐统计</a></li>
+          <li><a href="/dashboard#">商品列表</a></li>
+          <li><a href="/dashboard#">编辑商品分组类别</a>
+        </ul>
+        <ul class="nav secondary-nav">
+          <li class="dropdown" data-dropdown="dropdown">
+          <a href="#" class="dropdown-toggle">{{ user_name }}</a>
+            <ul class="dropdown-menu">
+              <li><a href="#">设置</a></li>
+              <li><a href="#">帮助</a></li>
+              <li class="divider"></li>
+              <li><a href="/logou">退出</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    <div class="sidebar">
+      <div class="well">
+        <h5>整体统计</h5>
+        <ul>
+          <li><a href="#static/{{ site_id }}/1">商品PV和UV</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+        <h5>Sidebar</h5>
+        <ul>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+        <h5>Sidebar</h5>
+        <ul>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="content">
+      <div>
+        <a href="#">推荐统计</a>
+        <span>&gt;&gt;</span>
+        商品PV和UV
+      </div>
+      <hr />
+      <div style="width:100%;">
+        <div id="widget" style="float:left">
+          <div id="widgetField">
+            <span>2011-09-01 -- 2011-10-05</span>
+            <a href="#">Select</a>
+          </div>
+          <div id="widgetCalendar">
+            <div style="width:100%;position:absolute;bottom:0;top:auto;float:right;padding-bottom:5px;">
+              <center>
+                <button id="confirm_range" class="btn">确定</button>
+              </center>
+            </div>
+          </div>
+        </div>
+        <div style="float:left">
+          <span class="divider">&nbsp;&nbsp;</span>
+          <span class="label">快速选择&gt;&gt;</span>
+          <a class="btn">15天</a>
+          <a class="btn primary">30天</a>
+          <a class="btn">60天</a>
+          <a class="btn">90天</a>
+          <span class="divider">&nbsp;&nbsp;</span>
+          <span class="divider">&nbsp;&nbsp;</span>
+        </div>
+
+      </div>
+      <div style="float:left;width:100%;">
+        <div id="chart-container">
+        </div>
+      </div>
+      <div class="row">
+        <table>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+          <tr> <td>fdsafds</td> <td>fdsafds</td> <td>fdsafds</td> </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <footer>
+  <center>
+     <p>
+      &copy; 原点互动 2011 | 服务条款 | 隐私权政策 | 与我们联系
+      </p>
+    </center>
+  </footer>
+</body>
+</html>

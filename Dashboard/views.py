@@ -198,6 +198,29 @@ def dashboard(request):
 #             "user": getUser(user_name)},
 #            context_instance=RequestContext(request))
 
+def dashboard2(request):
+    user_name = request.session["user_name"]
+    sites = _getUserSites(user_name)
+    current_site_id = request.GET.get("site_id", sites[0].get("site_id",""))
+    chart = request.GET.get("chart", "1")
+    type = request.GET.get("type", None)
+    chart_menu_id = "chart" + "_" + chart + "_"
+    to_date = datetime.date.today() - datetime.timedelta(1)
+    to_date_str = to_date.strftime("%Y-%m-%d")
+    from_date = to_date - datetime.timedelta(30)
+    from_date_str = from_date.strftime("%Y-%m-%d")
+
+    if type != None:
+        chart_menu_id += type
+    return render_to_response("dashboard/index2.html", 
+            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
+             "user": getUser(user_name),
+             "chart": chart, "type":type, "chart_menu_id": chart_menu_id,
+             "to_date_str": to_date_str, "from_date_str": from_date_str,
+             "site_id": current_site_id
+             },
+            context_instance=RequestContext(request))
+
 
 def _calc_rec_deltas(row):
     if row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:

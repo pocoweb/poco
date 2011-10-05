@@ -1,0 +1,83 @@
+#widget {
+	position: relative;
+    padding-top:3px;
+    z-index: 10000000;
+}
+#widgetField {
+	width: 290px;
+	height: 26px;
+	background: url(../images/field.png);
+	overflow: hidden;
+	position: relative;
+}
+#widgetField a 	{
+	display: block;
+	position: absolute;
+	width: 26px;
+	height: 26px;
+	top: 0;
+	right: 0;
+	text-decoration: none;
+	text-indent: -3000px;
+}
+#widgetField span	{
+	font-size: 12px;
+	font-weight: bold;
+	color: #000;
+	position: absolute;
+	top: 0;
+	height: 26px;
+	line-height: 26px;
+	left: 5px;
+	width: 200px;
+	text-align: center;
+}
+#widgetCalendar {
+	position: absolute;
+	top: 30px;
+	right: auto;
+    left: 0;
+	height: 0px;
+	overflow: hidden;
+	width: 588px;
+	background: #B9B9B9;
+}
+#widgetCalendar .datepicker {
+	position: absolute;
+	bottom: auto;
+	top: 0;
+}
+#widgetCalendar .datepickerContainer,
+#widgetCalendar .datepickerBorderT,
+#widgetCalendar .datepickerBorderB,
+#widgetCalendar .datepickerBorderL,
+#widgetCalendar .datepickerBorderR,
+#widgetCalendar .datepickerBorderTL,
+#widgetCalendar .datepickerBorderTR,
+#widgetCalendar .datepickerBorderBL,
+#widgetCalendar .datepickerBorderBR {
+	background: transparent !important;
+}
+#widgetCalendar .datepicker a:hover{
+	color: #b6f063;
+}
+
+table {
+  margin-bottom: 1px;
+  font-size: 11px;
+  border: 0;
+}
+table th, table td {
+  padding: 0;
+  line-height: 13px;
+}
+table th {
+  padding-top: 0px;
+  border-bottom: 0;
+}
+table th + th, table td + td {
+  border-left: 0;
+}
+table tr + tr td {
+  border-top: 0;
+}

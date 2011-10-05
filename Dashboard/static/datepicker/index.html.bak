@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<link rel="stylesheet" href="css/datepicker.css" type="text/css" />
+    <link rel="stylesheet" media="screen" type="text/css" href="css/layout.css" />
+    <title>DatePicker - jQuery plugin</title>
+	<script type="text/javascript" src="js/jquery.js"></script>
+	<script type="text/javascript" src="js/datepicker.js"></script>
+    <script type="text/javascript" src="js/eye.js"></script>
+    <script type="text/javascript" src="js/layout.js?ver=1.0.2"></script>
+</head>
+<body>
+   				<p>Flat mode, inside a custom widget and with custom design.</p>
+				<div id="widget">
+					<div id="widgetField">
+						<span>28 July, 2008 &divide; 31 July, 2008</span>
+						<a href="#">Select date range</a>
+					</div>
+					<div id="widgetCalendar">
+					</div>
+				</div>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+            </div>
