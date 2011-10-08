@@ -1,7 +1,7 @@
 #widget {
 	position: relative;
     padding-top:3px;
-    z-index: 10000000;
+    z-index: 100;
 }
 #widgetField {
 	width: 290px;
@@ -62,22 +62,21 @@
 	color: #b6f063;
 }
 
-table {
+.datepickerContainer table {
   margin-bottom: 1px;
   font-size: 11px;
   border: 0;
 }
-table th, table td {
+.datepickerContainer table th, .datepickerContainer table td {
   padding: 0;
   line-height: 13px;
 }
-table th {
+.datepickerContainer table th {
   padding-top: 0px;
   border-bottom: 0;
 }
-table th + th, table td + td {
+.datepickerContainer table th + th, .datepickerContainer table td + td {
   border-left: 0;
 }
-table tr + tr td {
-  border-top: 0;
+.datepickerContainer table tr + tr td { border-top: 0;
 }
