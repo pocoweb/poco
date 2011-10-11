@@ -293,6 +293,8 @@ class MongoClient:
                 del item_in_db["available"]
                 del item_in_db["categories"]
                 del item_in_db["created_on"]
+                if item_in_db.has_key("removed_on"):
+                    del item_in_db["removed_on"]
                 item_in_db["score"] = topn_row[1]
                 item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
                                                 item_in_db["item_id"], req_id)

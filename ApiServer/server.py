@@ -119,7 +119,11 @@ class APIHandler(tornado.web.RequestHandler):
                 response = self.process(site_id, args)
             except ArgumentError as e:
                 response = {"code": 1, "err_msg": e.message}
-        response_json = json.dumps(response)
+        try:
+            response_json = json.dumps(response)
+        except:
+            logging.critical("Failed to encode response as json. response: %r" % response, exc_info=True)
+            response_json = {"code": 99} 
         if callback != None:
             response_text = "%s(%s)" % (callback, response_json)
         else:
@@ -559,6 +563,8 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
                 del by_item["available"]
                 del by_item["categories"]
                 del by_item["created_on"]
+                if by_item.has_key("removed_on"):
+                    del by_item["removed_on"]
                 del recommendation_for_item["item_id"]
                 recommendation_for_item["by_item"] = by_item
             else:
