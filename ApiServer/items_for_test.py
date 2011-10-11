@@ -25,6 +25,15 @@ items = {
              "21": {"site_id": SITE_ID, "item_id": "21", 
              "item_link": "http://example.com/item?id=21",
              "item_name": "Kill A Bird"},
+             "22": {"site_id": SITE_ID, "item_id": "22",
+             "item_link": "http://example.com/item?id=22",
+             "item_name": "The Rule of 22s"},
+             "23": {"site_id": SITE_ID, "item_id": "23",
+             "item_link": "http://example.com/item?id=23",
+             "item_name": "The Rule of 22s"}, # This item name is intended to be the same as item 22
+             "24": {"site_id": SITE_ID, "item_id": "24",
+             "item_link": "http://example.com/item?id=24",
+             "item_name": "The Rule of 22s"}, # This item name is intended to be the same as item 22
              "29": {"site_id": SITE_ID, "item_id": "29", 
              "item_link": "http://example.com/item?id=29",
              "item_name": "Soo..."},

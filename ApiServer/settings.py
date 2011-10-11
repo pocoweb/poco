@@ -6,9 +6,12 @@ mongodb_host = None
 print_raw_log = False
 api_server_prefix = None
 local_raw_log_file = None
+# this should be a dictionary. set([site_id])
+recommendation_deduplicate_item_names_required_set = None
 
 from local_settings import *
 
 assert mongodb_host is not None
 assert api_server_prefix is not None
 assert local_raw_log_file is not None
+assert recommendation_deduplicate_item_names_required_set is not None

@@ -137,7 +137,10 @@ class APIAccess:
         if assert_returns_tuijianbaoid and tuijianbaoid is None:
             assert response_tuijianbaoid is not None, "response: %s" % result
         if as_json:
-            result_obj = json.loads(result)
+            try:
+                result_obj = json.loads(result)
+            except json.JSONDecodeError:
+                raise Exception("Can't decode: %r" % result)
             body = result_obj
         else:
             body = result

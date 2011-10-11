@@ -8,6 +8,15 @@ import tornado.web
 settings = server.settings
 settings.server_port = 15588
 
+class ChangeSettingsHandler(tornado.web.RequestHandler):
+    def get(self):
+        key = self.request.arguments["key"][0]
+        value = eval(self.request.arguments["value"][0])
+        setattr(server.settings, key, value)
+        self.write('{"code": 0}')
+
+server.handlers.append((r"/1.0/test_only/change_settings", ChangeSettingsHandler))
+print server.handlers
 
 # re-create database and upload similarities for test purpose.
 import pymongo

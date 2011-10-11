@@ -497,6 +497,14 @@ class BaseRecommendationProcessor(ActionProcessor):
     def getExcludedRecommendationItems(self):
         return getattr(self, "excluded_recommendation_items", set([]))
 
+    def isDeduplicateItemNamesRequired(self, site_id):
+        return site_id in settings.recommendation_deduplicate_item_names_required_set
+
+    def getExcludedRecommendationItemNames(self, site_id):
+        if self.isDeduplicateItemNamesRequired(site_id):
+            return getattr(self, "excluded_recommendation_item_names", set([]))
+        else:
+            return set([])
 
 class BaseByEachItemProcessor(BaseRecommendationProcessor):
     # args should have "user_id", "tuijianbaoid"
@@ -535,12 +543,14 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
 
     def _process(self, site_id, args):
         self.recommended_items = None
+        self.recommended_item_names = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = self.generateReqId()
         result_filter = self.getRecommendationResultFilter(site_id, args)
 
         amount_for_each_item = self.getAmountForEachItem(args)
         recommended_items = []
+        recommended_item_names = set([])
         recommendations_for_each_item = []
         for recommendation_for_item in self.getRecommendationsForEachItem(site_id, args):
             if include_item_info:
@@ -556,18 +566,24 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
                 del recommendation_for_item["item_id"]
             topn = recommendation_for_item["topn"]
             excluded_recommendation_items = self.getExcludedRecommendationItems() | set(recommended_items)
-            topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
-                        amount_for_each_item, include_item_info, url_converter=self.getRedirectUrlFor,
+            excluded_recommendation_item_names = self.getExcludedRecommendationItemNames(site_id) | recommended_item_names
+            topn, rin = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
+                        amount_for_each_item, include_item_info, 
+                        url_converter=self.getRedirectUrlFor,
+                        deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
+                        excluded_recommendation_item_names=excluded_recommendation_item_names,
                         excluded_recommendation_items=excluded_recommendation_items)
             if len(topn) > 0:
                 recommendation_for_item["topn"] = topn
                 recommended_items += self._extractRecommendedItems(topn)
+                recommended_item_names |= rin
                 recommendations_for_each_item.append(recommendation_for_item)
             if len(recommendations_for_each_item) >= self.getRecRowMaxAmount(args):
                 break
 
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
         self.recommended_items = recommended_items
+        self.recommended_item_names = recommended_item_names
         return {"code": 0, "result": recommendations_for_each_item, "req_id": req_id}
 
 
@@ -590,6 +606,7 @@ class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
 
     def _process(self, site_id, args):
         self.recommended_items = None
+        self.recommended_item_names = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         try:
             amount = int(args["amount"])
@@ -598,13 +615,17 @@ class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
         req_id = self.generateReqId()
         topn = self.getTopN(site_id, args)
         result_filter = self.getRecommendationResultFilter(site_id, args)
-        topn = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
+        excluded_recommendation_item_names = self.getExcludedRecommendationItemNames(site_id)
+        topn, recommended_item_names = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
                     amount, include_item_info, url_converter=self.getRedirectUrlFor,
-                    excluded_recommendation_items=self.getExcludedRecommendationItems())
+                    excluded_recommendation_items=self.getExcludedRecommendationItems(),
+                    deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
+                    excluded_recommendation_item_names=excluded_recommendation_item_names)
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
         self.recommended_items = recommended_items
+        self.recommended_item_names = recommended_item_names
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
@@ -974,15 +995,19 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             processed_args["tuijianbaoid"] = self.tuijianbaoid
             processed_args["referer"] = referer
             processor.excluded_recommendation_items = self.excluded_recommendation_items
+            processor.excluded_recommendation_item_names = self.excluded_recommendation_item_names
             result = processor.process(site_id, processed_args)
-            if isinstance(processor, BaseRecommendationProcessor) \
-                and processor.recommended_items is not None:
-                self.excluded_recommendation_items |= set(processor.recommended_items)
+            if isinstance(processor, BaseRecommendationProcessor):
+                if processor.recommended_items is not None:
+                    self.excluded_recommendation_items |= set(processor.recommended_items)
+                if processor.recommended_item_names is not None:
+                    self.excluded_recommendation_item_names |= processor.recommended_item_names
             return result
 
 
     def process(self, site_id, args):
         self.excluded_recommendation_items = set([])
+        self.excluded_recommendation_item_names = set([])
         requests = self.extractRequests(args)
         response = {"code": 0, "responses": {}}
         referer = self.request.headers.get('Referer')

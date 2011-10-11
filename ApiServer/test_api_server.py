@@ -736,6 +736,109 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
         self.updateItem("8")
         self.updateItem("11")
         self.updateItem("15")
+        self.updateItem("22")
+        self.updateItem("23")
+        self.updateItem("29")
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set([])"},
+                    assert_returns_tuijianbaoid=False)
+
+    def test_duplicated_names_with_the_option_on(self):
+        api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set(['%s'])" % SITE_ID},
+                assert_returns_tuijianbaoid=False)
+
+        # Test the case: include_item_info=no
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_id': '22', 'score': 0.9899}, 
+                 {'item_id': '29', 'score': 0.8500}]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "11",
+             "amount": "4"})
+
+        # Test the case: include_item_info=yes
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
+                 "include_item_info": "yes"})
+
+        self.decodeAndValidateRedirectUrls(result["topn"], result["req_id"], API_KEY)
+
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22', 
+                       'score': 0.9899, 
+                       'item_link': 'http://example.com/item?id=22'}, 
+                       {'item_name': 'Soo...', 'item_id': '29', 
+                       'score': 0.84999999999999998, 
+                       'item_link': 'http://example.com/item?id=29'}]
+             })
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "11",
+             "amount": "4"})
+
+
+
+    def test_duplicated_names_with_the_option_off(self):
+        api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set([])"},
+                assert_returns_tuijianbaoid=False)
+        
+        # Test the case: include_item_info=no
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
+                 "include_item_info": "no"})
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [
+                 {'item_id': '22', 'score': 0.9899}, 
+                 {'item_id': '23', 'score': 0.9735}, 
+                 {'item_id': '29', 'score': 0.8500}]})
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "11",
+             "amount": "4"})
+
+        # Test the case: include_item_info=yes
+        result = api_access("/getAlsoViewed", 
+                {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
+                 "include_item_info": "yes"})
+
+        self.decodeAndValidateRedirectUrls(result["topn"], result["req_id"], API_KEY)
+
+        self.assertSomeKeys(result,
+            {"code": 0,
+             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22', 
+                       'score': 0.9899, 
+                       'item_link': 'http://example.com/item?id=22'}, 
+                       {'item_name': 'The Rule of 22s', 'item_id': '23', 
+                       'score': 0.97350000000000003, 
+                       'item_link': 'http://example.com/item?id=23'},
+                       {'item_name': 'Soo...', 'item_id': '29', 
+                       'score': 0.84999999999999998, 
+                       'item_link': 'http://example.com/item?id=29'}]
+             })
+        req_id = result["req_id"]
+        self.assertSomeKeys(self.readLastLine(),
+            {"behavior": "RecVAV",
+             "req_id": req_id,
+             "user_id": "ha",
+             "item_id": "11",
+             "amount": "4"})
 
     def test_SomeItemUnavailable(self):
         self.removeItem("2")
@@ -888,7 +991,92 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.updateItem("11")
         self.updateItem("15")
         self.updateItem("30")
+        self.updateItem("24")
+        self.updateItem("17")
+        self.updateItem("21")
+        self.updateItem("22")
+        self.updateItem("23")
+        self.updateItem("29")
         self.cleanUpPurchasingHistory()
+
+    def tearDown(self):
+        BaseRecommendationTest.tearDown(self)
+        api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set([])"},
+                    assert_returns_tuijianbaoid=False)
+
+    def test_duplicated_names_with_the_option_on(self):
+        api_access("/test_only/change_settings", 
+                   {"key": "recommendation_deduplicate_item_names_required_set", 
+                    "value": "set(['%s'])" % SITE_ID},
+                assert_returns_tuijianbaoid=False)
+
+        self.assertPurchasingHistoryCount(0)
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "rec_row_max_amount": "3",
+                 "amount_for_each_item": "2",
+                 "include_item_info": "yes"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["result"], [])
+
+        # Place an order
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "order_content": "11,2.5,1|15,1.3,2"},
+                 return_tuijianbaoid=True)
+
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "rec_row_max_amount": "2",
+                 "amount_for_each_item": "3",
+                 "include_item_info": "no"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["result"],
+                        [{'by_item': {'item_id': '11'}, 
+                          'topn': [{'item_id': '22', 'score': 0.92989999999999995}, 
+                                   {'item_id': '29', 'score': 0.87}]}, 
+                          {'by_item': {'item_id': '15'}, 
+                          'topn': [{'item_id': '17', 'score': 0.98550000000000004}, 
+                                   {'item_id': '21', 'score': 0.93000000000000005}]}])
+
+
+    def test_duplicated_names_with_the_option_off(self):
+        api_access("/test_only/change_settings", 
+                   {"key": "recommendation_deduplicate_item_names_required_set", 
+                    "value": "set([])"},
+                assert_returns_tuijianbaoid=False)
+
+        self.assertPurchasingHistoryCount(0)
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "rec_row_max_amount": "3",
+                 "amount_for_each_item": "2",
+                 "include_item_info": "no"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["result"], [])
+
+        # Place an order
+        result, response_tuijianbaoid = api_access("/placeOrder", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "order_content": "11,2.5,1|15,1.3,2"},
+                 return_tuijianbaoid=True)
+
+        result = api_access("/getByEachPurchasedItem", 
+                {"api_key": API_KEY, "user_id": "habit",
+                 "rec_row_max_amount": "2",
+                 "amount_for_each_item": "3",
+                 "include_item_info": "no"})
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["result"],
+                        [{'by_item': {'item_id': '11'}, 
+                          'topn': [{'item_id': '22', 'score': 0.92989999999999995}, 
+                                   {'item_id': '23', 'score': 0.95350000000000001}, 
+                                   {'item_id': '29', 'score': 0.87}]}, 
+                         {'by_item': {'item_id': '15'}, 
+                          'topn': [{'item_id': '24', 'score': 0.9929}, 
+                                   {'item_id': '17', 'score': 0.98550000000000004}, 
+                                   {'item_id': '21', 'score': 0.93000000000000005}]}])
+
 
     def testWithPackedRequestAndIncludeItemInfoOff(self):
         self.assertCurrentLinesCount(0)
@@ -1401,6 +1589,89 @@ class PlaceOrderTest(BaseTestCase):
 
 
 import packed_request
+
+class PackedRequestServeralRecommendations(BaseTestCase, ItemRelatedTestMixin):
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.updateItem("1")
+        self.updateItem("3")
+        self.updateItem("2")
+        self.updateItem("8")
+        self.updateItem("11")
+        self.updateItem("15")
+        self.updateItem("17")
+        self.updateItem("21")
+        self.updateItem("22")
+        self.updateItem("23")
+        self.updateItem("24")
+        self.updateItem("29")
+
+    def tearDown(self):
+        BaseTestCase.tearDown(self)
+        api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set([])"},
+                    assert_returns_tuijianbaoid=False)
+
+    def testDuplicatedNameInSeveralRecommendations_with_the_option_on(self):
+        api_access("/test_only/change_settings", 
+                   {"key": "recommendation_deduplicate_item_names_required_set", 
+                    "value": "set(['%s'])" % SITE_ID},
+                assert_returns_tuijianbaoid=False)
+
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
+        pr.addRequest("RecVAV", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
+                [{'item_id': '24', 'score': 0.99250000000000005}, 
+                 {'item_id': '17', 'score': 0.99209999999999998}])
+        self.assertEquals(result["responses"]["getAlsoViewed"]["topn"],
+                [{'item_id': '29', 'score': 0.84999999999999998}])
+
+    def testDuplicatedNameInSeveralRecommendations_with_the_option_off(self):
+        api_access("/test_only/change_settings", 
+                   {"key": "recommendation_deduplicate_item_names_required_set", 
+                    "value": "set([])"},
+                assert_returns_tuijianbaoid=False)
+
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
+        pr.addRequest("RecVAV", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
+                [{'item_id': '24', 'score': 0.99250000000000005}, 
+                 {'item_id': '23', 'score': 0.88109999999999999}, 
+                 {'item_id': '17', 'score': 0.99209999999999998}])
+        self.assertEquals(result["responses"]["getAlsoViewed"]["topn"],
+                [{'item_id': '22', 'score': 0.9899}, 
+                 {'item_id': '29', 'score': 0.84999999999999998}])
+
+
+    def testSeveralRecommendation(self):
+        self.assertCurrentLinesCount(0)
+        pr = packed_request.PackedRequest()
+        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 3})
+        pr.addRequest("RecVAV", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 5})
+        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        self.assertCurrentLinesCount(2)
+        self.assertEquals(result["code"], 0)
+        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
+                [{'item_id': '3', 'score': 0.99770000000000003}, 
+                 {'item_id': '2', 'score': 0.99329999999999996}, 
+                 {'item_id': '8', 'score': 0.99250000000000005}])
+        self.assertEquals(result["responses"]["getAlsoViewed"]["topn"],
+                [{'item_id': '11', 'score': 0.98880000000000001},
+                 {'item_id': '15', 'score': 0.98709999999999998},
+                 {'item_id': '17', 'score': 0.97209999999999996}, 
+                 {'item_id': '21', 'score': 0.95109999999999995}, 
+                 {'item_id': '29', 'score': 0.94110000000000005}])
+
+
 class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
     def setUp(self):
         BaseTestCase.setUp(self)
@@ -1434,25 +1705,6 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
                 {'user_id': 'guaye', 'behavior': 'V', 'item_id': '35',
                  'referer': 'http://joe'})
 
-
-    def testSeveralRecommendation(self):
-        self.assertCurrentLinesCount(0)
-        pr = packed_request.PackedRequest()
-        pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 3})
-        pr.addRequest("RecVAV", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 5})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
-        self.assertCurrentLinesCount(2)
-        self.assertEquals(result["code"], 0)
-        self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
-                [{'item_id': '3', 'score': 0.99770000000000003}, 
-                 {'item_id': '2', 'score': 0.99329999999999996}, 
-                 {'item_id': '8', 'score': 0.99250000000000005}])
-        self.assertEquals(result["responses"]["getAlsoViewed"]["topn"],
-                [{'item_id': '11', 'score': 0.98880000000000001},
-                 {'item_id': '15', 'score': 0.98709999999999998},
-                 {'item_id': '17', 'score': 0.97209999999999996}, 
-                 {'item_id': '21', 'score': 0.95109999999999995}, 
-                 {'item_id': '29', 'score': 0.94110000000000005}])
 
     def testUpdateItem(self):
         self.assertCurrentLinesCount(0)
