@@ -524,4 +524,7 @@ def _getCurrentUser(request):
     else:
         return None
 
-    
+def ajax_stat(request, site_id=None, type=None, date=None):
+    if date is None:
+        date = 30;
+    return HttpResponse(json.dumps({"site_id": 'fdsdfddasfdsfdsafdsafdadsfsa'}))

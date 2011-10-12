@@ -80,3 +80,18 @@
 }
 .datepickerContainer table tr + tr td { border-top: 0;
 }
+
+table.datepickerViewDays tr.datepickerDoW th{
+  width:20px;
+  padding-left:5px;
+}
+
+div.datepicker a {
+  cursor: pointer;
+}
+
+td.datepickerDisabled a, td.datepickerDisabled.datepickerNotInMonth a {
+  color: #999;
+  cursor: default;
+}
+

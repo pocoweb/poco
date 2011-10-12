@@ -29,6 +29,10 @@ urlpatterns = patterns('',
     url(r'^ajax/get_site_statistics$', 'Dashboard.views.ajax_get_site_statistics'),
     url(r'^ajax/toggle_black_list$', 'Dashboard.views.ajax_toggle_black_list'),
     url(r'^ajax/get_black_list$', 'Dashboard.views.ajax_get_black_list'),
+    url(r'^ajax/stat/$', 'Dashboard.views.ajax_stat'),
+    url(r'^ajax/stat/(?P<site_id>\w+)/$', 'Dashboard.views.ajax_stat'),
+    url(r'^ajax/stat/(?P<site_id>\w+)/(?P<type>\w+)/$', 'Dashboard.views.ajax_stat'),
+    url(r'^ajax/stat/(?P<site_id>\w+)/(?P<type>\w+)/(?P<date>\w+)/$', 'Dashboard.views.ajax_stat'),
 )
 
 urlpatterns += staticfiles_urlpatterns()

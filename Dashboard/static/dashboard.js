@@ -1,44 +1,91 @@
-var chart;
-var AppRouter = Backbone.Router.extend({
-    routes: {
-        "static/:site_id/:static_type": "getPost",
-        "static/:site_id/:static_type/:days_ago": "getPost",
-        "static/:site_id/:static_type/:from/:to": "getPost",
-        "*actions": "defaultRoute" // Backbone will try match the route above first
-    },
-    getPost: function( id, type ) {
-        // Note the variable in the route definition being passed in here
-        alert( "Get post number " + id + type);   
-    },
-    defaultRoute: function( actions ){
-        //alert( actions ); 
-    }
+var App = {
+  Models: {},
+  Views: {},
+  Controllers: {},
+  RestUrl: '/ajax',
+  initialize: function() {
+    new App.Controllers.Routes();
+    Backbone.history.start();
+  }
+};
+
+App.Models.Stat = Backbone.Model.extend({
+  defaults: {
+    site_id: '',
+    type: '',
+    date: 30,
+    code: '' 
+  },
+  url: function() {
+    var url = App.RestUrl + '/stat/';
+    return App.RestUrl + '/stat/' + this.get('site_id') + '/' + this.get('type') + '/' + this.get('date');
+  }
 });
+
+App.Views.Stat = Backbone.View.extend({
+  initialize: function() {
+    _.bindAll(this, 'render');
+    this.model.bind("change", this.render);
+  },
+
+  render: function() {
+    console.log(this.model.get('site_id'));
+    console.log(this.model.get('type'));
+    return this;
+  }
+});
+
+App.Controllers.Routes = Backbone.Router.extend({
+  routes: {
+      "stat/:site_id/:stat_type": "getPost",
+      "stat/:site_id/:stat_type/:days_ago": "getPost",
+      "stat/:site_id/:stat_type/:from/:to": "getPost",
+      "*actions": "defaultRoute" // Backbone will try match the route above first
+  },
+  getPost: function( id, type ) {
+    var a = new App.Models.Stat;
+    a.set({site_id: id, type: type});
+    $.getJSON(a.url(), function(data) {
+      var vxxx = new App.Views.Stat({model: a});
+      a.set(data);
+    });
+  },
+  defaultRoute: function( actions ){
+      //alert( actions ); 
+  }
+});
+
+App.initialize();
+
 // Instantiate the router
-var app_router = new AppRouter;
 // Start Backbone history a neccesary step for bookmarkable URL's
-Backbone.history.start();
 
 $(document).ready(function(){
-	$('#widgetCalendar').DatePicker({
-		date: new Date(),
+  $('#widgetCalendar').DatePicker({
+    date: new Date(),
   });
   
-  var from_day = new Date();
-  from_day.addDays(-30);
+  var date_range_split_str = " -- ";
+  var date_range_array =  $('#widgetRangeText').text().split(date_range_split_str);
+  var from_day_array = date_range_array[0].split('-');
+  var to_day_array = date_range_array[1].split('-');
+  var from_day = new Date(from_day_array[0],from_day_array[1]-1,from_day_array[2]);
+  var to_day = new Date(to_day_array[0],to_day_array[1]-1,to_day_array[2]);
 
-  var to_day = new Date();
-  to_day.addDays(-1);
-  
-  var current_month = new Date();
+  var current_month = new Date(to_day);
   current_month.addMonths(-1);
+
+  var min_from_day = new Date();
+  min_from_day.addDays(-100);
+  var max_to_day = new Date();
+  max_to_day.addDays(-1);
   
   $('#widgetCalendar').DatePicker({
     flat: true,
-		date: [new Date(from_day), new Date(to_day)],
+    date: [from_day, to_day],
     calendars: 3,
-    current: new Date(current_month),
-		mode: 'range',
+    current: current_month,
+    mode: 'range',
     starts: 1,
     locale: {
       days: ["日", "一", "二", "三", "四", "五", "六", "日"],
@@ -49,29 +96,48 @@ $(document).ready(function(){
       weekMin: '周'
     },
     onChange: function(formated) {
-      console.log(formated);
-			$('#widgetField span').get(0).innerHTML = formated.join(' -- ');
+      $('#widgetCalendarRangeText').text(formated.join(date_range_split_str));
     },
     onRender: function(date) {
-	  	return {
-	  		disabled: (date.valueOf() > to_day.valueOf())
-	  	}
-	  }
+      return {
+        disabled: (date.valueOf() > max_to_day.valueOf() || date.valueOf() < min_from_day.valueOf())
+      }
+    }
   });
   var state = false;
-  $('#confirm_range').bind('click', function(){
-		$('#widgetCalendar').stop().animate({height: state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight+30}, 200);
-		state = !state;
-		return false;
-	});
+  var calendar_state_toggle = function() {
+    $('#widgetCalendar').stop().animate({height: state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight+30}, 200);
+    $('#chart').stop().animate({'padding-top': state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight+30}, 200);
+    state ? $('#quickSelectRange a').removeClass('disabled') :  $('#quickSelectRange a').addClass('disabled');
+    state = !state;
+  };
 
-  $('#widgetField>a').bind('click', function(){
-		$('#widgetCalendar').stop().animate({height: state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight+30}, 200);
-		state = !state;
-		return false;
+  $('#confirm_range').bind('click', function(){
+    calendar_state_toggle();
+    $('#widgetRangeText').text($('#widgetCalendarRangeText').text());
+    var temp = $('#widgetCalendar').DatePickerGetDate();
+    from_day = temp[0];
+    to_day = temp[1];
+    app_router.navigate("stat/fdd/dfs",true);
+    return false;
   });
 
-  chart = new Highcharts.Chart({
+  $('#cancel_range').bind('click', function(){
+    calendar_state_toggle();
+    return false;
+  });
+
+
+  $('#widgetField>a').bind('click', function(){
+    calendar_state_toggle();
+    if(state == true) {
+      $('#widgetCalendarRangeText').text($('#widgetRangeText').text());
+      $('#widgetCalendar').DatePickerSetDate([from_day, to_day]);
+    }
+    return false;
+  });
+
+  var chart = new Highcharts.Chart({
     chart: {
       renderTo: 'chart-container',
       defaultSeriesType: 'line',
