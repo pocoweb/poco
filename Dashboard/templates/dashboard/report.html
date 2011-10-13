@@ -1,0 +1,86 @@
+{% extends "dashboard/new_base.html" %}
+{% block site-nav %}
+<ul class="nav">
+          <li class="active"><a href="/report/{{site_id}}/#">推荐统计</a></li>
+          <li><a href="/items/{{site_id}}">商品列表</a></li>
+          <li><a href="/dashboard#">编辑商品分组类别</a>
+        </ul>
+{% endblock %}
+{% block container %}
+  <div class="container-fluid">
+    <div id="sidebar_nav" class="sidebar">
+    </div>
+      <script type="text/template" id="sidebar_nav_template">
+        <% 
+        var report_1_list = [
+            {en: 'pu', cn: '商品PV和UV'},
+            {en: 'hoho', cn: 'hoho'},
+            {en: 'heihei', cn: 'heihei'}
+        ];
+        %>
+      <div class="well">
+        <h5>整体统计</h5>
+        <ul>
+          <% _.each(report_1_list, function(name){ %>
+              <li><a href="#<%= name.en %>/<%= report_date %>" id="report-link-<%= name.en %>"><%= name.cn %></a></li>
+          <% }); %>
+        </ul>
+        <h5>Sidebar</h5>
+        <ul>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+        <h5>Sidebar</h5>
+        <ul>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
+      </div>
+      </script>
+    <div id="content" class="content">
+    </div>
+      <script type="text/template" id="content_template" />
+      <div>
+        <a href="#">推荐统计</a>
+        <span>&gt;&gt;</span>
+        <span id="report_nav"></span>
+      </div>
+      <hr />
+      <div style="width:100%;">
+        <div id="widget" style="float:left;">
+          <div id="widgetField">
+            <span id="widgetRangeText"></span>
+            <a href="javascipt:void(0);">Select</a>
+          </div>
+          <div id="widgetCalendar" style="width:800px;float:right;margin-left:0px;">
+            <div style="width:100%;position:absolute;bottom:auto;top:30px;float:right;padding-bottom:5px;padding-left:600px;">
+            您选择的日期范围：<br /><span id="widgetCalendarRangeText" style="background-color:#eee;padding:3px;"></span></br><br />
+              <button id="confirm_range" class="btn">确定</button>
+              <a href="javascript:void(0)" id="cancel_range">取消</a>
+            </div>
+          </div>
+        </div>
+        <div id="quickSelectRange" style="float:left;margin-left:40px;">
+          <span class="label">快速选择最近:</span>
+          <span class="divider">&nbsp;&nbsp;</span>
+          <% _.each(links, function(name){ %>
+              <a href="#<%= report_type %>/<%= name %>" class="btn<% if(name == primary_day) print(' primary'); %>"><%= name %>天</a>&nbsp;
+          <% }); %>
+          <span class="divider">&nbsp;&nbsp;</span>
+          <span class="divider">&nbsp;&nbsp;</span>
+          </div>
+
+      </div>
+      <div id="chart" style="float:left;width:100%;height:450px;margin-top:33px;">
+        <div id="chart-container">
+        </div>
+      </div>
+    </script>
+    <input type="hidden" name="site_id" id="site_id" value="{{site_id}}" />
+    <input type="hidden" name="report_type" id="report_type" value="" />
+  </div>
+{% endblock %}

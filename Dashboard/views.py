@@ -524,7 +524,14 @@ def _getCurrentUser(request):
     else:
         return None
 
-def ajax_stat(request, site_id=None, type=None, date=None):
+def ajax_report(request, site_id=None, report_type=None, date=None):
     if date is None:
-        date = 30;
+        date = 30
     return HttpResponse(json.dumps({"site_id": 'fdsdfddasfdsfdsafdsafdadsfsa'}))
+
+def report(request, site_id):
+    user_name = request.session.get("user_name", None)
+    return render_to_response("dashboard/report.html", {
+        "page_name": site_id, "user_name": user_name,
+        "site_id": site_id
+        }, context_instance=RequestContext(request))

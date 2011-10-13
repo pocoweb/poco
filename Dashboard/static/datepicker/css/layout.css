@@ -34,9 +34,9 @@
 }
 #widgetCalendar {
 	position: absolute;
-	top: 30px;
+	top: 29px;
 	right: auto;
-    left: 0;
+  left: 0;
 	height: 0px;
 	overflow: hidden;
 	width: 588px;
