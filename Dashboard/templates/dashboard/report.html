@@ -1,10 +1,23 @@
 {% extends "dashboard/new_base.html" %}
+{% block mvc-script %}
+<script src="{{STATIC_URL}}js/models/report.js" type="text/javascript" ></script>
+<script src="{{STATIC_URL}}js/views/report.js" type="text/javascript" ></script>
+<script src="{{STATIC_URL}}js/controllers/report.js" type="text/javascript" ></script>
+{% endblock %}
+{% block head %}
+<script type="text/javascript">
+$(document).ready(function(){
+  var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
+  App.initialize(App.Routers.Report);
+});
+</script>
+{% endblock %}
 {% block site-nav %}
 <ul class="nav">
-          <li class="active"><a href="/report/{{site_id}}/#">推荐统计</a></li>
-          <li><a href="/items/{{site_id}}">商品列表</a></li>
-          <li><a href="/dashboard#">编辑商品分组类别</a>
-        </ul>
+  <li class="active"><a href="/report/{{site_id}}/#">推荐统计</a></li>
+  <li><a href="/items/{{site_id}}">商品列表</a></li>
+  <li><a href="/dashboard#">编辑商品分组类别</a>
+</ul>
 {% endblock %}
 {% block container %}
   <div class="container-fluid">

@@ -6,24 +6,25 @@
   <link rel="stylesheet" href="{{STATIC_URL}}/blueprint/print.css?4392429048" type="text/css" media="print"> 
   <!--[if lt IE 8]><link rel="stylesheet" href="static/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
   <link rel="stylesheet" href="{{STATIC_URL}}style.css" type="text/css" media="screen, projection"> 
-  <link rel="stylesheet" href="{{STATIC_URL}}bootstrap/bootstrap.css" type="text/css" media="screen, projection"> 
-  <link rel="stylesheet" href="{{STATIC_URL}}datepicker/css/datepicker.css" type="text/css" media="screen, projection"> 
-  <link rel="stylesheet" href="{{STATIC_URL}}datepicker/css/layout.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}js/libs/bootstrap/bootstrap.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}js/libs/datepicker/css/datepicker.css" type="text/css" media="screen, projection"> 
+  <link rel="stylesheet" href="{{STATIC_URL}}js/libs/datepicker/css/layout.css" type="text/css" media="screen, projection"> 
     <style type="text/css">
       body {
         padding-top: 60px;
       }
     </style>
-  <link rel="stylesheet" href="{{STATIC_URL}}jquery-ui-1.8.16/css/redmond/jquery-ui-1.8.16.custom.css" rel="Stylesheet">
-  <script src="{{STATIC_URL}}jquery-1.6.1.min.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}jquery-ui-1.8.16/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}jquery-ui-1.8.16/development-bundle/ui/i18n/jquery.ui.datepicker-zh-CN.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}underscore-1.1.6.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}backbone.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
-  <script src="{{STATIC_URL}}bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}datepicker/js/datepicker.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}dashboard.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/libs/jquery-1.6.1.min.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/libs/underscore-1.1.6.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/libs/backbone.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/libs/highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
+  <script src="{{STATIC_URL}}js/libs/bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/libs/datepicker/js/datepicker.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}js/dashboard.js" type="text/javascript" ></script>
+  {% block mvc-script %}
+  {% endblock %}
+  {% block head %}
+  {% endblock %}
 </head>
 <body>
   <div class="topbar">
