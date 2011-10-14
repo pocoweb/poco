@@ -346,7 +346,7 @@ def site_items_list(request):
 import cgi
 import urlparse
 from common.utils import APIAccess
-api_access = APIAccess(settings.api_server_name, settings.api_server_port)
+#api_access = APIAccess(settings.api_server_name, settings.api_server_port)
 
 
 def _getItemIdFromRedirectUrl(redirect_url):
@@ -541,6 +541,7 @@ def report(request, api_key):
 def ajax_report(request):
     user_name = request.session.get("user_name", None)
     api_key = request.GET.get("api_key", None)
+    report_type = request.GET.get("report_type", None)
     _checkUserAccessSite(user_name, api_key)
 
     from_date_str = request.GET.get("from_date", None)
@@ -596,8 +597,8 @@ def ajax_report(request):
             "avg_unique_sku": [], "avg_item_amount": [],
 
             "categories": []}
-    ''' 
-    data = {"categories": [],"series": {"pv_v": [], "uv_v": [], "pv_uv":[]}}
+    '''
+    data = {}
     def pushIntoData(stat_row, keys):
        for key in keys:
            convertColumn(stat_row, key)
@@ -605,9 +606,14 @@ def ajax_report(request):
                data['series'].setdefault(key.lower(), []).append(stat_row[key])
            else:
                data['series'].setdefault(key.lower(), []).append(None)
+    data = {
+        'pv_uv': lambda : {"categories": [],"series": {"pv_v": [], "uv_v": [], "pv_uv":[]}},
+        'plo': lambda : {"categories": [],"series": {"pv_plo": [], "pv_plo_d_uv": []}}
+    }[report_type]()
+    
     for stat_row in reports:
-       data["categories"].append(stat_row["date"])
-       pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV"])
+        data["categories"].append(stat_row["date"])
+        pushIntoData(stat_row, map(lambda x: x.upper(), data['series'].keys()))
 
     return HttpResponse(json.dumps(data))
 

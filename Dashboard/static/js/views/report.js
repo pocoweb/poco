@@ -75,7 +75,6 @@ App.Views.Report = Backbone.View.extend({
     var calendar_state_toggle = function() {
       $('#widgetCalendar').stop().animate({height: state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight}, 200);
       $('#chart').stop().animate({'padding-top': state ? 0 : $('#widgetCalendar div.datepicker').get(0).offsetHeight}, 200);
-      //state ? $('#quickSelectRange a').removeClass('disabled') :  $('#quickSelectRange a').addClass('disabled');
       state = !state;
     };
 
@@ -109,7 +108,19 @@ App.Views.Report = Backbone.View.extend({
 
   renderChart: function() {
     var data = this.model.get('data');
-    var chart_dict = {
+    var chart_dict = (new App.Views.Chart).pv_uv_dict(data);
+    var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
+    return this;
+  },
+
+  renderChartTable: function(){
+    var data = this.model.get('data');
+  }
+});
+
+App.Views.Chart = Backbone.View.extend({
+  'pv_uv_dict': function(data) {
+    return {
       chart: {
         renderTo: "chart-container"
       },
@@ -152,13 +163,53 @@ App.Views.Report = Backbone.View.extend({
         yAxis: 1
       }]
     };
-   
-    var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
-
-    return this;
   },
+  'plo_dict': function() {
+    return {
+            chart: {
+                renderTo: "chart-1",
+            },
+            title: {
+                text: "商品订单数",
+            },
+            xAxis: {
+                categories: data.categories,
+                labels: xAxis_labels
+            },
+            yAxis: [{
+                        title: {
+                            text: '订单数'
+                        }
+                    },
+                    {
+                        title: {
+                            text: '比率'
+                        },
+                        opposite: true
+                    }
+            ],
+            tooltip: {
+                formatter: function() {
+                    return '<b>' + this.series.name + '</b><br/>' +
+                        this.x + ':' + this.y + '单';
+                }
+            },
+            series: [{
+                       "name": "订单数",
+                       "data": data.pv_plo,
+                       "type": "column"
+                     },
 
-  renderChartTable: function(){
-    var data = this.model.get('data');
-  }
+                    {"name": "订单数/商品UV",
+                      "data": data.pv_plo_d_uv,
+                      "type": "spline",
+                      yAxis: 1
+                     }
+                ]
+              }
+            }
+
 });
+
+
+

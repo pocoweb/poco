@@ -12,6 +12,9 @@ App.Routers.Report = Backbone.Router.extend({
     r.fetch({
       success: function(model,response){
         r.set({data:response});
+      },
+      error: function(){
+        alert('服务器忙，请稍后再试');
       }
     });
   },
