@@ -46,15 +46,13 @@
             </tr>
           </thead>
           <tbody>
+            {% for site in sites %}
             <tr>
-              <td><a href="/report/kuaishubao">快书包</a></td>
-              <td>3432</td>
-              <td><a class="btn info" href="#">详情 &raquo;</a></td>
+              <td><a href="/report/{{site.api_key}}">{{site.site_name}}</a></td>
+              <td>{{site.items_count}}</td>
+              <td><a class="btn info" href="/report/{{site.api_key}}">详情 &raquo;</a></td>
             </tr>
-            <tr>
-              <td><a href="#">快书包</a></td>
-              <td>3432</td>
-              <td><a class="btn info" href="#">详情 &raquo;</a></td>
+            {% endfor %}
             </tr>
           </tbody>
         </table>

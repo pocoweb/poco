@@ -14,8 +14,8 @@ $(document).ready(function(){
 {% endblock %}
 {% block site-nav %}
 <ul class="nav">
-  <li class="active"><a href="/report/{{site_id}}/#">推荐统计</a></li>
-  <li><a href="/items/{{site_id}}">商品列表</a></li>
+  <li class="active"><a href="/report/{{api_key}}/#">推荐统计</a></li>
+  <li><a href="/items/{{api_key}}">商品列表</a></li>
   <li><a href="/dashboard#">编辑商品分组类别</a>
 </ul>
 {% endblock %}
@@ -26,9 +26,21 @@ $(document).ready(function(){
       <script type="text/template" id="sidebar_nav_template">
         <% 
         var report_1_list = [
-            {en: 'pu', cn: '商品PV和UV'},
-            {en: 'hoho', cn: 'hoho'},
-            {en: 'heihei', cn: 'heihei'}
+            {en: 'pvuv', cn: '商品PV和UV'},
+            {en: 'plo', cn: '商品订单数'},
+            {en: 'rec', cn: '商品推荐占PV数'},
+            {en: 'avg_order_total', cn: '平均客单价'},
+            {en: 'total_sales', cn: '总销售金额'},
+            {en: 'unique_sku', cn: 'Unique SKU'}
+        ];
+        var report_2_list = [
+            {en: 'recav', cn: '看了也看'},
+            {en: 'recph', cn: '根据购买历史'},
+            {en: 'recbab', cn: '买了也买'},
+            {en: 'recbtg', cn: '一起买'},
+            {en: 'recuvb', cn: '看了最终买'},
+            {en: 'recbobh', cn: '根据浏览历史'},
+            {en: 'recsc', cn: '根据购物车'}
         ];
         %>
       <div class="well">
@@ -38,19 +50,11 @@ $(document).ready(function(){
               <li><a href="#<%= name.en %>/<%= report_date %>" id="report-link-<%= name.en %>"><%= name.cn %></a></li>
           <% }); %>
         </ul>
-        <h5>Sidebar</h5>
+        <h5>推荐统计</h5>
         <ul>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
-        </ul>
-        <h5>Sidebar</h5>
-        <ul>
-          <li><a href="#">Link</a></li>
-          <li><a href="#">Link</a></li>
+          <% _.each(report_2_list, function(name){ %>
+              <li><a href="#<%= name.en %>/<%= report_date %>" id="report-link-<%= name.en %>"><%= name.cn %></a></li>
+          <% }); %>
         </ul>
       </div>
       </script>
@@ -93,7 +97,7 @@ $(document).ready(function(){
         </div>
       </div>
     </script>
-    <input type="hidden" name="site_id" id="site_id" value="{{site_id}}" />
+    <input type="hidden" name="api_key" id="api_key" value="{{api_key}}" />
     <input type="hidden" name="report_type" id="report_type" value="" />
   </div>
 {% endblock %}

@@ -1,7 +1,7 @@
 App.Models.Report = Backbone.Model.extend({
   defaults: {
-    site_id: '',
-    report_type: 'pu',
+    api_key: '',
+    report_type: 'pvuv',
     report_date: '30',
     report_from_date: '',
     report_to_date: '',
@@ -9,11 +9,12 @@ App.Models.Report = Backbone.Model.extend({
     code: '' 
   },
   url: function() {
-    return "http://127.0.0.1:4000/ajax/get_site_statistics?site_id=kuaishubao&from_date_str=" + this.get('report_from_date').format('yyyy-MM-dd') + "&to_date_str=" + this.get('report_to_date').format('yyyy-MM-dd');
-    //return App.RestUrl + '/report/' + this.get('site_id') + '/' + this.get('report_type') + '/' + this.get('report_date_range');
+    //return "http://127.0.0.1:4000/ajax/get_site_statistics?site_id=kuaishubao&from_date_str=" + this.get('report_from_date').format('yyyy-MM-dd') + "&to_date_str=" + this.get('report_to_date').format('yyyy-MM-dd');
+    return App.RestUrl + '/report?api_key=' + this.get('api_key') + '&report_type=' + this.get('report_type')
+    + '&from_date=' + this.get('report_from_date').format('yyyy-MM-dd') + '&to_date=' + this.get('report_to_date').format('yyyy-MM-dd');
   },
   initialize: function() {
-    this.set({site_id: $('#site_id').val()});
+    this.set({api_key: $('#api_key').val()});
     this.bind('change:report_date', this.setReportDateRange);
     this.setReportDateRange();
   },

@@ -117,7 +117,7 @@ App.Views.Report = Backbone.View.extend({
         text: "商品PV和UV图"
       },
       xAxis: {
-        categories: data.site.statistics.categories,
+        categories: data.categories,
       },
       yAxis: [{
         title: {
@@ -139,15 +139,15 @@ App.Views.Report = Backbone.View.extend({
 
       series: [{
         "name": "商品PV",
-        "data": data.site.statistics.pv_v,
+        "data": data.series.pv_v,
         "type": "area"
       },{
         "name": "商品UV",
-        "data": data.site.statistics.uv_v,
+        "data": data.series.uv_v,
         "type": "area",
       },{
         "name": "PV/UV",
-        "data": data.site.statistics.pv_uv,
+        "data": data.series.pv_uv,
         "type": "line",
         yAxis: 1
       }]
@@ -156,5 +156,9 @@ App.Views.Report = Backbone.View.extend({
     var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
 
     return this;
+  },
+
+  renderChartTable: function(){
+    var data = this.model.get('data');
   }
 });

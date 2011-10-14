@@ -19,6 +19,8 @@ import settings
 
 import re
 
+from Dashboard.middleware.http import Http403
+
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
 
@@ -101,10 +103,10 @@ def convertColumn(row, column_name):
         row[column_name] = None
 
 def login_required(callable):
-    def method(request):
-        if not request.session.has_key("user_name"):
+    def method(*args,**kws):
+        if not args[0].session.has_key("user_name"):
             return redirect("/login")
-        return callable(request)
+        return callable(*args,**kws)
     return method
 
 
@@ -198,29 +200,17 @@ def dashboard(request):
 #             "user": getUser(user_name)},
 #            context_instance=RequestContext(request))
 
+@login_required
 def dashboard2(request):
     user_name = request.session["user_name"]
     sites = _getUserSites(user_name)
-    current_site_id = request.GET.get("site_id", sites[0].get("site_id",""))
-    chart = request.GET.get("chart", "1")
-    type = request.GET.get("type", None)
-    chart_menu_id = "chart" + "_" + chart + "_"
-    to_date = datetime.date.today() - datetime.timedelta(1)
-    to_date_str = to_date.strftime("%Y-%m-%d")
-    from_date = to_date - datetime.timedelta(30)
-    from_date_str = from_date.strftime("%Y-%m-%d")
-
-    if type != None:
-        chart_menu_id += type
+    connection = mongo_client.connection
+    for site in sites:
+        site['items_count'] = getItemsAndCount(connection, site['site_id'], 0)["items_count"]
     return render_to_response("dashboard/index2.html", 
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
-             "user": getUser(user_name),
-             "chart": chart, "type":type, "chart_menu_id": chart_menu_id,
-             "to_date_str": to_date_str, "from_date_str": from_date_str,
-             "site_id": current_site_id
              },
             context_instance=RequestContext(request))
-
 
 def _calc_rec_deltas(row):
     if row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:
@@ -524,14 +514,100 @@ def _getCurrentUser(request):
     else:
         return None
 
-def ajax_report(request, site_id=None, report_type=None, date=None):
-    if date is None:
-        date = 30
-    return HttpResponse(json.dumps({"site_id": 'fdsdfddasfdsfdsafdsafdadsfsa'}))
+def _checkUserAccessSite(user_name, api_key):
+    sites = _getUserSites(user_name)
+    access = False
+    for site in sites:
+        if api_key == site['api_key']:
+            access = True
+            break
+    if access == False:
+        raise Http403
+    else:
+        return True
 
-def report(request, site_id):
+
+@login_required
+def report(request, api_key):
     user_name = request.session.get("user_name", None)
+    _checkUserAccessSite(user_name, api_key)
     return render_to_response("dashboard/report.html", {
-        "page_name": site_id, "user_name": user_name,
-        "site_id": site_id
-        }, context_instance=RequestContext(request))
+        "page_name": "推荐统计", "user_name": user_name,
+        "api_key":api_key 
+        }, context_instance=RequestContext(request)
+    )
+
+@login_required
+def ajax_report(request):
+    user_name = request.session.get("user_name", None)
+    api_key = request.GET.get("api_key", None)
+    _checkUserAccessSite(user_name, api_key)
+
+    from_date_str = request.GET.get("from_date", None)
+    to_date_str = request.GET.get("to_date", None)
+    year,month,day=from_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    from_date = datetime.datetime(year, month, day)
+    year,month,day=to_date_str.split("-")
+    year = int(year)
+    month = int(month)
+    day = int(day)
+    to_date = datetime.datetime(year, month, day)
+    days = (to_date-from_date).days
+
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    c_report = getSiteDBCollection(mongo_client.connection, site["site_id"], "statistics")
+    rows = c_report.find({"date" : {"$gte" : from_date_str, "$lte": to_date_str}}).sort("date",pymongo.ASCENDING)
+    result = {}
+    for day_delta in range(days, -1, -1):
+        the_date = to_date - datetime.timedelta(days=day_delta)
+        the_date_str = the_date.strftime("%Y-%m-%d")
+        row = {"date": the_date_str, "is_available": False}
+        result[the_date_str] = row
+    
+    for row in rows:
+        if result.has_key(row["date"]):
+            del row["_id"]
+            row["is_available"] = True
+
+            uv_v = row.has_key("UV_V") and float(row["UV_V"]) or 0.0
+            pv_v = row.has_key("PV_V") and float(row["PV_V"]) or 0.0
+            pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
+            row["PV_UV"] = float("%.2f" % pv_uv)
+
+            pv_plo = float(row["PV_PLO"])
+            pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
+            row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
+            result[row["date"]].update(row)
+    
+    keys = result.keys()
+    keys.sort()
+    reports = map(result.get, keys)
+    ''' 
+    data = {"pv_v": [], "uv_v": [], "pv_uv": [],
+            "pv_plo": [], "pv_plo_d_uv": [], "pv_rec": [], "clickrec": [],
+            "avg_order_total": [], "total_sales": [],
+            "avg_order_total_no_rec": [], "total_sales_no_rec": [],
+            "avg_order_total_rec_delta": [], "total_sales_rec_delta": [],
+            "avg_unique_sku": [], "avg_item_amount": [],
+
+            "categories": []}
+    ''' 
+    data = {"categories": [],"series": {"pv_v": [], "uv_v": [], "pv_uv":[]}}
+    def pushIntoData(stat_row, keys):
+       for key in keys:
+           convertColumn(stat_row, key)
+           if stat_row["is_available"]:
+               data['series'].setdefault(key.lower(), []).append(stat_row[key])
+           else:
+               data['series'].setdefault(key.lower(), []).append(None)
+    for stat_row in reports:
+       data["categories"].append(stat_row["date"])
+       pushIntoData(stat_row, ["PV_V", "UV_V", "PV_UV", "PV_PLO", "PV_PLO_D_UV"])
+
+    return HttpResponse(json.dumps(data))
+
