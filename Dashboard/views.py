@@ -346,7 +346,7 @@ def site_items_list(request):
 import cgi
 import urlparse
 from common.utils import APIAccess
-#api_access = APIAccess(settings.api_server_name, settings.api_server_port)
+api_access = APIAccess(settings.api_server_name, settings.api_server_port)
 
 
 def _getItemIdFromRedirectUrl(redirect_url):
