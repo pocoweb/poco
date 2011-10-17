@@ -608,7 +608,8 @@ def ajax_report(request):
                data['series'].setdefault(key.lower(), []).append(None)
     data = {
         'pv_uv': lambda : {"categories": [],"series": {"pv_v": [], "uv_v": [], "pv_uv":[]}},
-        'plo': lambda : {"categories": [],"series": {"pv_plo": [], "pv_plo_d_uv": []}}
+        'plo': lambda : {"categories": [],"series": {"pv_plo": [], "pv_plo_d_uv": []}},
+        'avg_order_total': lambda : {"categories": [],"series": {"avg_order_total": [], "avg_order_total_rec_delta": []}}
     }[report_type]()
     
     for stat_row in reports:

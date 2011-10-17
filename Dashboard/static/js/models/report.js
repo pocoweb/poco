@@ -53,6 +53,7 @@ App.Models.DayChart = Backbone.Model.extend({
   },
   initialize: function() {
     var model = this;
+    model.set({xAxisLabels: []});
     (model.get('chart_dict')).chart.events = {redraw:  model.redraw(model)};
     (model.get('chart_dict')).xAxis.labels = model.labels(model);
     var chart = new Highcharts.Chart(model.get('chart_dict'), function(c){model.x_add_weekend_shadow(model,c)});
@@ -90,7 +91,7 @@ App.Models.DayChart = Backbone.Model.extend({
     var left;
     var xcount = model.get('xAxisLabels').length; 
     var width = c.xAxis[0].translate(2) - c.xAxis[0].translate(1);
-    var last_left = 0;
+    var last_left = c.plotLeft+1-width;
     $(model.get('xAxisLabels')).each(function(i, label){
       var c_date = label.split("-");
       var d  =  new Date(c_date[0], c_date[1]-1, c_date[2]);
@@ -113,7 +114,7 @@ App.Models.DayChart = Backbone.Model.extend({
            stroke: '#333',
            fill: '#eee',
            zIndex: -1,
-           'label': c_date,
+           'label': c_date.join('-'),
            'left': i * width + c.plotLeft,
            'class': 'rec_weekend_shadow',
            }).add();

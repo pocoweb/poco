@@ -108,7 +108,7 @@ App.Views.Report = Backbone.View.extend({
 
   renderChart: function() {
     var data = this.model.get('data');
-    var chart_dict = (new App.Views.Chart).pv_uv_dict(data);
+    var chart_dict = (new App.Views.Chart({dict_type: this.model.get('report_type'), data: data})).render_dict();
     var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
     return this;
   },
@@ -119,7 +119,20 @@ App.Views.Report = Backbone.View.extend({
 });
 
 App.Views.Chart = Backbone.View.extend({
-  'pv_uv_dict': function(data) {
+  dict_type: '',
+  data: {},
+  render_dict: function()
+  {
+    switch(this.options.dict_type)
+    {
+      case 'pv_uv': return this.pv_uv_dict();
+      case 'plo': return this.plo_dict();
+      case 'avg_order_total': return this.avg_order_total_dict();
+      default: return {};
+    }
+  },
+
+  pv_uv_dict: function() {
     return {
       chart: {
         renderTo: "chart-container"
@@ -128,7 +141,7 @@ App.Views.Chart = Backbone.View.extend({
         text: "商品PV和UV图"
       },
       xAxis: {
-        categories: data.categories,
+        categories: this.options.data.categories,
       },
       yAxis: [{
         title: {
@@ -150,65 +163,122 @@ App.Views.Chart = Backbone.View.extend({
 
       series: [{
         "name": "商品PV",
-        "data": data.series.pv_v,
+        "data": this.options.data.series.pv_v,
         "type": "area"
       },{
         "name": "商品UV",
-        "data": data.series.uv_v,
+        "data": this.options.data.series.uv_v,
         "type": "area",
       },{
         "name": "PV/UV",
-        "data": data.series.pv_uv,
+        "data": this.options.data.series.pv_uv,
         "type": "line",
         yAxis: 1
       }]
     };
   },
-  'plo_dict': function() {
+  plo_dict: function() {
     return {
-            chart: {
-                renderTo: "chart-1",
-            },
-            title: {
-                text: "商品订单数",
-            },
-            xAxis: {
-                categories: data.categories,
-                labels: xAxis_labels
-            },
-            yAxis: [{
-                        title: {
-                            text: '订单数'
-                        }
-                    },
-                    {
-                        title: {
-                            text: '比率'
-                        },
-                        opposite: true
-                    }
-            ],
-            tooltip: {
-                formatter: function() {
-                    return '<b>' + this.series.name + '</b><br/>' +
-                        this.x + ':' + this.y + '单';
-                }
-            },
-            series: [{
-                       "name": "订单数",
-                       "data": data.pv_plo,
-                       "type": "column"
-                     },
-
-                    {"name": "订单数/商品UV",
-                      "data": data.pv_plo_d_uv,
-                      "type": "spline",
-                      yAxis: 1
-                     }
-                ]
-              }
-            }
-
+      chart: {
+        renderTo: "chart-container"
+      },
+      title: {
+        text: "商品订单数",
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: [{
+        title: {
+          text: '订单数'
+        }
+      },
+      {
+        title: {
+          text: '比率'
+        },
+        opposite: true
+      }
+      ],
+      tooltip: {
+        formatter: function() {
+          return '<b>' + this.series.name + '</b><br/>' +
+          this.x + ':' + this.y + '单';
+        }
+      },
+      series: [{
+        "name": "订单数",
+        "data": this.options.data.series.pv_plo,
+        "type": "column"
+      },
+      {"name": "订单数/商品UV",
+        "data": this.options.data.series.pv_plo_d_uv,
+        "type": "spline",
+        yAxis: 1
+      }]
+    }
+  },
+  avg_order_total_dict: function() {
+    return {
+      chart: {
+          renderTo: "chart-container",
+      },
+      title: {
+          text: "平均客单价",
+          x: -20
+      },
+      subtitle: {
+          x: -20
+      },
+      xAxis: {
+          categories: this.options.data.categories,
+      },
+      yAxis: [
+        {
+          title: {
+            text: '客单价'
+          },
+          plotLines: [{
+            value: 0, width: 1, color: '#808080'
+          }]
+        },
+        {
+          title: {
+            text: '客单价差'
+          },
+          plotLines: [{
+            value: 0, width: 1, color: '#808080'
+          }],
+          opposite: true
+        }
+      ],
+      tooltip: {
+        formatter: function() {
+          return '<b>' + this.series.name + '</b><br/>' +
+          this.x + ':' + this.y + '元';
+        }
+      },
+      series: [
+        {
+          "name": "客单价",
+          "data": this.options.data.avg_order_total,
+          "type": "spline",
+          "dataLabels": {
+            enabled: false
+           }
+         },
+         {
+           "name": "有无推荐客单价差",
+           "data": this.options.data.avg_order_total_rec_delta,
+           "type": "spline",
+           "dataLabels": {
+             enabled: false
+           },
+           "yAxis": 1
+         }
+       ]
+    }
+  }
 });
 
 
