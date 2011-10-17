@@ -20,135 +20,128 @@ Date.prototype.format = function(format)
 
 Highcharts.theme = {
   chart: {
-    margin: [50, 80, 60, 45],
-    events: {
-      //       redraw: function() {
-        //          $(".rec_weekend_shadow").remove();
-        //          x_add_weekend_shadow(this);
-        //       }
-      }
+    margin: [60, 80, 60, 65]
     },
-
     //colors: ['#005BC8', '#54B428', '#B7461C', '#FF9655', '#54B428', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
-    //   colors: ['#058DC7', '#50b432', '#ed7e17', '#FF9655', '#50b432', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
-    //   colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
+    //colors: ['#058DC7', '#50b432', '#ed7e17', '#FF9655', '#50b432', '#64E572', '#FF9655', '#FFF263', '#6AF9C4'],
+    //colors: ["#7798BF", "#55BF3B", "#DF5353", "#aaeeee", "#ff0066", "#eeaaee", "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
 
-    credits: {
-      href: "http://tuijianbao.net",
-      text: "",
-      style: {
-        color: '#ccc'
-      }
+  credits: {
+    href: "http://tuijianbao.net",
+    text: "",
+    style: {
+      color: '#ccc'
+    }
+  },
+
+  labels: {
+    style: {
+      //color: '#99b'
+    }
+  },
+  
+  legend: {
+    align: 'left',
+    verticalAlign: 'top',
+    y: 20,
+    x: 40,
+    floating: true,
+    borderWidth: 0,
+
+    itemStyle: {         
+      font: '9pt Trebuchet MS, Verdana, sans-serif',
+      //color: 'black'
+
     },
-
-    labels: {
-      style: {
-        //color: '#99b'
-      }
+    itemHoverStyle: {
+      //color: '#039'
     },
-    legend: {
-      align: 'left',
-      verticalAlign: 'top',
-      y: 10,
-      x: 40,
-      floating: true,
-      borderWidth: 0,
-
-      itemStyle: {         
-        font: '9pt Trebuchet MS, Verdana, sans-serif',
-        //color: 'black'
-
-      },
-      itemHoverStyle: {
-        //color: '#039'
-      },
-      itemHiddenStyle: {
-        //color: 'gray'
-      }
+    itemHiddenStyle: {
+      //color: 'gray'
+    }
+  },
+  
+  plotOptions: {
+    area: {
+      fillOpacity: .20,
+      lineWidth: 3 
     },
-    plotOptions: {
-      area: {
-        fillOpacity: .20,
-        lineWidth: 3 
-      },
-      areaspline: {
-        marker: {
-          enabled: false,
-          symbol: 'circle',
-          radius: 2,
-          states: {
-            hover: {
-              enabled: true
-            }
+    areaspline: {
+      marker: {
+        enabled: false,
+        symbol: 'circle',
+        radius: 2,
+        states: {
+          hover: {
+            enabled: true
           }
         }
-      },
-      column: {
-        borderWidth: 1,
-        groupPadding: 0
-      },
-      line: {
-        //lineWidth: 1
       }
     },
-    subtitle: {
-      x: -20,
-      style: { 
-        //color: '#666666',
-        font: 'bold 12px "Trebuchet MS", Verdana, sans-serif'
+    column: {
+      borderWidth: 1,
+      groupPadding: 0
+    },
+    line: {
+      //lineWidth: 1
+    }
+  },
+  title: {
+    margin: 50,
+    style: { 
+      //color: '#000',
+      font: 'bold 16px "Trebuchet MS", Verdana, sans-serif'
+    }
+  },
+  subtitle: {
+    x: -20,
+    style: { 
+      font: 'bold 12px "Trebuchet MS", Verdana, sans-serif'
+    }
+  },
+  xAxis: {
+    //gridLineWidth: 1,
+    //lineColor: '#000',
+    //tickColor: '#000',
+    labels: {
+      rotation: -45,
+      style: {
+        //color: '#000',
+        font: '11px Trebuchet MS, Verdana, sans-serif'
+      },
+    },
+    title: {
+      style: {
+        //color: '#333',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+
+      }            
+    }
+  },
+  yAxis: {
+    //minorTickInterval: 'auto',
+    //lineColor: '#000',
+    //lineWidth: 1,
+    tickWidth: 1,
+    //tickColor: '#000',
+    labels: {
+      style: {
+        //color: '#000',
+        font: '11px Trebuchet MS, Verdana, sans-serif'
       }
     },
     title: {
-      x: -20,
-      style: { 
-        //color: '#000',
-        font: 'bold 16px "Trebuchet MS", Verdana, sans-serif'
-      }
-    },
-
-    xAxis: {
-      //gridLineWidth: 1,
-      //lineColor: '#000',
-      //tickColor: '#000',
-      labels: {
-        rotation: -45,
-        style: {
-          //color: '#000',
-          font: '11px Trebuchet MS, Verdana, sans-serif'
-        },
-      },
-      title: {
-        style: {
-          //color: '#333',
-          fontWeight: 'bold',
-          fontSize: '12px',
-          fontFamily: 'Trebuchet MS, Verdana, sans-serif'
-
-        }            
-      }
-    },
-    yAxis: {
-      //minorTickInterval: 'auto',
-      //lineColor: '#000',
-      //lineWidth: 1,
-      tickWidth: 1,
-      //tickColor: '#000',
-      labels: {
-        style: {
-          //color: '#000',
-          font: '11px Trebuchet MS, Verdana, sans-serif'
-        }
-      },
-      title: {
-        style: {
-          //color: '#333',
-          fontWeight: 'bold',
-          fontSize: '12px',
-          fontFamily: 'Trebuchet MS, Verdana, sans-serif'
-        }            
-      }
+      style: {
+        //color: '#333',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+      }            
     }
-  };
+  }
+};
 
 var App = {
   Models: {},

@@ -574,15 +574,35 @@ def ajax_report(request):
         if result.has_key(row["date"]):
             del row["_id"]
             row["is_available"] = True
-
             uv_v = row.has_key("UV_V") and float(row["UV_V"]) or 0.0
             pv_v = row.has_key("PV_V") and float(row["PV_V"]) or 0.0
             pv_uv = uv_v != 0.0 and (pv_v / uv_v) or 0
             row["PV_UV"] = float("%.2f" % pv_uv)
-
             pv_plo = float(row["PV_PLO"])
             pv_plo_d_uv = uv_v != 0.0 and (pv_plo / uv_v) or 0
             row["PV_PLO_D_UV"] = float("%.4f" % pv_plo_d_uv)
+            #_calc_clickrec_pv_ratio(row)
+            if row.has_key("PV_V") and row["PV_V"] is not None and row["ClickRec"] is not None and row["PV_V"] != 0:
+                row["clickrec_pv_ratio"] = float(row["ClickRec"]) / float(row["PV_V"])
+                convertColumn(row, "clickrec_pv_ratio")
+            else:
+                row["clickrec_pv_ratio"] = None
+
+            #_calc_rec_deltas(row)
+            if row.has_key("avg_order_total") and row["avg_order_total"] is not None and row["avg_order_total_no_rec"] is not None:
+                row["avg_order_total_rec_delta"] = row["avg_order_total"] - row["avg_order_total_no_rec"]
+            else:
+                row["avg_order_total_rec_delta"] = None
+        
+            if row.has_key("total_sales") and row["total_sales"] is not None and row["total_sales_no_rec"] is not None:
+                row["total_sales_rec_delta"] = row["total_sales"] - row["total_sales_no_rec"]
+                row["total_sales_rec_delta_ratio"] = row["total_sales_rec_delta"] / row["total_sales"]
+                convertColumn(row, "total_sales_rec_delta_ratio")
+            else:
+                row["toal_sales"] = None
+                row["total_sales_rec_delta"] = None
+                row["total_sales_rec_delta_ratio"] = None
+
             result[row["date"]].update(row)
     
     keys = result.keys()
@@ -598,23 +618,33 @@ def ajax_report(request):
 
             "categories": []}
     '''
-    data = {}
-    def pushIntoData(stat_row, keys):
-       for key in keys:
-           convertColumn(stat_row, key)
-           if stat_row["is_available"]:
-               data['series'].setdefault(key.lower(), []).append(stat_row[key])
-           else:
-               data['series'].setdefault(key.lower(), []).append(None)
-    data = {
-        'pv_uv': lambda : {"categories": [],"series": {"pv_v": [], "uv_v": [], "pv_uv":[]}},
-        'plo': lambda : {"categories": [],"series": {"pv_plo": [], "pv_plo_d_uv": []}},
-        'avg_order_total': lambda : {"categories": [],"series": {"avg_order_total": [], "avg_order_total_rec_delta": []}}
-    }[report_type]()
+    data = {"categories": [], "series": {}}
+
+    report_sub_types = {
+        'pv_uv': ["PV_V", "UV_V", "PV_UV"],
+        'plo': ["PV_PLO", "PV_PLO_D_UV"],
+        'rec': ["PV_V", "ClickRec", "clickrec_pv_ratio"],
+        'avg_order_total': ["avg_order_total", "avg_order_total_rec_delta"],
+        'total_sales': ["total_sales", "total_sales_rec_delta"],
+        'unique_sku': ["avg_unique_sku", "avg_item_amount"],
+        'recvav':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recph':   ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recbab':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recbtg':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recvub':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recbobh': ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'recsc':   ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+    }[report_type]
     
     for stat_row in reports:
         data["categories"].append(stat_row["date"])
-        pushIntoData(stat_row, map(lambda x: x.upper(), data['series'].keys()))
+        for key in report_sub_types:
+            convertColumn(stat_row, key)
+            if stat_row["is_available"]:
+                data['series'].setdefault(key.lower(), []).append(stat_row[key])
+            else:
+                data['series'].setdefault(key.lower(), []).append(None)
 
     return HttpResponse(json.dumps(data))
 
+ 

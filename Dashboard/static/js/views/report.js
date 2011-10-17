@@ -109,6 +109,7 @@ App.Views.Report = Backbone.View.extend({
   renderChart: function() {
     var data = this.model.get('data');
     var chart_dict = (new App.Views.Chart({dict_type: this.model.get('report_type'), data: data})).render_dict();
+    console.log(chart_dict);
     var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
     return this;
   },
@@ -127,18 +128,28 @@ App.Views.Chart = Backbone.View.extend({
     {
       case 'pv_uv': return this.pv_uv_dict();
       case 'plo': return this.plo_dict();
+      case 'rec': return this.rec_dict();
       case 'avg_order_total': return this.avg_order_total_dict();
+      case 'total_sales': return this.total_sales_dict();
+      case 'unique_sku': return this.unique_sku_dict();
+
+      case 'recvav':  return this.rec_by_type_dict(this.options.dict_type,'看了也看');
+      case 'recph':   return this.rec_by_type_dict(this.options.dict_type,'根据购买历史');
+      case 'recbab':  return this.rec_by_type_dict(this.options.dict_type,'买了也买');
+      case 'recbtg':  return this.rec_by_type_dict(this.options.dict_type,'一起买');
+      case 'recvub':  return this.rec_by_type_dict(this.options.dict_type,'看了最终买');     
+      case 'recbobh': return this.rec_by_type_dict(this.options.dict_type,'根据浏览历史');
+      case 'recsc':   return this.rec_by_type_dict(this.options.dict_type,'根据购物车');
       default: return {};
     }
   },
-
   pv_uv_dict: function() {
     return {
       chart: {
         renderTo: "chart-container"
       },
       title: {
-        text: "商品PV和UV图"
+        text: "商品PV和UV图",
       },
       xAxis: {
         categories: this.options.data.categories,
@@ -218,6 +229,115 @@ App.Views.Chart = Backbone.View.extend({
       }]
     }
   },
+  rec_dict: function(){
+    var sum_pv_v_wo = 0;
+    var sum_clickrec = 0;
+    for (var index in this.options.data.series.pv_v) {
+        if (this.options.data.series.pv_v[index] != null) {
+            if (this.options.data.series.clickrec[index] != null) {
+                sum_pv_v_wo += this.options.data.series.pv_v[index] - this.options.data.series.clickrec[index];
+                sum_clickrec += this.options.data.series.clickrec[index];
+            }
+        }
+    }
+    var per_pv_v_wo = Math.round(sum_pv_v_wo / (sum_pv_v_wo + sum_clickrec) * 1000) / 10;
+    var per_clickrec = Math.round(sum_clickrec / (sum_pv_v_wo + sum_clickrec) * 1000) / 10;
+
+    return chart_dict = {
+      chart: {
+        renderTo: "chart-container",
+      },
+      title: {
+        text: "商品推荐占PV数",
+      },
+      subtitle: {
+        //text: site_id,
+        x: -20
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: [{
+        title: {
+          text: '次数'
+        },
+        plotLines: [{
+          value: 0, width: 1, color: '#808080'
+        }]
+        },
+        {
+          title: {
+            text: '比率'
+          },
+          plotLines: [{
+            value: 0, width: 1, color: '#808080'
+            }],
+            opposite: true
+          }
+          ],
+          tooltip: {
+            formatter: function() {
+              if (this.point.name) {
+                var percentage = 0;
+                if (this.point.name == "非推荐PV") {
+                  percentage = "" + per_pv_v_wo + "%";
+                }
+                else {
+                  percentage = "" + per_clickrec + "%";
+                };
+
+                return this.point.name + ":" + this.y + '次, 占' + percentage;
+
+              }
+              else {
+                return '<b>' + this.series.name + '</b><br/>' +
+                this.x + ':' + this.y + '次';
+              }
+            }
+          },
+          series: [{
+            "name": "商品PV数",
+            "data": this.options.data.series.pv_v,
+            "type": "area"
+          },
+          {
+            "name": "推荐点击数",
+            "data": this.options.data.series.clickrec,
+            "type": "area"
+          },
+          {
+            "name": "推荐点击占PV比",
+            "data": this.options.data.series.clickrec_pv_ratio,
+            "type": "spline",
+            "yAxis": 1
+          },
+          {
+            "type": "pie",
+            "name": "汇总",
+            "data": [
+              {
+                name: "非推荐PV",
+                y: sum_pv_v_wo,
+                color: '#058dc7'
+                //color: highchartsOptions.colors[0]
+            },
+            {
+              name: "推荐点击PV",
+              y: sum_clickrec,
+              color: '#50b432'
+              //color: highchartsOptions.colors[1]
+          }],
+          center: [30, 30],
+          size: 60,
+          showInLegend: true,
+          dataLabels: {
+          enabled: false
+          }
+        }
+      ]
+    };
+  },
+
   avg_order_total_dict: function() {
     return {
       chart: {
@@ -225,7 +345,6 @@ App.Views.Chart = Backbone.View.extend({
       },
       title: {
           text: "平均客单价",
-          x: -20
       },
       subtitle: {
           x: -20
@@ -261,7 +380,7 @@ App.Views.Chart = Backbone.View.extend({
       series: [
         {
           "name": "客单价",
-          "data": this.options.data.avg_order_total,
+          "data": this.options.data.series.avg_order_total,
           "type": "spline",
           "dataLabels": {
             enabled: false
@@ -269,7 +388,7 @@ App.Views.Chart = Backbone.View.extend({
          },
          {
            "name": "有无推荐客单价差",
-           "data": this.options.data.avg_order_total_rec_delta,
+           "data": this.options.data.series.avg_order_total_rec_delta,
            "type": "spline",
            "dataLabels": {
              enabled: false
@@ -278,8 +397,209 @@ App.Views.Chart = Backbone.View.extend({
          }
        ]
     }
+  },
+  total_sales_dict: function() {
+    var sum_total_sales_without_rec = 0;
+    var sum_total_sales_rec_delta = 0;
+    for (var index in this.options.data.series.total_sales) {
+        if (this.options.data.series.total_sales[index] != null) {
+            if (this.options.data.series.total_sales_rec_delta[index] != null) {
+                sum_total_sales_without_rec += this.options.data.series.total_sales[index] - this.options.data.series.total_sales_rec_delta[index];
+                sum_total_sales_rec_delta += this.options.data.series.total_sales_rec_delta[index];
+            }
+        }
+    }
+    
+    sum_total_sales_without_rec = Math.round(sum_total_sales_without_rec * 100) / 100;
+    sum_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta * 100) / 100;
+
+    var per_total_sales_without_rec = Math.round(sum_total_sales_without_rec / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
+    var per_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
+    return {
+      chart: {
+        renderTo: "chart-container",
+      },
+      title: {
+        text: "总销售金额",
+      },
+      subtitle: {
+        //text: site_id,
+        x: -20
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: [{
+          title: {
+          text: '金额'
+          },
+          plotLines: [{
+          value: 0, width: 1, color: '#808080'
+          }]
+        },{
+          title: {
+          text: '比率'
+          },
+          plotLines: [{
+          value: 0, width: 1, color: '#808080'
+          }],
+          opposite: true
+        }],
+       tooltip: {
+         formatter: function() {
+           if (this.point.name) {
+             var percentage = 0;
+             if (this.point.name == "非推荐销售金额") {
+               percentage = "" + per_total_sales_without_rec + "%";
+             }
+             else {
+               percentage = "" + per_total_sales_rec_delta + "%";
+             };
+             return this.point.name + ":" + this.y + '元, 占' + percentage;
+           }
+           else {
+             return '<b>' + this.series.name + '</b><br/>' +
+             this.x + ':' + this.y + '';
+           }
+          }
+        },
+        series: [{
+          "name": "总销售金额",
+          "data": this.options.data.series.total_sales,
+          "type": "area",
+          "dataLabels": {enabled: false}
+        },{
+          "name": "有无推荐销售金额差",
+          "data": this.options.data.series.total_sales_rec_delta,
+          "type": "area",
+          "dataLabels": {enabled: false}
+        },{
+          "name": "推荐贡献比率",
+          "data": this.options.data.series.total_sales_rec_delta_ratio,
+          "type": "spline",
+          "dataLabels": {enabled: false },
+          yAxis: 1
+        },{
+          "type": "pie",
+          "name": "汇总",
+          "data": [{
+            name: "非推荐销售金额",
+            y: sum_total_sales_without_rec,
+            color: '#058dc7'
+          },{
+            name: "推荐销售金额",
+            y: sum_total_sales_rec_delta,
+            color: '#50b432'}],
+          center: [30, 30],
+          size: 60,
+          showInLegend: true,
+          "dataLabels": {enabled: false }
+        }
+      ]
+    };
+  },
+  unique_sku_dict: function(){
+    return {
+      chart: {
+        renderTo: "chart-container",
+      },
+      title: {
+        text: "平均Unique SKU",
+      },
+      subtitle: {
+        //text: site_id,
+        x: -20
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: [{
+        title: {
+          text: '平均Unique SKU'
+        },
+        plotLines: [{
+          value: 0, width: 1, color: '#808080'
+        }]
+      }
+      ],
+      tooltip: {
+        formatter: function() {
+          return '<b>' + this.series.name + '</b><br/>' +
+          this.x + ':' + this.y;
+        }
+      },
+      series: [{
+        "name": "平均Unique SKU",
+        "data": this.options.data.series.avg_unique_sku,
+        "type": "spline"
+      },
+      {
+        "name": "平均商品件数",
+        "data": this.options.data.series.avg_item_amount,
+        "type": "spline"
+      }
+    ]};
+  },
+  rec_by_type_dict: function(action_name,title){
+    return {
+      chart: {
+        renderTo: "chart-container",
+      },
+      title: {
+        text: title,
+      },
+      subtitle: {
+        //text: site_id,
+        x: -20
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: [{
+          title: {
+          text: '次数'
+        },
+          plotLines: [{
+          value: 0, width: 1, color: '#808080'
+        }]},
+        {
+          title: {
+            text: '点击/请求比'
+          },
+          plotLines: [{
+            value: 0, width: 1, color: '#808080'
+            }],
+          opposite: true
+        }
+      ],
+      tooltip: {
+        formatter: function() {
+          return '<b>' + this.series.name + '</b><br/>' +
+          this.x + ':' + this.y;
+        }
+      },
+      series: [{
+        "name": "推荐请求数",
+        "data": this.options.data.series["recommendation_request_count_"+action_name],
+        "type": "area"
+      },
+      {
+        "name": "推荐展示数",
+        "data": this.options.data.series["recommendation_show_count_"+action_name],
+        "type": "area"
+      },
+      {
+        "name": "推荐点击数",
+        "data": this.options.data.series["click_rec_count_"+action_name],
+        "type": "area"
+      },
+      {
+        "name": "推荐点击/请求比",
+        "data": this.options.data.series["click_rec_show_ratio_"+action_name],
+        "type": "spline",
+        yAxis: 1
+      }
+    ]};
   }
 });
-
-
 
