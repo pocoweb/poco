@@ -2246,7 +2246,7 @@ button.btn::-moz-focus-inner, input[type=submit].btn::-moz-focus-inner {
   margin-top: -5px;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 5px solid #000000;
+  border-left: 5px solid #000;
 }
 .popover .arrow {
   position: absolute;

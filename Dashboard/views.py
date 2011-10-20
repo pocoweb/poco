@@ -206,7 +206,8 @@ def dashboard2(request):
     sites = _getUserSites(user_name)
     connection = mongo_client.connection
     for site in sites:
-        site['items_count'] = getItemsAndCount(connection, site['site_id'], 0)["items_count"]
+        c_items = getSiteDBCollection(connection, site['site_id'], "items")
+        site['items_count'] = c_items.find({"available": True}).count()
     return render_to_response("dashboard/index2.html", 
             {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
              },
@@ -318,6 +319,44 @@ def getItemsAndCount(connection, site_id, page_num):
     return {"items": items_cur, "items_count": items_count,
             "page_nums": xrange(page_num_left, page_num_right + 1),
             "page_num": page_num, "prev_page_num": max(1, page_num - 1),
+            "next_page_num": min(max_page_num, page_num + 1),
+            "max_page_num": max_page_num,
+            "curr_left_reached": page_num == 1,
+            "curr_right_reached": page_num >= max_page_num}
+
+def getItemsAndCount2(connection, site_id, page_num, page_size, search_name):
+    c_items = getSiteDBCollection(connection, site_id, "items")
+    if search_name == None:
+        items_cur = c_items.find({"available": True}).sort("item_name", 1)
+    else:
+        items_cur = c_items.find({"item_name":re.compile(".*"+search_name+".*", re.IGNORECASE),"available": True}).sort("item_name", 1)
+    items_count = items_cur.count()
+    items_cur.skip((page_num - 1) * page_size).limit(page_size)
+    max_page_num = items_count / page_size
+    if items_count % page_size > 0:
+        max_page_num += 1
+    page_num_left = max(page_num - 4, 1)
+    page_num_right = min(max_page_num, page_num + (9 - (page_num - page_num_left)))
+    models = [];
+    for item in items_cur:
+        data = {
+                'item_id': item['item_id'],
+                'item_name': item['item_name'],
+                'market_price': item['market_price'],
+                'price': item['price'],
+                'image_link': item['image_link']
+                }
+        #del item['_id']
+        #item['created_on'] = item['created_on'].strftime("%Y-%m-%d %H:%m:%S")
+        #item['removed_on'] = item['removed_on'].strftime("%Y-%m-%d %H:%m:%S")
+        models.append(data)
+    #return models
+    return  {"models": models, 
+            "page": page_num,
+            "page_size": page_size,
+            "total": items_count,
+            "prev_page_num": max(1, page_num - 1),
+            "page_nums": range(page_num_left, page_num_right + 1),
             "next_page_num": min(max_page_num, page_num + 1),
             "max_page_num": max_page_num,
             "curr_left_reached": page_num == 1,
@@ -647,4 +686,45 @@ def ajax_report(request):
 
     return HttpResponse(json.dumps(data))
 
- 
+@login_required
+def items(request, api_key):
+   user_name = request.session.get("user_name", None)
+   _checkUserAccessSite(user_name, api_key)
+   return render_to_response("dashboard/items.html", {
+       "page_name": "推荐统计", "user_name": user_name,
+       "api_key":api_key 
+       }, context_instance=RequestContext(request)
+   )
+
+@login_required
+def ajax_item(request, api_key, item_id):
+    user_name = request.session.get("user_name", None)
+    #api_key = request.GET.get("api_key", None)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    c_items = getSiteDBCollection(connection, site["site_id"], "items")
+    item = c_items.find_one({"item_id": item_id})
+    print item['item_name']
+    data = {
+            'item_id': item['item_id'],
+            'item_name': item['item_name'],
+            'market_price': item['market_price'],
+            'image_link': item['image_link']
+            }
+    return HttpResponse(json.dumps(data))
+
+@login_required
+def ajax_items(request, api_key):
+    user_name = request.session.get("user_name", None)
+    page_num = request.GET.get("page_num", 1)
+    search_name = request.GET.get("search_name", None)
+    page_size = request.GET.get("page_size", PAGE_SIZE)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    data = getItemsAndCount2(connection, site['site_id'], int(page_num), int(page_size), search_name)
+    return HttpResponse(json.dumps(data))
+
