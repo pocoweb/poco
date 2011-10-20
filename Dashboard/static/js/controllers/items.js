@@ -3,7 +3,7 @@ App.Routers.Items = Backbone.Router.extend({
       "page": "page",
       "page/:page_num?s=:search_name": "page",
       "page/:page_num": "page",
-      "id/:item_id": "view",
+      "id/:item_id": "view_item",
       ":action_type": "defaultRoute",
   },
   defaultRoute: function( actions ){
@@ -17,7 +17,7 @@ App.Routers.Items = Backbone.Router.extend({
     var items_view = new App.Views.Items({collection: items});
     items.fetch({data: {page_num: page_num, page_size: 15, search_name: search_name}});
   },
-  view: function(item_id) {
+  view_item: function(item_id) {
     var item = new App.Models.Item({item_id: item_id});
     var item_view = new App.Views.Item({model: item});
     item.fetch();

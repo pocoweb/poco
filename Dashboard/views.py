@@ -710,7 +710,10 @@ def ajax_item(request, api_key, item_id):
     data = {
             'item_id': item['item_id'],
             'item_name': item['item_name'],
+            'item_link': item['item_link'],
+            'item_categories': "".join(item['categories']),
             'market_price': item['market_price'],
+            'price': item['price'],
             'image_link': item['image_link']
             }
     return HttpResponse(json.dumps(data))
