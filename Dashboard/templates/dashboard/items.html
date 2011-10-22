@@ -55,6 +55,7 @@ $(document).ready(function(){
     </div>
     <script id="item-template" type="text/template">
     <div id="item-info">
+    <input type="hidden" id="item_id" name="item_id" value="<%= item_id %>" />
     <style type="text/css">
       .modal { height:auto; width:auto; left:48%; }
       .modal.fade.in { top: 45%; }
@@ -67,9 +68,6 @@ $(document).ready(function(){
         <p><img style="height:500px" src="<%= image_link %>"></p>
       </div>
     </div>
-    <!--
-    <button class="btn info" onclick="window.history.back()">&laquo;返回</button><br /><br />
-    -->
     <div class="row">
       <div class="span12">
         <div class="row">
@@ -81,33 +79,25 @@ $(document).ready(function(){
               <li><h7>市场价格：  <strong><%= market_price %></strong></h7></li>
               <li><h7>商品分类：  <strong><%= item_categories %></strong></h7></li>
             </ul>
-            <hr />
           </div>
         </div>
         <div class="row">
-            <div class="span12">
-            <h6>看了本商品的顾客还看了以下商品</h6>
-            <ul>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-            </ul> 
+          <div class="span12" id="rec-lists">
             <h6>经常和本商品一起买的商品</h6>
-            <ul>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
+            <ul class="rec-list" id="bought-together">
             </ul> 
             <h6>看了本商品最终会购买的商品</h6>
-            <ul>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
-              <li>fdsafdsafdsa</li>
+            <ul class="rec-list" id="ultimately-bought">
             </ul> 
-
+            <h6>买了本商品的顾客还会购买的商品</h6>
+            <ul class="rec-list" id="also-bought">
+            </ul> 
+            <h6>看了本商品的顾客还看了以下商品</h6>
+            <ul class="rec-list" id="also-viewed">
+            </ul> 
+            <h6>黑名单</h6>
+            <ul class="rec-list" id="black-list">
+            </ul> 
           </div>
         </div>
       </div>
@@ -119,6 +109,12 @@ $(document).ready(function(){
         </center>
       </div>
     </div>
+    </script>
+    <script type="text/template" id="rec-item-template">
+      <div class="rec-item">
+      <div clsss="rec-item-text"><a rel="popover" data-content="<img src='<%= image_link %>'>" data-original-title="#<%= item_id %>" href="#id/<%= item_id %>"><%= item_name %></a></div>
+      <span class="label rec-item-destroy" title="<%= is_black ? '从黑名单删除' : '添加到黑名单' %>"><%= is_black ? '&radic;' : '&times;' %></span>
+      </div>
     </script>
     <script id="pagination-template" type="text/template">
       <div id="pagination" class="pagination">

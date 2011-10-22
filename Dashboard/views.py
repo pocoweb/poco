@@ -406,7 +406,9 @@ def _getTopnByAPI(site, path, item_id, amount):
     if result["code"] == 0:
         topn = result["topn"]
         for topn_item in topn:
-            topn_item["item_link"] = "/show_item?site_id=%s&item_id=%s" % (site["site_id"], _getItemIdFromRedirectUrl(topn_item["item_link"]))
+            #topn_item["item_link"] = "/show_item?site_id=%s&item_id=%s" % (site["site_id"], _getItemIdFromRedirectUrl(topn_item["item_link"]))
+            topn_item["is_black"] = False
+            #topn_item["rec_type"] = path
         return topn
 
 def _getUltimatelyBought(site, item_id, amount):
@@ -485,7 +487,7 @@ def ajax_toggle_black_list(request):
 def itemInfoListFromItemIdList(site_id, item_id_list):
     c_items = getSiteDBCollection(mongo_client.connection, site_id, "items")
     item_info_list = [item for item in c_items.find({"item_id": {"$in": item_id_list}},
-                                  {"item_id": 1, "item_name": 1, "item_link": 1}
+        {"item_id": 1, "item_name": 1, "item_link": 1, "image_link": ''}
                                   )]
     for item_info in item_info_list:
         del item_info["_id"]
@@ -706,7 +708,9 @@ def ajax_item(request, api_key, item_id):
     site = c_sites.find_one({"api_key": api_key})
     c_items = getSiteDBCollection(connection, site["site_id"], "items")
     item = c_items.find_one({"item_id": item_id})
-    print item['item_name']
+    black_list = itemInfoListFromItemIdList(site['site_id'], mongo_client.get_black_list(site['site_id'], item_id))
+    for black_item in black_list:
+        black_item['is_black'] = True
     data = {
             'item_id': item['item_id'],
             'item_name': item['item_name'],
@@ -714,7 +718,14 @@ def ajax_item(request, api_key, item_id):
             'item_categories': "".join(item['categories']),
             'market_price': item['market_price'],
             'price': item['price'],
-            'image_link': item['image_link']
+            'image_link': item['image_link'],
+            'rec_lists':{
+                "also_viewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
+                "also_bought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
+                "bought_together": _getTopnByAPI(site, "getBoughtTogether", item_id, 15),
+                "ultimately_bought": _getUltimatelyBought(site, item_id, 15),
+                "black_list": black_list
+                }
             }
     return HttpResponse(json.dumps(data))
 
@@ -730,4 +741,47 @@ def ajax_items(request, api_key):
     site = c_sites.find_one({"api_key": api_key})
     data = getItemsAndCount2(connection, site['site_id'], int(page_num), int(page_size), search_name)
     return HttpResponse(json.dumps(data))
+
+@login_required
+def ajax_recs(request, api_key, item_id, rec_type):
+    user_name = request.session.get("user_name", None)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    data = {'rec_list':{}};
+    rec_list = [];
+    if(rec_type == "also_viewed"):
+        rec_list = _getTopnByAPI(site, "getAlsoViewed", item_id, 15)
+    elif(rec_type == "also_bought"):
+        rec_list = _getTopnByAPI(site, "getAlsoBought", item_id, 15)
+    elif(rec_type == "bought_together"):
+        rec_list = _getTopnByAPI(site, "getBoughtTogether", item_id, 15)
+    elif(rec_type == "ultimately_bought"):
+        rec_list = _getUltimatelyBought(site, item_id, 15)
+    elif(rec_type == "black_list"):
+        rec_list = itemInfoListFromItemIdList(site['site_id'], mongo_client.get_black_list(site['site_id'], item_id))
+        for black_item in rec_list:
+            black_item['is_black'] = True
+            black_item['image_link'] = ''
+
+    data['rec_list'][rec_type] = rec_list; 
+    return HttpResponse(json.dumps(data))
+
+@login_required
+def ajax_toggle_black_list2(request):
+    if request.method == "GET":
+        user_name = request.session.get("user_name", None)
+        api_key = request.GET["api_key"]
+        _checkUserAccessSite(user_name, api_key)
+        connection = mongo_client.connection
+        c_sites = connection["tjb-db"]["sites"]
+        site = c_sites.find_one({"api_key": api_key})
+        site_id = site['site_id'] 
+        item_id1 = request.GET["item_id1"]
+        item_id2 = request.GET["item_id2"]
+        is_on = request.GET["is_on"] == "true"
+        mongo_client.toggle_black_list(site_id, item_id1, item_id2, is_on)
+        return HttpResponse(json.dumps({"code": 0}))
+
 

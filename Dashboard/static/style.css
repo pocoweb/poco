@@ -255,3 +255,43 @@ background-color:#EAF2FA;
   background:url('images/logo-sprite.png') left 0px no-repeat;
 }
 
+.rec-list {
+}
+ul.rec-list{
+  list-style: none outside none;
+  margin:0 0 30px 0;
+  padding:5px 0 0 5px;
+  /*border-left: 1px #eee solid;*/
+  border-top: 1px #eee solid;
+}
+  .rec-list li {
+    padding: 2px 2px 0 20px; 
+    margin: 0;
+    position: relative;
+    /* line-height: 1.1em; */
+  }
+
+.rec-list .rec-item .rec-item-destroy{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    cursor: pointer;
+    display: none;
+    padding: 0 5px;
+}
+.rec-list li:hover {
+}
+.rec-list li:hover .rec-item-destroy {
+  display: block;
+}
+.rec-list .rec-item .rec-item-destroy:hover {
+  background-color: #000;
+  font-color:#fff;
+}
+#black-list .rec-item .rec-item-destroy:hover {
+  background-color: green;
+}
+#black-list a {
+color:#888;
+}
+

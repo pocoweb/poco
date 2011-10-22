@@ -12,7 +12,97 @@ App.Views.Item = Backbone.View.extend({
     $('.modal').remove();
     $('#main-content').html(_.template($('#item-template').html(),this.model.toJSON()));
     $('#my-modal').modal();
+    rec_item_id = this.model.get('item_id');
+    _.each(this.model.get('rec_lists'),function(collection, rec_type){
+      var rec_list = new App.Models.ItemRecList(collection,{rec_item_id: rec_item_id, rec_type: rec_type});
+      var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: rec_type});
+
+    });
+   
     return this;
+  }
+});
+
+App.Views.ItemRec = Backbone.View.extend({
+  model: {},
+  tagName: 'li',
+  //template: _.template($('rec-item-template').html()),
+  events: {
+    "click span": "clear"
+  },
+  initialize: function() {
+    this.model.bind('change', this.render, this);
+    this.model.bind('destroy', this.remove, this);
+  },
+  clear: function(){
+    this.model.destroy();
+  },
+  remove: function() {
+    $(this.el).remove();
+  },
+  render: function() {
+    $(this.el).html(_.template($('#rec-item-template').html(), this.model.toJSON()));
+    try{
+      $($(this.el).find("a[rel=popover]").attr('data-content')).load();
+    }catch(e){};
+    return this;
+  }
+});
+
+App.Views.ItemRecList = Backbone.View.extend({
+  collection: {},
+  initialize: function() {
+    this.collection.bind('remove', this.remove, this);
+    this.collection.bind('reset', this.addAll, this);
+    this.options.rec_type_id = this.options.rec_type.replace('_','-');
+    this.render();
+  },
+  render: function() {
+    $('.popover').remove();
+    this.addAll();
+  },
+  addAll: function() {
+    var rec_type_id = this.options.rec_type_id;
+    $('#'+rec_type_id).html('');
+    if(this.collection.length == 0) {
+      $('#'+rec_type_id).html('<li style="padding:0">没有相关记录</li>');
+    }
+    else
+    {
+      this.collection.each(function(itemrec) {
+        var view = new App.Views.ItemRec({model: itemrec});
+        this.$('#'+rec_type_id).append(view.render().el);
+      });
+      $("a[rel=popover]").popover({
+        offset: 21,
+        placement: 'left',
+        html: true,
+        fallback: '',
+        delayOut: 0,
+        delayIn: 10
+      });
+    }
+  },
+  remove: function(itemrec) {
+    if(this.options.rec_type_id != 'black-list')
+    {
+      var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: 'black_list'});
+      var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: 'black_list'});
+      rec_view.refresh();
+      this.refresh();
+    }
+    else
+    {
+      //var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: itemrec.get('rec_type')});
+      //var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: itemrec.get('rec_type')});
+      //rec_view.refresh();
+    }
+  },
+  refresh: function() {
+    var rec_type_id = this.options.rec_type_id;
+    var length = this.collection.length;
+    //$('#'+rec_type_id).html('<div style="height:'+($('#'+rec_type_id).outerHeight()/length)*(length+1)+'px">&nbsp;<div>').fadeIn(3000);
+    this.collection.fetch();
   }
 });
 
@@ -55,7 +145,6 @@ App.Views.Items = Backbone.View.extend({
         $(this).attr('href', href+'?s='+$('#search_name').val());
       });
     }
-
     return this;
   },
 });

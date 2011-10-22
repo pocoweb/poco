@@ -30,10 +30,12 @@ urlpatterns = patterns('',
     url(r'^ajax/update_category_groups$', 'Dashboard.views.ajax_update_category_groups'),
     url(r'^ajax/get_site_statistics$', 'Dashboard.views.ajax_get_site_statistics'),
     url(r'^ajax/toggle_black_list$', 'Dashboard.views.ajax_toggle_black_list'),
+    url(r'^ajax/toggle_black_list2$', 'Dashboard.views.ajax_toggle_black_list2'),
     url(r'^ajax/get_black_list$', 'Dashboard.views.ajax_get_black_list'),
     url(r'^ajax/report$', 'Dashboard.views.ajax_report'),
     url(r'^ajax/items/(?P<api_key>.+)/id/(?P<item_id>.+)$', 'Dashboard.views.ajax_item'),
     url(r'^ajax/items/(?P<api_key>.+)/$', 'Dashboard.views.ajax_items'),
+    url(r'^ajax/recs/(?P<api_key>.+)/id/(?P<item_id>.+)/(?P<rec_type>.+)$', 'Dashboard.views.ajax_recs'),
 )
 
 urlpatterns += staticfiles_urlpatterns()
