@@ -82,9 +82,7 @@ App.Views.ItemRecList = Backbone.View.extend({
   },
   remove: function(itemrec) {
     var item = new App.Models.Item({item_id: itemrec.get('rec_item_id')});
-    console.log(item.url());
     $.getJSON(item.url(),function(data){
-      console.log(data);
        _.each(data.rec_lists,function(collection, rec_type){
          var rec_list = new App.Models.ItemRecList(collection,{rec_item_id: rec_item_id, rec_type: rec_type});
          var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: rec_type});
