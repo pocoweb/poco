@@ -25,7 +25,6 @@ App.Routers.Items = Backbone.Router.extend({
   },
   // update category group
   ucg: function(){
-    console.log('ucg');
     var cg = {};
     var ucg_view = new App.Views.UCG({model: cg});
   }

@@ -14,7 +14,6 @@ App.Views.Item = Backbone.View.extend({
     _.each(this.model.get('rec_lists'),function(collection, rec_type){
       var rec_list = new App.Models.ItemRecList(collection,{rec_item_id: rec_item_id, rec_type: rec_type});
       var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: rec_type});
-
     });
    
     return this;
@@ -82,19 +81,28 @@ App.Views.ItemRecList = Backbone.View.extend({
     }
   },
   remove: function(itemrec) {
-    if(this.options.rec_type_id != 'black-list')
-    {
-      var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: 'black_list'});
-      var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: 'black_list'});
-      rec_view.refresh();
-      this.refresh();
-    }
-    else
-    {
-      //var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: itemrec.get('rec_type')});
-      //var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: itemrec.get('rec_type')});
-      //rec_view.refresh();
-    }
+    var item = new App.Models.Item({item_id: itemrec.get('rec_item_id')});
+    console.log(item.url());
+    $.getJSON(item.url(),function(data){
+      console.log(data);
+       _.each(data.rec_lists,function(collection, rec_type){
+         var rec_list = new App.Models.ItemRecList(collection,{rec_item_id: rec_item_id, rec_type: rec_type});
+         var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: rec_type});
+       });
+    });
+    //if(this.options.rec_type_id != 'black-list')
+    //{
+    //  var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: 'black_list'});
+    //  var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: 'black_list'});
+    //  rec_view.refresh();
+    //  this.refresh();
+    //}
+    //else
+    //{
+    //  //var rec_list = new App.Models.ItemRecList([],{rec_item_id: itemrec.get('rec_item_id'), rec_type: itemrec.get('rec_type')});
+    //  //var rec_view = new App.Views.ItemRecList({collection: rec_list, rec_type: itemrec.get('rec_type')});
+    //  //rec_view.refresh();
+    //}
   },
   refresh: function() {
     var rec_type_id = this.options.rec_type_id;
