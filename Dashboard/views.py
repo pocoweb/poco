@@ -784,4 +784,27 @@ def ajax_toggle_black_list2(request):
         mongo_client.toggle_black_list(site_id, item_id1, item_id2, is_on)
         return HttpResponse(json.dumps({"code": 0}))
 
+@login_required
+def ajax_categroup(request):
+    user_name = request.session.get("user_name", None)
+    api_key = request.GET.get("api_key", None)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    category_groups_src = loadCategoryGroupsSrc(site['site_id'])
+    return HttpResponse(json.dumps(category_groups_src))
+
+@login_required
+def ajax_update_category_groups2(request):
+    user_name = request.session.get("user_name", None)
+    api_key = request.GET.get("api_key", None)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    category_groups_src = request.GET.get("category_groups_src", '');
+    is_succ, msg = updateCategoryGroups(connection, site['site_id'], category_groups_src)
+    result = {"is_succ": is_succ, "msg": msg}
+    return HttpResponse(json.dumps(result))
 

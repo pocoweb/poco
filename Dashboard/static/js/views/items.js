@@ -6,8 +6,6 @@ App.Views.Item = Backbone.View.extend({
     $('#items_nav').text('商品详情');
   },
   render: function() {
-    //$(this.el).html(_.template(this.template,this.model));
-    //$('#pagination').addClass('hidden');
     $('.popover').remove();
     $('.modal').remove();
     $('#main-content').html(_.template($('#item-template').html(),this.model.toJSON()));
@@ -114,16 +112,18 @@ App.Views.Items = Backbone.View.extend({
     $('#items_nav').text('商品列表');
   },
   render: function() {
+    $('#main-content').html('');
     var v = {items: this.collection.toJSON()};
-    $('#item-info').remove();
-    if($('#pagination').length > 0) {
-      $('#pagination ul').remove();
-      $('#items-info').remove();
-    }
-    else
-    {
+    //$('#item-info').remove();
+    //if($('#pagination').length > 0) {
+    //  $('#pagination ul').remove();
+    //  $('#items-info').remove();
+    //}
+    //else
+    //{
       $('#main-content').append(_.template($('#pagination-template').html(), this.collection.pageInfo()));
-    }
+    //}
+    $('#item-search-text').focus();
     $('#item-search-text').val($('#search_name').val());
     $('#item-search').bind('submit',function(){App.Router.navigate('page/1?s='+$('#item-search-text').val(), true);return false;});
     $('#pagination').append(_.template($('#pagination-page-template').html(), this.collection.pageInfo()));
@@ -147,4 +147,54 @@ App.Views.Items = Backbone.View.extend({
     }
     return this;
   },
+});
+
+App.Views.UCG = Backbone.View.extend({
+  model: {},
+  initialize: function() {
+    //_.bindAll(this,'render');
+    //this.model.bind('change',this.render);
+    $('#items_nav').text('编辑商品分类组别');
+    this.render();
+  },
+  render: function() {
+    $('.popover').remove();
+    $('.modal').remove();
+    $('#main-content').html(_.template($('#ucg-template').html()));
+    $.getJSON(App.RestUrl + '/categroup', {"api_key": $('#api_key').val()}, function(data){
+      $('#ucg-form textarea').val(data);
+    });
+    $('#ucg-form textarea').focus();
+    $('#ucg-form').bind('reset',function(){
+      $.getJSON(App.RestUrl + '/categroup', {"api_key": $('#api_key').val()}, function(data){
+        $('#ucg-form textarea').val(data);
+      });
+      $('#ucg-form textarea').focus();
+    });
+    $('#ucg-form').bind('submit',function(){
+      $.getJSON(App.RestUrl + '/update_category_groups2', 
+        {"category_groups_src": $("#category_groups_src").val(),"api_key": $('#api_key').val()}, 
+        function(data){
+          $('#alert-message').removeClass('success important');
+          if (data.is_succ) {
+            $("#alert-message").addClass("success");
+            $("#alert-message").html("已保存");
+          }
+          else {
+            $("#alert-message").addClass("important");
+            if (data.msg == "INVALID_FORMAT") {
+                $("#alert-message").html("格式错误");
+            }
+            else if (data.msg == "INVALID_SITE"){
+                $("#alert-message").html("该站点不存在");
+            }
+          }
+          $('#alert-message').fadeIn('slow').fadeOut('slow');
+
+          //$("#alert-message").toggle();
+      });
+      return false;
+    });
+    return this;
+  }
 });

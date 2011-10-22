@@ -4,6 +4,7 @@ App.Routers.Items = Backbone.Router.extend({
       "page/:page_num?s=:search_name": "page",
       "page/:page_num": "page",
       "id/:item_id": "view_item",
+      "ucg": "ucg",
       ":action_type": "defaultRoute",
   },
   defaultRoute: function( actions ){
@@ -21,6 +22,12 @@ App.Routers.Items = Backbone.Router.extend({
     var item = new App.Models.Item({item_id: item_id});
     var item_view = new App.Views.Item({model: item});
     item.fetch();
+  },
+  // update category group
+  ucg: function(){
+    console.log('ucg');
+    var cg = {};
+    var ucg_view = new App.Views.UCG({model: cg});
   }
   /*
   getPost: function(report_type, report_date) {

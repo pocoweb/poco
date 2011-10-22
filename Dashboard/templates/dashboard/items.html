@@ -39,7 +39,7 @@ $(document).ready(function(){
         <h5>商品管理</h5>
         <ul>
           <li><a href="#">商品列表</a></li>
-          <li><a href="#upg">编辑商品分类组别</a></li>
+          <li><a href="#ucg">编辑商品分类组别</a></li>
         </ul>
       </div>
     </div>
@@ -184,6 +184,20 @@ $(document).ready(function(){
         </table>
       </div>
       <% } %>
+    </script>
+    <script id="ucg-template" type="text/template">
+    <div class="span9">
+      <span id="alert-message" class="label hidden">保存成功</span><span class="label" style="background-color:#fff">&nbsp;</span>
+      <br />
+      <form id="ucg-form"  action="javascript:return false;">
+        <div class="clearfix">
+          <textarea rows="10" name="category_groups_src" id="category_groups_src" class="xxlarge"></textarea>
+          <span class="help-block">格式："类型:分类号1,分类号2,...,分类号N"</span>
+          <br />
+          <input type="submit" value="保存" class="btn primary">&nbsp;<button class="btn" type="reset">取消</button>
+        </div>
+      </form>
+    </div>
     </script>
     <input type="hidden" name="api_key" id="api_key" value="{{api_key}}" />
     <input type="hidden" name="search_name" id="search_name" value="" />
