@@ -9,6 +9,7 @@ from django.shortcuts import render_to_response
 from django.shortcuts import redirect
 from django.template import RequestContext
 import pymongo
+import random
 from common.utils import getSiteDBCollection
 
 import simplejson as json
@@ -807,4 +808,54 @@ def ajax_update_category_groups2(request):
     is_succ, msg = updateCategoryGroups(connection, site['site_id'], category_groups_src)
     result = {"is_succ": is_succ, "msg": msg}
     return HttpResponse(json.dumps(result))
+
+@login_required
+def user(request):
+   user_name = request.session.get("user_name", None)
+   return render_to_response("dashboard/user.html", {
+       "page_name": "推荐统计", "user_name": user_name,
+       }, context_instance=RequestContext(request)
+   )
+
+def _checkPasswordValid(password):
+    return len(password) > 5 and re.match("[A-Za-z0-9_]+$", password) is not None
+
+def createRandomPassword(length):
+    allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ23456789"
+    password = ""
+    for i in range(length):
+        password += allowedChars[random.randint(0, 256) % len(allowedChars)]
+    return password
+
+def createHashedPassword(password): 
+    salt = createRandomPassword(16) 
+    hashed_password = hashlib.sha256(password + salt).hexdigest() 
+    return hashed_password, salt 
+
+@login_required
+def ajax_change_password(request):
+   user_name = request.session.get("user_name", None)
+   password = request.POST.get('password', '')
+   confirm_password = request.POST.get('password_confirm', '')
+   is_succ = False 
+   msg = ''
+   if password == '' and confirm_password == '':
+       msg = '密码没有修改'
+   elif not _checkPasswordValid(password):
+       msg = '密码格式有误'
+   elif not password == confirm_password:
+       msg = '密码不匹配'
+   else:
+       update_dict = {};
+       hashed_password, salt = createHashedPassword(password) 
+       update_dict["hashed_password"] = hashed_password 
+       update_dict["salt"] = salt 
+       connection = mongo_client.connection 
+       c_users = connection["tjb-db"]["users"] 
+       c_users.update({"user_name": user_name}, {"$set": update_dict}) 
+       is_succ = True
+       msg = '密码修改成功'
+
+   result = {"is_succ": is_succ, "msg": msg}
+   return HttpResponse(json.dumps(result))
 
