@@ -837,9 +837,15 @@ def ajax_change_password(request):
    user_name = request.session.get("user_name", None)
    password = request.POST.get('password', '')
    confirm_password = request.POST.get('password_confirm', '')
+   raw_password = request.POST.get('raw_password', '')
    is_succ = False 
    msg = ''
-   if password == '' and confirm_password == '':
+   connection = mongo_client.connection 
+   user = connection["tjb-db"]["users"].find_one({"user_name": user_name})
+   hashed_password = hashlib.sha256(raw_password + user["salt"]).hexdigest() 
+   if not user['hashed_password'] == hashed_password :
+       msg = '原密码不正确'
+   elif password == '' and confirm_password == '':
        msg = '密码没有修改'
    elif not _checkPasswordValid(password):
        msg = '密码格式有误'
@@ -850,9 +856,7 @@ def ajax_change_password(request):
        hashed_password, salt = createHashedPassword(password) 
        update_dict["hashed_password"] = hashed_password 
        update_dict["salt"] = salt 
-       connection = mongo_client.connection 
-       c_users = connection["tjb-db"]["users"] 
-       c_users.update({"user_name": user_name}, {"$set": update_dict}) 
+       connection["tjb-db"]["users"].update({"user_name": user_name}, {"$set": update_dict}) 
        is_succ = True
        msg = '密码修改成功'
 
