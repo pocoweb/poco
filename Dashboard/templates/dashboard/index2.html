@@ -50,9 +50,9 @@
           <tbody>
             {% for site in sites %}
             <tr>
-              <td><a href="/report/{{site.api_key}}">{{site.site_name}}</a></td>
+              <td><a href="/report/{{site.api_key}}/">{{site.site_name}}</a></td>
               <td>{{site.items_count}}</td>
-              <td><a class="btn info" href="/report/{{site.api_key}}">详情 &raquo;</a></td>
+              <td><a class="btn info" href="/report/{{site.api_key}}/">详情 &raquo;</a></td>
             </tr>
             {% endfor %}
             </tr>

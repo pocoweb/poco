@@ -694,7 +694,7 @@ def items(request, api_key):
    user_name = request.session.get("user_name", None)
    _checkUserAccessSite(user_name, api_key)
    return render_to_response("dashboard/items.html", {
-       "page_name": "推荐统计", "user_name": user_name,
+       "page_name": "商品管理", "user_name": user_name,
        "api_key":api_key 
        }, context_instance=RequestContext(request)
    )
@@ -813,7 +813,7 @@ def ajax_update_category_groups2(request):
 def user(request):
    user_name = request.session.get("user_name", None)
    return render_to_response("dashboard/user.html", {
-       "page_name": "推荐统计", "user_name": user_name,
+       "page_name": "帐号设置", "user_name": user_name,
        }, context_instance=RequestContext(request)
    )
 

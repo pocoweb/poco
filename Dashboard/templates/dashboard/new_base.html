@@ -24,6 +24,7 @@
   <script src="{{STATIC_URL}}js/libs/bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}js/libs/datepicker/js/datepicker.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}js/dashboard.js" type="text/javascript" ></script>
+  <title>{{page_name}} - 推荐宝 | 个性化推荐引擎</title>
   {% block mvc-script %}
   {% endblock %}
   {% block head %}
@@ -40,12 +41,12 @@
           <li class="dropdown" data-dropdown="dropdown">
           <a href="#" class="dropdown-toggle">{{ user_name }}</a>
             <ul class="dropdown-menu">
-              <li><a href="/user">帐户设置</a></li>
+              <li><a href="/user/">帐户设置</a></li>
               <li class="divider"></li>
               <li><a href="/logout">退出</a></li>
             </ul>
           </li>
-          <li><a href="/dashboard2">控制台首页</a></li>
+          <li><a href="/dashboard2/">控制台首页</a></li>
           <li><a href="#">帮助</a></li>
         </ul>
       </div>
