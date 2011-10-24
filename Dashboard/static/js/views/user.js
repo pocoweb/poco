@@ -9,7 +9,7 @@ App.Views.UserChangePassword = Backbone.View.extend({
     $('#change-password-form').bind('submit',function(){
       $.post(
         App.RestUrl + '/change_password',
-        {'password': $('#password').val(),'password_confirm': $('#password_confirm').val()},
+        {'raw_password': $('#raw_password').val(), 'password': $('#password').val(),'password_confirm': $('#password_confirm').val()},
         function(data){
           $('#alert-message').removeClass('success important');
           if (data.is_succ) {
