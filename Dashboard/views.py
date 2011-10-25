@@ -343,7 +343,7 @@ def getItemsAndCount2(connection, site_id, page_num, page_size, search_name):
         data = {
                 'item_id': item['item_id'],
                 'item_name': item['item_name'],
-                'market_price': item['market_price'],
+                'market_price': item.get('market_price',''),
                 'price': item['price'],
                 'image_link': item['image_link']
                 }
@@ -717,7 +717,7 @@ def ajax_item(request, api_key, item_id):
             'item_name': item['item_name'],
             'item_link': item['item_link'],
             'item_categories': "".join(item['categories']),
-            'market_price': item['market_price'],
+            'market_price': item.get('market_price', ''),
             'price': item['price'],
             'image_link': item['image_link'],
             'rec_lists':{
