@@ -667,7 +667,7 @@ def ajax_report(request):
         'plo': ["PV_PLO", "PV_PLO_D_UV"],
         'rec': ["PV_V", "ClickRec", "clickrec_pv_ratio"],
         'avg_order_total': ["avg_order_total", "avg_order_total_rec_delta"],
-        'total_sales': ["total_sales", "total_sales_rec_delta"],
+        'total_sales': ["total_sales", "total_sales_rec_delta","total_sales_rec_delta_ratio"],
         'unique_sku': ["avg_unique_sku", "avg_item_amount"],
         'recvav':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
         'recph':   ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
