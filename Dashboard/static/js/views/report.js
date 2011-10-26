@@ -291,7 +291,7 @@ App.Views.Chart = Backbone.View.extend({
               }
               else {
                 return '<b>' + this.series.name + '</b><br/>' +
-                this.x + ':' + this.y + '次';
+                this.x + ':' + this.y + '';
               }
             }
           },
