@@ -69,44 +69,48 @@ $(document).ready(function(){
       </div>
     </div>
     <div class="row">
-      <div class="span12">
+      <div class="span16">
         <div class="row">
           <div class="span12">
-            <ul class="unstyled">
-              <li><h7>商品名称：  <strong><%= item_name %></strong></h7></li>
-              <li><h7>商品链接：  <strong><a href="<%= item_link %>"><%= item_link %></a></strong></h7></li>
-              <li><h7>折扣价格：  <strong><%= price %></strong></h7></li>
-              <li><h7>市场价格：  <strong><%= market_price %></strong></h7></li>
-              <li><h7>商品分类：  <strong><%= item_categories %></strong></h7></li>
-            </ul>
+            <div class="row">
+              <div class="span12">
+                <ul class="unstyled">
+                  <li><h7>商品名称：  <strong><%= item_name %></strong></h7></li>
+                  <li><h7>商品链接：  <strong><a href="<%= item_link %>"><%= item_link %></a></strong></h7></li>
+                  <li><h7>折扣价格：  <strong><%= price %></strong></h7></li>
+                  <li><h7>市场价格：  <strong><%= market_price %></strong></h7></li>
+                  <li><h7>商品分类：  <strong><%= item_categories %></strong></h7></li>
+                </ul>
+              </div>
+            </div>
+            <div class="row">
+              <div class="span12" id="rec-lists">
+                <h6>经常和本商品一起买的商品</h6>
+                <ul class="rec-list" id="bought-together">
+                </ul> 
+                <h6>看了本商品最终会购买的商品</h6>
+                <ul class="rec-list" id="ultimately-bought">
+                </ul> 
+                <h6>买了本商品的顾客还会购买的商品</h6>
+                <ul class="rec-list" id="also-bought">
+                </ul> 
+                <h6>看了本商品的顾客还看了以下商品</h6>
+                <ul class="rec-list" id="also-viewed">
+                </ul> 
+                <h6>黑名单</h6>
+                <ul class="rec-list" id="black-list">
+                </ul> 
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="span12" id="rec-lists">
-            <h6>经常和本商品一起买的商品</h6>
-            <ul class="rec-list" id="bought-together">
-            </ul> 
-            <h6>看了本商品最终会购买的商品</h6>
-            <ul class="rec-list" id="ultimately-bought">
-            </ul> 
-            <h6>买了本商品的顾客还会购买的商品</h6>
-            <ul class="rec-list" id="also-bought">
-            </ul> 
-            <h6>看了本商品的顾客还看了以下商品</h6>
-            <ul class="rec-list" id="also-viewed">
-            </ul> 
-            <h6>黑名单</h6>
-            <ul class="rec-list" id="black-list">
-            </ul> 
-          </div>
-        </div>
-      </div>
-      <div class="span4">
-        <center>
+          <div class="span4">
+            <center>
           <a id="my-modal" href="javascript:void(0);" data-keyboard="true" data-backdrop="true" data-controls-modal="modal-from-dom"><img style="width:200px" src="<%= image_link %>"></a>
           <span style="height:33px;">&nbsp;</span><br />
           <a id="my-modal-2" href="javascript:void(0);" data-keyboard="true" data-backdrop="true" data-controls-modal="modal-from-dom">点击查看大图</a>
-        </center>
+          </center>
+          </div>
+        </div>
       </div>
     </div>
     </script>
