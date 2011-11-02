@@ -1,3 +1,3 @@
-bind = "unix:/tmp/tuijianbao_net.sock"
-logfile = "/cube/app/tuijianbao.net/logs/gunicorn_dashboard.log"
-workers = 4
+bind = "unix:/tmp/beta.tuijianbao.net.sock"
+logfile = "/cube/app/beta.tuijianbao.net/logs/gunicorn_dashboard.log"
+workers = 1

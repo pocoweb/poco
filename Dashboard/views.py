@@ -541,7 +541,13 @@ def apply(request):
     else:
         conn = mongo_client.connection
         applicants = conn["tjb-db"]["applicants"]
-        applicants.insert({"email": request.POST["email"], "phone": request.POST["phone"]})
+
+        data = {"email": request.POST["email"], 
+		"phone": request.POST["phone"],
+		"created_on": datetime.datetime.now()}
+        print data
+        applicants.insert(data)
+	
         request.session["applied_success"] = True
         # TODO
         # avoid apply more than once
