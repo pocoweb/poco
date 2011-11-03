@@ -1,0 +1,8 @@
+.container-fluid > .sidebar {
+  float: left;
+  width: 0px;
+  display: none;
+}
+.container-fluid > .content {
+  margin-left: 0px;
+}
