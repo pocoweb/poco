@@ -1,0 +1,4 @@
+mongodb_host = "cube13"
+api_server_name = "api.tuijianbao.net"
+api_server_port = 80
+DEBUG=False
