@@ -683,6 +683,7 @@ def ajax_report(request):
         'recvub':  ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
         'recbobh': ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
         'recsc':   ["recommendation_request_count_"+report_type, "recommendation_show_count_"+report_type,"click_rec_count_"+report_type,"click_rec_show_ratio_"+report_type],
+        'rec_sales':   ["total_sales_rec_delta"],
     }[report_type]
     
     for stat_row in reports:

@@ -109,7 +109,6 @@ App.Views.Report = Backbone.View.extend({
   renderChart: function() {
     var data = this.model.get('data');
     var chart_dict = (new App.Views.Chart({dict_type: this.model.get('report_type'), data: data})).render_dict();
-    console.log(chart_dict);
     var chart_temp = new App.Models.DayChart({chart_dict: chart_dict});
     return this;
   },
@@ -140,6 +139,7 @@ App.Views.Chart = Backbone.View.extend({
       case 'recvub':  return this.rec_by_type_dict(this.options.dict_type,'看了最终买');     
       case 'recbobh': return this.rec_by_type_dict(this.options.dict_type,'根据浏览历史');
       case 'recsc':   return this.rec_by_type_dict(this.options.dict_type,'根据购物车');
+      case 'rec_sales': return this.rec_sales_dict();
       default: return {};
     }
   },
@@ -600,6 +600,36 @@ App.Views.Chart = Backbone.View.extend({
         yAxis: 1
       }
     ]};
-  }
+  },
+  rec_sales_dict: function() {
+    return {
+      chart: {
+        renderTo: "chart-container"
+      },
+      title: {
+        text: "推荐金额",
+      },
+      xAxis: {
+        categories: this.options.data.categories,
+      },
+      yAxis: {
+        title: {
+          text: '金额'
+        }
+      },
+      tooltip: {
+        formatter: function() {
+          return '<b>' + this.series.name + '</b><br/>' +
+          this.x + ':' + this.y + '元';
+        }
+      },
+      series: [{
+        "name": "推荐金额",
+        "data": this.options.data.series.total_sales_rec_delta,
+        "type": "area"
+      }]
+    };
+  },
+
 });
 
