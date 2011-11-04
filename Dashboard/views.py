@@ -404,13 +404,14 @@ def _getTopnByAPI(site, path, item_id, amount):
                 "not_log_action": "yes",
                 "include_item_info": "yes"}
                )
+    topn = []
     if result["code"] == 0:
         topn = result["topn"]
         for topn_item in topn:
             #topn_item["item_link"] = "/show_item?site_id=%s&item_id=%s" % (site["site_id"], _getItemIdFromRedirectUrl(topn_item["item_link"]))
             topn_item["is_black"] = False
             #topn_item["rec_type"] = path
-        return topn
+    return topn
 
 def _getUltimatelyBought(site, item_id, amount):
     topn = _getTopnByAPI(site, "getUltimatelyBought", item_id, 15)
