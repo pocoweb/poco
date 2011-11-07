@@ -113,7 +113,7 @@ App.Models.DayChart = Backbone.Model.extend({
            'stroke-width': 0,
            stroke: '#333',
            fill: '#eee',
-           zIndex: -1,
+           zIndex: 0,
            'label': c_date.join('-'),
            'left': i * width + c.plotLeft,
            'class': 'rec_weekend_shadow'
