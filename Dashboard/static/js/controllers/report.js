@@ -1,7 +1,7 @@
 App.Routers.Report = Backbone.Router.extend({
   routes: {
       ":report_type": "getPost",
-      ":report_type/:report_date": "getPost",
+      ":report_type/:report_date": "getPost"
   },
   getPost: function(report_type, report_date) {
     var r = new App.Models.Report;

@@ -49,7 +49,7 @@ Highcharts.theme = {
     borderWidth: 0,
 
     itemStyle: {         
-      font: '9pt Trebuchet MS, Verdana, sans-serif',
+      font: '9pt Trebuchet MS, Verdana, sans-serif'
       //color: 'black'
 
     },
@@ -108,7 +108,7 @@ Highcharts.theme = {
       style: {
         //color: '#000',
         font: '11px Trebuchet MS, Verdana, sans-serif'
-      },
+      }
     },
     title: {
       style: {

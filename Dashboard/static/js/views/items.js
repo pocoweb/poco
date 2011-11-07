@@ -152,7 +152,7 @@ App.Views.Items = Backbone.View.extend({
       });
     }
     return this;
-  },
+  }
 });
 
 App.Views.UCG = Backbone.View.extend({

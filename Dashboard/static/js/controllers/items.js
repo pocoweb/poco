@@ -5,7 +5,7 @@ App.Routers.Items = Backbone.Router.extend({
       "page/:page_num": "page",
       "id/:item_id": "view_item",
       "ucg": "ucg",
-      ":action_type": "defaultRoute",
+      ":action_type": "defaultRoute"
   },
   defaultRoute: function( actions ){
     this.page();

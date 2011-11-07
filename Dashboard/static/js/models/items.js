@@ -24,9 +24,9 @@ App.Collections.Items = App.Collections.PaginatedCollection.extend({
 });
 
 App.Models.ItemRec = Backbone.Model.extend({
-  default: {
+  defaults: {
     rec_item_id: '',
-    item_id: '',
+    item_id: ''
   },
   initialize: function() {
     this.bind('destroy', this.drop);

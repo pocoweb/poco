@@ -27,14 +27,14 @@ App.Views.Report = Backbone.View.extend({
     var v = {
       report_type: report_type,
       links: [15,30,60,90],
-      primary_day: report_date,
+      primary_day: report_date
     };
     var template = _.template( $('#content_template').html(), v);
     $('#content').html(template);
     $('#report_nav').text($('#report-link-' + this.model.get('report_type')).text());
 
     $('#widgetCalendar').DatePicker({
-      date: new Date(),
+      date: new Date()
     });
     var date_range_split_str = ' -- ';
     $('#widgetRangeText').text(from_day.format('yyyy-MM-dd') + date_range_split_str + to_day.format('yyyy-MM-dd'));
@@ -149,10 +149,10 @@ App.Views.Chart = Backbone.View.extend({
         renderTo: "chart-container"
       },
       title: {
-        text: "商品PV和UV图",
+        text: "商品PV和UV图"
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
         title: {
@@ -179,7 +179,7 @@ App.Views.Chart = Backbone.View.extend({
       },{
         "name": "商品UV",
         "data": this.options.data.series.uv_v,
-        "type": "area",
+        "type": "area"
       },{
         "name": "PV/UV",
         "data": this.options.data.series.pv_uv,
@@ -194,10 +194,10 @@ App.Views.Chart = Backbone.View.extend({
         renderTo: "chart-container"
       },
       title: {
-        text: "商品订单数",
+        text: "商品订单数"
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
         title: {
@@ -245,17 +245,17 @@ App.Views.Chart = Backbone.View.extend({
 
     return chart_dict = {
       chart: {
-        renderTo: "chart-container",
+        renderTo: "chart-container"
       },
       title: {
-        text: "商品推荐占PV数",
+        text: "商品推荐占PV数"
       },
       subtitle: {
         //text: site_id,
         x: -20
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
         title: {
@@ -341,16 +341,16 @@ App.Views.Chart = Backbone.View.extend({
   avg_order_total_dict: function() {
     return {
       chart: {
-          renderTo: "chart-container",
+          renderTo: "chart-container"
       },
       title: {
-          text: "平均客单价",
+          text: "平均客单价"
       },
       subtitle: {
           x: -20
       },
       xAxis: {
-          categories: this.options.data.categories,
+          categories: this.options.data.categories
       },
       yAxis: [
         {
@@ -417,17 +417,17 @@ App.Views.Chart = Backbone.View.extend({
     var per_total_sales_rec_delta = Math.round(sum_total_sales_rec_delta / (sum_total_sales_without_rec + sum_total_sales_rec_delta) * 1000) / 10;
     return {
       chart: {
-        renderTo: "chart-container",
+        renderTo: "chart-container"
       },
       title: {
-        text: "总销售金额",
+        text: "总销售金额"
       },
       subtitle: {
         //text: site_id,
         x: -20
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
           title: {
@@ -501,17 +501,17 @@ App.Views.Chart = Backbone.View.extend({
   unique_sku_dict: function(){
     return {
       chart: {
-        renderTo: "chart-container",
+        renderTo: "chart-container"
       },
       title: {
-        text: "平均Unique SKU",
+        text: "平均Unique SKU"
       },
       subtitle: {
         //text: site_id,
         x: -20
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
         title: {
@@ -543,17 +543,17 @@ App.Views.Chart = Backbone.View.extend({
   rec_by_type_dict: function(action_name,title){
     return {
       chart: {
-        renderTo: "chart-container",
+        renderTo: "chart-container"
       },
       title: {
-        text: title,
+        text: title
       },
       subtitle: {
         //text: site_id,
         x: -20
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: [{
           title: {
@@ -607,10 +607,10 @@ App.Views.Chart = Backbone.View.extend({
         renderTo: "chart-container"
       },
       title: {
-        text: "推荐金额",
+        text: "推荐金额"
       },
       xAxis: {
-        categories: this.options.data.categories,
+        categories: this.options.data.categories
       },
       yAxis: {
         title: {
@@ -629,7 +629,7 @@ App.Views.Chart = Backbone.View.extend({
         "type": "area"
       }]
     };
-  },
+  }
 
 });
 

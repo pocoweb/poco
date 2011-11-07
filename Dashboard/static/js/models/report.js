@@ -49,7 +49,7 @@ App.Models.DayChart = Backbone.Model.extend({
     title: '',
     chart_dict: {},
     weekend_shadow: true,
-    xAxisLabels: [],
+    xAxisLabels: []
   },
   initialize: function() {
     var model = this;
@@ -116,7 +116,7 @@ App.Models.DayChart = Backbone.Model.extend({
            zIndex: -1,
            'label': c_date.join('-'),
            'left': i * width + c.plotLeft,
-           'class': 'rec_weekend_shadow',
+           'class': 'rec_weekend_shadow'
            }).add();
          }
         }
