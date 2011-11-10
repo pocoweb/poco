@@ -1049,6 +1049,7 @@ handlers = [
     (r"/1.0/getByEachBrowsedItem", GetByEachBrowsedItemHandler),
     (r"/1.0/getByEachPurchasedItem", GetByEachPurchasedItemHandler),
     (r"/1.0/packedRequest", PackedRequestHandler),
+    (r"/1.0/point", PackedRequestHandler),
     (r"/1.0/redirect", RecommendedItemRedirectHandler)
     ]
 
