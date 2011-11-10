@@ -205,6 +205,9 @@ class ViewItemProcessor(ActionProcessor):
          ("user_id", True) # if no user_id, pass in "null"
         )
     )
+    
+    def _convertUserId(user_id):
+	return user_id == "0" and "null" or user_id   
 
     def _validateInput(self, site_id, args):
         if re.match("[0-9a-zA-Z_-]+$", args["item_id"]) is None \
@@ -212,7 +215,7 @@ class ViewItemProcessor(ActionProcessor):
             logWriter.writeEntry(site_id, 
                 {"behavior": "ERROR", 
                  "content": {"behavior": "V",
-                  "user_id": args["user_id"],
+                  "user_id": _convertUserId(args["user_id"]),
                   "tjbid": args["tuijianbaoid"],
                   "item_id": args["item_id"],
                   "referer": args.get("referer", None)}
