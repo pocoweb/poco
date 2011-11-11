@@ -178,6 +178,7 @@ class MongoClient:
             self.reloadApiKey2SiteID()
         return self.SITE_ID2API_KEY
 
+    # TODO, cache KEY2SITE_ID
     def getApiKey2SiteID(self):
         if self.API_KEY2SITE_ID is None:
             self.reloadApiKey2SiteID()
@@ -293,10 +294,13 @@ class MongoClient:
             if deduplicate_item_names_required:
                 excluded_recommendation_item_names |= set([item_in_db["item_name"]])
             if include_item_info:
+                # TODO, list needed info only
                 del item_in_db["_id"]
                 del item_in_db["available"]
                 del item_in_db["categories"]
                 del item_in_db["created_on"]
+                if item_in_db.has_key("updated_on"):
+                    del item_in_db["updated_on"]
                 if item_in_db.has_key("removed_on"):
                     del item_in_db["removed_on"]
                 item_in_db["score"] = topn_row[1]

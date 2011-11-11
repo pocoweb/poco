@@ -145,11 +145,16 @@ class APIHandler(tornado.web.RequestHandler):
 class TjbIdEnabledHandlerMixin:
     def prepare(self):
         tornado.web.RequestHandler.prepare(self)
-        self.tuijianbaoid = self.get_cookie("tuijianbaoid")
-        if not self.tuijianbaoid:
-            self.tuijianbaoid = str(uuid.uuid4())
-            self.set_cookie("tuijianbaoid", self.tuijianbaoid, expires_days=109500)
-
+        old_ptmid = self.get_cookie("tuijianbaoid") # try to convert old naming 
+        self.ptm_id = self.get_cookie("__ptmid")
+        if not self.ptm_id:
+            if old_ptmid:
+                self.set_cookie("__ptmid", old_ptmid, expires_days=109500)
+                self.clear_cookie("tuijianbaoid") # try to convert old naming
+            else:
+                self.ptm_id = str(uuid.uuid4())
+                self.set_cookie("__ptmid", self.ptm_id, expires_days=109500)
+            
 
 class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
     processor_class = None
@@ -160,7 +165,7 @@ class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
         else:
-            args["tuijianbaoid"] = self.tuijianbaoid
+            args["ptm_id"] = self.ptm_id
             referer = self.request.headers.get('Referer')
             args["referer"] = referer
             return processor.process(site_id, args)
@@ -177,8 +182,8 @@ class ActionProcessor:
         if not self.not_log_action:
             assert self.action_name != None
             if tjb_id_required:
-                assert args.has_key("tuijianbaoid")
-                action_content["tjbid"] = args["tuijianbaoid"]
+                assert args.has_key("ptm_id")
+                action_content["tjbid"] = args["ptm_id"]
             action_content["referer"] = args.get("referer", None)
             action_content["behavior"] = self.action_name
             logWriter.writeEntry(site_id,
@@ -221,7 +226,7 @@ class ViewItemProcessor(ActionProcessor):
                 {"behavior": "ERROR", 
                  "content": {"behavior": "V",
                   "user_id": args["user_id"],
-                  "tjbid": args["tuijianbaoid"],
+                  "tjbid": args["ptm_id"],
                   "item_id": args["item_id"],
                   "referer": args.get("referer", None)}
                 })
@@ -519,11 +524,11 @@ class BaseRecommendationProcessor(ActionProcessor):
             return set([])
 
 class BaseByEachItemProcessor(BaseRecommendationProcessor):
-    # args should have "user_id", "tuijianbaoid"
+    # args should have "user_id", "ptm_id"
     def getRecommendationLog(self, args, req_id, recommended_items):
         return {"req_id": req_id,
                 "user_id": args["user_id"], 
-                "tjbid": args["tuijianbaoid"], 
+                "tjbid": args["ptm_id"], 
                 "is_empty_result": len(recommended_items) == 0,
                 "amount_for_each_item": self.getAmountForEachItem(args)
                 }
@@ -603,11 +608,11 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
 
 
 class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
-    # args should have "user_id", "tuijianbaoid"
+    # args should have "user_id", "ptm_id"
     def getRecommendationLog(self, args, req_id, recommended_items):
         return {"req_id": req_id,
                 "user_id": args["user_id"], 
-                "tjbid": args["tuijianbaoid"], 
+                "tjbid": args["ptm_id"], 
                 "recommended_items": recommended_items,
                 "is_empty_result": len(recommended_items) == 0,
                 "amount": args["amount"]}
@@ -901,7 +906,7 @@ class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.Reque
             site_id = api_key2site_id[api_key]
             log_content = {"behavior": "ClickRec", "url": url, 
                            "req_id": req_id, "item_id": item_id, "site_id": site_id,
-                           "tjbid": self.tuijianbaoid}
+                           "tjbid": self.ptm_id}
             logWriter.writeEntry(site_id, log_content)
             self.redirect(url)
             return
@@ -1006,7 +1011,7 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         if err_msg:
             return {"code": 1, "err_msg": err_msg}
         else:
-            processed_args["tuijianbaoid"] = self.tuijianbaoid
+            processed_args["ptm_id"] = self.ptm_id
             processed_args["referer"] = referer
             processor.excluded_recommendation_items = self.excluded_recommendation_items
             processor.excluded_recommendation_item_names = self.excluded_recommendation_item_names
