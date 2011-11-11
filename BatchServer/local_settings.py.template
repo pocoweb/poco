@@ -1,0 +1,4 @@
+work_dir = "/cube/service/batch/work_dir"
+tac_command = "tac"
+mongodb_host = "cube13"
+log_dir = "/cube/service/batch/log/calc_logs"
