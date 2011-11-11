@@ -1,7 +1,7 @@
 import os
 
 
-LOG_FILE_ROOT = "logs"
+LOG_FILE_ROOT = "log" # TODO, avoid this kind of hardcode
 
 
 # 1. check each customer directory
