@@ -117,24 +117,24 @@ class APIAccess:
         self.server_name = server_name
         self.server_port = server_port
 
-    def __call__(self, path, params, tuijianbaoid=None, as_json=True, return_tuijianbaoid=False, 
+    def __call__(self, path, params, ptm_id=None, as_json=True, return_tuijianbaoid=False, 
             assert_returns_tuijianbaoid=True, version="1.0", extra_headers={}):
         params_str = urllib.urlencode(params)
         headers = {}
         headers.update(extra_headers)
-        if tuijianbaoid <> None:
-            headers["Cookie"] = "tuijianbaoid=%s" % tuijianbaoid
+        if ptm_id <> None:
+            headers["Cookie"] = "__ptmid=%s" % ptm_id
         conn = httplib.HTTPConnection("%s:%s" % (self.server_name, self.server_port))
         conn.request("GET", "/%s" % version + path + "?" + params_str, headers=headers)
         response = conn.getresponse()
         result = response.read()
         response_cookie = response.getheader("set-cookie")
         if response_cookie is not None:
-            response_tuijianbaoid = re.match(r"tuijianbaoid=([a-z0-9\-]+);", 
-                                                response_cookie).groups()[0]
+            response_tuijianbaoid = (re.match(r"__ptmid=([a-z0-9\-]+);", response_cookie).groups() or
+                                        re.match(r"tuijianbaoid=([a-z0-9\-]+);", response_cookie).groups())[0]
         else:
             response_tuijianbaoid = None
-        if assert_returns_tuijianbaoid and tuijianbaoid is None:
+        if assert_returns_tuijianbaoid and ptm_id is None:
             assert response_tuijianbaoid is not None, "response: %s" % result
         if as_json:
             try:
