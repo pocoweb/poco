@@ -294,7 +294,7 @@ class UnlikeTest(BaseTestCase):
         item_id, user_id = generate_uid(), generate_uid()
         pr = packed_request.PackedRequest()
         pr.addRequest("UNLIKE", {"user_id": user_id, "item_id": item_id})
-        result, response_tuijianbaoid = api_access("/packedRequest",
+        result, response_tuijianbaoid = api_access("/point",
                     pr.getUrlArgs(API_KEY), return_tuijianbaoid=True,
                     tuijianbaoid="9a1abe5d-d2aa-421c-b4da-4a9c4328c732")
         full_name = packed_request.ACTION_NAME2FULL_NAME["UNLIKE"]
@@ -349,12 +349,12 @@ class UpdateCategoryTest(BaseTestCase):
         BaseTestCase.setUp(self)
         self.cleanUpCategories()
 
-    def test_with_packedRequest(self):
+    def test_with_point(self):
         self.assertCurrentLinesCount(0)
         pr = packed_request.PackedRequest()
         pr.addRequest("UCat", {"category_id": "448", "category_link": "/cat/448",
                                "category_name": "Eight", "parent_categories": "3,5"})
-        result, response_tuijianbaoid = api_access("/packedRequest", 
+        result, response_tuijianbaoid = api_access("/point", 
                         pr.getUrlArgs(API_KEY), return_tuijianbaoid=True)
         self.assertCurrentLinesCount(0)
         full_name = packed_request.ACTION_NAME2FULL_NAME["UCat"]
@@ -1088,7 +1088,7 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
 
         pr = packed_request.PackedRequest()
         pr.addRequest("RecEPI", {"user_id": "ha", "rec_row_max_amount": "2", "amount_for_each_item": "2", "include_item_info": "no"})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        result = api_access("/point", pr.getUrlArgs(API_KEY))
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(len(result["responses"].keys()), 1)
@@ -1195,7 +1195,7 @@ class GetByEachBrowsedItemTest(BaseRecommendationTest):
         pr = packed_request.PackedRequest()
         pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 2})
         pr.addRequest("RecEBI", {"user_id": "null", "browsing_history": "1,8", "include_item_info": "no", "rec_row_max_amount": "2", "amount_for_each_item": "3"})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        result = api_access("/point", pr.getUrlArgs(API_KEY))
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(len(result["responses"].keys()), 2)
@@ -1621,7 +1621,7 @@ class PackedRequestServeralRecommendations(BaseTestCase, ItemRelatedTestMixin):
         pr = packed_request.PackedRequest()
         pr.addRequest("RecBTG", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
         pr.addRequest("RecVAV", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        result = api_access("/point", pr.getUrlArgs(API_KEY))
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
@@ -1640,7 +1640,7 @@ class PackedRequestServeralRecommendations(BaseTestCase, ItemRelatedTestMixin):
         pr = packed_request.PackedRequest()
         pr.addRequest("RecBTG", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
         pr.addRequest("RecVAV", {"user_id": "null", "item_id": "11", "include_item_info": "no", "amount": 3})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        result = api_access("/point", pr.getUrlArgs(API_KEY))
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
@@ -1657,7 +1657,7 @@ class PackedRequestServeralRecommendations(BaseTestCase, ItemRelatedTestMixin):
         pr = packed_request.PackedRequest()
         pr.addRequest("RecBTG", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 3})
         pr.addRequest("RecVAV", {"user_id": "null", "item_id": "1", "include_item_info": "no", "amount": 5})
-        result = api_access("/packedRequest", pr.getUrlArgs(API_KEY))
+        result = api_access("/point", pr.getUrlArgs(API_KEY))
         self.assertCurrentLinesCount(2)
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["responses"]["getBoughtTogether"]["topn"],
@@ -1692,7 +1692,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("V", {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
         url_args["callback"] = "callback"
-        result, response_tuijianbaoid = api_access("/packedRequest", 
+        result, response_tuijianbaoid = api_access("/point", 
                 url_args, as_json=False, return_tuijianbaoid=True,
                 extra_headers={"Referer": "http://joe"})
 
@@ -1711,7 +1711,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr = packed_request.PackedRequest()
         pr.addRequest("UItem", {"item_id": "35", "item_link": "http://example.com/item?id=35", 
                "item_name": "Something"})
-        result, response_tuijianbaoid = api_access("/packedRequest", 
+        result, response_tuijianbaoid = api_access("/point", 
                         pr.getUrlArgs(API_KEY), return_tuijianbaoid=True)
         self.assertCurrentLinesCount(0)
         full_name = packed_request.ACTION_NAME2FULL_NAME["UItem"]
@@ -1733,7 +1733,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("V", {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
         url_args["callback"] = "callback"
-        result, response_tuijianbaoid = api_access("/packedRequest", 
+        result, response_tuijianbaoid = api_access("/point", 
                 url_args, as_json=False, return_tuijianbaoid=True)
         self.assertEquals(result,
                 'callback({"code": 0, "responses": {"removeOrderItem": {"code": 0}, "viewItem": {"code": 0}}})')
@@ -1755,7 +1755,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
-        result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
+        result = api_access("/point", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
@@ -1780,7 +1780,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs("SITENOTEXIST")
-        result = api_access("/packedRequest", url_args)
+        result = api_access("/point", url_args)
         self.assertEquals(result, {"code": 2, "err_msg": "no such api_key"})
 
     def testSharedParams1(self):
@@ -1790,7 +1790,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("RSC", {"item_id": "25"})
         pr.addRequest("V",   {"item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
-        result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
+        result = api_access("/point", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
@@ -1817,7 +1817,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("RSC", {})
         pr.addRequest("V",   {"item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
-        result = api_access("/packedRequest", url_args, tuijianbaoid="blahblah")
+        result = api_access("/point", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 
@@ -1843,7 +1843,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("RSC", {"user_id": "guagua", "item_id": "25"})
         pr.addRequest("V",   {"user_id": "guaye"})
         url_args = pr.getUrlArgs(API_KEY)
-        result = api_access("/packedRequest", url_args)
+        result = api_access("/point", url_args)
         self.assertEquals(result,
                     {"code": 0,
                      "responses":
@@ -1858,7 +1858,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         pr.addRequest("V",   {"user_id": "guaye", "item_id": "35"})
         url_args = pr.getUrlArgs(API_KEY)
 
-        result = api_access("/packedRequest", url_args)
+        result = api_access("/point", url_args)
         self.assertEquals(result,
                     {"code": 0,
                      "responses": 

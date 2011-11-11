@@ -233,7 +233,11 @@ class MongoClient:
         elif not item_in_db["available"]:
             return
         else:
-            item_in_db = {"_id": item_in_db["_id"], "created_on": item_in_db["created_on"]}
+            # won't update item_name once generated, in case we met some bad server like 180.153.0.0/16
+            if not item_in_db.has_key("created_on"):
+                item_in_db.update({"created_on": datetime.datetime.now()})
+            item_in_db.update({"updated_on": datetime.datetime.now()}) # might be useful to have the updated_on
+            del item["item_name"]
 
         item_in_db.update(item)
         c_items.save(item_in_db)

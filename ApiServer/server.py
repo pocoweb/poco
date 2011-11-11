@@ -81,6 +81,14 @@ def extractArguments(request):
 class ArgumentProcessor:
     def __init__(self, definitions):
         self.definitions = definitions
+    
+    # TODO, avoid hacky code
+    # if user_id and 0 or null
+    def _convertArg(self, argument_name, args):
+        arg = args[argument_name]
+        if argument_name == "user_id":
+            return arg == "0" and "null" or arg 
+        return arg
 
     def processArgs(self, args):
         err_msg = None
@@ -92,7 +100,7 @@ class ArgumentProcessor:
                 else:
                     result[argument_name] = None
             else:
-                result[argument_name] = args[argument_name]
+                result[argument_name] = self._convertArg(argument_name, args)
 
         return err_msg, result
 
@@ -205,9 +213,6 @@ class ViewItemProcessor(ActionProcessor):
          ("user_id", True) # if no user_id, pass in "null"
         )
     )
-    
-    def _convertUserId(user_id):
-	return user_id == "0" and "null" or user_id   
 
     def _validateInput(self, site_id, args):
         if re.match("[0-9a-zA-Z_-]+$", args["item_id"]) is None \
@@ -215,7 +220,7 @@ class ViewItemProcessor(ActionProcessor):
             logWriter.writeEntry(site_id, 
                 {"behavior": "ERROR", 
                  "content": {"behavior": "V",
-                  "user_id": _convertUserId(args["user_id"]),
+                  "user_id": args["user_id"],
                   "tjbid": args["tuijianbaoid"],
                   "item_id": args["item_id"],
                   "referer": args.get("referer", None)}
