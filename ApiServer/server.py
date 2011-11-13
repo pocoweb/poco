@@ -145,15 +145,15 @@ class APIHandler(tornado.web.RequestHandler):
 class TjbIdEnabledHandlerMixin:
     def prepare(self):
         tornado.web.RequestHandler.prepare(self)
-        old_ptmid = self.get_cookie("tuijianbaoid") # try to convert old naming 
+        old_tjbid = self.get_cookie("tuijianbaoid") # try to convert old naming 
         self.ptm_id = self.get_cookie("__ptmid")
         if not self.ptm_id:
-            if old_ptmid:
-                self.set_cookie("__ptmid", old_ptmid, expires_days=109500)
+            if old_tjbid:
+                self.ptm_id = old_tjbid
                 self.clear_cookie("tuijianbaoid") # try to convert old naming
             else:
                 self.ptm_id = str(uuid.uuid4())
-                self.set_cookie("__ptmid", self.ptm_id, expires_days=109500)
+            self.set_cookie("__ptmid", self.ptm_id, expires_days=109500)
             
 
 class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
