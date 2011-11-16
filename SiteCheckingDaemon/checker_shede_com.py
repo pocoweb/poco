@@ -4,7 +4,7 @@ from common.utils import getSiteDBCollection
 from utils import getCurrentTime
 
 
-logger = logging.getLogger("Checker_404")
+logger = logging.getLogger("Checker_shede_com")
 
 
 def check(site_id, mongo_client):

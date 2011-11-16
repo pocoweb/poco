@@ -12,6 +12,7 @@ from ApiServer.mongo_client import MongoClient
 import settings
 
 import checker_404
+import checker_csv
 import checker_shede_com
 
 
@@ -86,9 +87,10 @@ def init_mongo_record_handler():
 logger = logging.getLogger("daemon")
 
 site_id2checker = {
-    "kuaishubao": checker_404,
+    "kuaishubao": checker_csv,
     "shede_com": checker_shede_com,
-    "crucco_com": checker_404
+    "crucco_com": checker_404,
+    "buy_yesky_com": checker_404
     }
 
 
