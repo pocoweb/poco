@@ -87,10 +87,10 @@ def init_mongo_record_handler():
 logger = logging.getLogger("daemon")
 
 site_id2checker = {
-    "kuaishubao": checker_csv,
-    "shede_com": checker_shede_com,
-    "crucco_com": checker_404,
-    "buy_yesky_com": checker_404
+    "kuaishubao": [checker_csv, checker_404],
+    "shede_com": [checker_shede_com],
+    "crucco_com": [checker_404],
+    "buy_yesky_com": [checker_404]
     }
 
 
@@ -106,12 +106,14 @@ if __name__ == "__main__":
         try:
             for site_id in settings.site_ids:
                 try:
-                    checker = site_id2checker.get(site_id, None)
-                    if checker is not None:
+                    checkers = site_id2checker.get(site_id, None)
+                    if checkers is not None:
                         t1 = time.time()
                         mr_handler.beginSiteLogFor(mongo_client.connection, site_id)
                         logger.info("Begin checking for %s:%s" % (site_id, mr_handler.checking_id))
-                        site_id2checker[site_id].check(site_id, mongo_client)
+                        for checker in checkers:
+                            logger.info("Checker name: %s" % checker.__name__)
+                            checker.check(site_id, mongo_client)
                         t2 = time.time()
                         logger.info("Finish checking for %s in %s seconds." % (site_id, (t2 - t1)))
                         mr_handler.endSiteLogAs("SUCC")
@@ -121,8 +123,8 @@ if __name__ == "__main__":
                 except:
                     logger.critical("Unknown error", exc_info=True)
                     mr_handler.endSiteLogAs("FAIL")
-            logger.info("Go Sleep for 8 hours ")
+            logger.info("Go Sleep for 1 hours ")
         finally:
             mongo_client.connection.disconnect()
             del mongo_client
-        time.sleep(8 * 3600)
+        time.sleep(1 * 3600)

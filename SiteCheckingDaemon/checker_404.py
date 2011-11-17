@@ -4,6 +4,7 @@ import urlparse
 import socket
 from common.utils import getSiteDBCollection
 from utils import getCurrentTime
+import time
 
 
 logger = logging.getLogger("Checker_404")
@@ -28,6 +29,9 @@ def removeItem(mongo_client, site_id, item_id):
 
 
 def check(site_id, mongo_client):
+    sleep = 0
+    if site_id == "kuaishubao":
+       sleep = 0.05 
     c_items = getSiteDBCollection(mongo_client.connection, site_id, "items")
     items_cur = c_items.find({"available": True})
     items_count = items_cur.count()
@@ -37,6 +41,8 @@ def check(site_id, mongo_client):
         item_idx += 1
         if item_idx % 50 == 0:
             logger.info("%s: Progress: %2d%%" % (getCurrentTime(), item_idx / float(items_count) * 100))
+        if sleep != 0: 
+            time.sleep(sleep)
         check_status = str(checkUrl(item["item_link"]))  
         if check_status == "404":
             removeItem(mongo_client, site_id, item["item_id"])
