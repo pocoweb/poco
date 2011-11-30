@@ -31,7 +31,7 @@ def removeItem(mongo_client, site_id, item_id):
 def check(site_id, mongo_client):
     sleep = 0
     if site_id == "kuaishubao":
-       sleep = 0.05 
+       sleep = 0.1
     c_items = getSiteDBCollection(mongo_client.connection, site_id, "items")
     items_cur = c_items.find({"available": True})
     items_count = items_cur.count()
