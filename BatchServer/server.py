@@ -193,14 +193,14 @@ class BaseSimilarityCalcFlow(BaseFlow):
     def do_sort_user_item_matrix(self):
         input_path  = self.getWorkFile("user_item_matrix")
         output_path = self.getWorkFile("user_item_matrix_sorted")
-        self._exec_shell("sort %s > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp %s > %s" % (input_path, output_path))
 
 
     def do_calc_item_prefer_count(self):
         if SITE["algorithm_type"] == "llh":
             input_path  = self.getWorkFile("user_item_matrix_sorted")
             output_path = self.getWorkFile("item_prefer_count")
-            self._exec_shell("cut -d , -f 2 %s | sort | uniq -c > %s" % (input_path, output_path))
+            self._exec_shell("cut -d , -f 2 %s | sort -T /cube/service/batch/temp | uniq -c > %s" % (input_path, output_path))
 
 
     def do_calc_user_count(self):
@@ -220,7 +220,7 @@ class BaseSimilarityCalcFlow(BaseFlow):
     def do_sort_cooccurances(self):
         input_path  = self.getWorkFile("cooccurances_not_sorted")
         output_path = self.getWorkFile("cooccurances_sorted")
-        self._exec_shell("sort %s > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp %s > %s" % (input_path, output_path))
 
 
     def do_count_cooccurances(self):
@@ -258,7 +258,7 @@ class BaseSimilarityCalcFlow(BaseFlow):
     def do_sort_item_similarities_bi_directional(self):
         input_path  = self.getWorkFile("item_similarities_bi_directional")
         output_path = self.getWorkFile("item_similarities_bi_directional_sorted")
-        self._exec_shell("sort %s > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp %s > %s" % (input_path, output_path))
 
 
     def do_extract_top_n(self):
@@ -293,7 +293,7 @@ class VSimiliarityCalcFlow(BaseSimilarityCalcFlow):
     def do_de_duplicate_user_item_matrix(self):
         input_path  = self.getWorkFile("user_item_matrix_maybe_dup")
         output_path = self.getWorkFile("user_item_matrix")
-        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp < %s | uniq > %s" % (input_path, output_path))
 
 
 class PLOSimilarityCalcFlow(BaseSimilarityCalcFlow):
@@ -313,7 +313,7 @@ class PLOSimilarityCalcFlow(BaseSimilarityCalcFlow):
     def do_de_duplicate_user_item_matrix(self):
         input_path  = self.getWorkFile("user_item_matrix_maybe_dup")
         output_path = self.getWorkFile("user_item_matrix")
-        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp < %s | uniq > %s" % (input_path, output_path))
 
 
 class BuyTogetherSimilarityFlow(BaseSimilarityCalcFlow):
@@ -333,7 +333,7 @@ class BuyTogetherSimilarityFlow(BaseSimilarityCalcFlow):
     def do_de_duplicate_user_item_matrix(self):
         input_path  = self.getWorkFile("user_item_matrix_maybe_dup")
         output_path = self.getWorkFile("user_item_matrix")
-        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp < %s | uniq > %s" % (input_path, output_path))
 
 
 class ViewedUltimatelyBuyFlow(BaseFlow):
@@ -357,7 +357,7 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
     def do_sort_user_view_buy_logs(self):
         input_path  = self.getWorkFile("user_view_buy_logs")
         output_path = self.getWorkFile("user_view_buy_logs_sorted")
-        self._exec_shell("sort <%s >%s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp <%s >%s" % (input_path, output_path))
 
     def do_pair_view_buy(self):
         from viewed_ultimately_buy.pair_view_buy import pair_view_buy
@@ -368,7 +368,7 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
     def count_pairs(self):
         input_path  = self.getWorkFile("view_buy_pairs")
         output_path = self.getWorkFile("view_buy_pairs_counted")
-        self._exec_shell("sort <%s | uniq -c >%s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp <%s | uniq -c >%s" % (input_path, output_path))
 
     def do_extract_user_item_matrix(self):
         from preprocessing.extract_user_item_matrix import v_extract_user_item_matrix
@@ -379,13 +379,13 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
     def do_de_duplicate_user_item_matrix(self):
         input_path  = self.getWorkFile("user_item_matrix_maybe_dup")
         output_path = self.getWorkFile("user_item_matrix")
-        self._exec_shell("sort < %s | uniq > %s" % (input_path, output_path))
+        self._exec_shell("sort -T /cube/service/batch/temp < %s | uniq > %s" % (input_path, output_path))
 
     def count_item_view(self):
         #FIXME a hack
         input_path = self.getWorkFile("user_item_matrix")
         output_path = self.getWorkFile("item_view_times")
-        self._exec_shell("cut -d , -f 2 <%s | sort | uniq -c >%s" % (input_path, output_path))
+        self._exec_shell("cut -d , -f 2 <%s | sort -T /cube/service/batch/temp | uniq -c >%s" % (input_path, output_path))
 
     def upload_viewed_ultimately_buy(self):
         from viewed_ultimately_buy.upload_viewed_ultimately_buy import upload_viewed_ultimately_buy
@@ -503,7 +503,7 @@ def is_time_okay_for_automatic_calculation():
 
 def loadSites(connection):
     c_sites = connection["tjb-db"]["sites"]
-    return [site for site in c_sites.find()]
+    return [site for site in c_sites.find({'available':'on'})]
 
 
 def workOnSite(site, is_manual_calculation=False):

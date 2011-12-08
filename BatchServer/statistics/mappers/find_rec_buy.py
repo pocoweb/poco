@@ -2,8 +2,8 @@ import sys
 import datetime
 
 
-MAX_DIRECT_TIME = 48 * 3600
-MAX_INDIRECT_TIME = 24 * 7 * 3600
+MAX_DIRECT_TIME = 24 * 7 * 3600
+MAX_INDIRECT_TIME = 24 * 30 * 3600
 
 
 def getCalendarInfo(timestamp):
