@@ -18,6 +18,7 @@
             Algorithm Type: <input type="radio" name="algorithm_type" value="amc" {% if data.algorithm_type == "amc" %}checked{% endif %} /> Amazon Counting
                             <input type="radio" name="algorithm_type" value="llh" {% if data.algorithm_type == "llh" %}checked{% endif %} /> Logilikelihood
             <br />
+            Available: <input type="checkbox" name="available" {% if data.available == "on" %}checked{% endif %} /><br /> 
             <input type="submit" name="submit" value="Save">
             {% csrf_token %}
         </form>

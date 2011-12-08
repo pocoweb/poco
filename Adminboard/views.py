@@ -177,7 +177,7 @@ class AddUserHandler(BaseUserHandler):
             or not arguments.has_key("password") \
             or not arguments.has_key("password_confirm") \
             or not arguments.has_key("is_admin"):
-            return HttpResponse("missing arguments")
+            return HttpResponse("AddUser: missing arguments")
         else:
             user_name =   arguments["user_name"]
             password = arguments["password"]
@@ -235,7 +235,7 @@ class EditUserHandler(BaseUserHandler):
             or not arguments.has_key("password") \
             or not arguments.has_key("password_confirm") \
             or not arguments.has_key("is_admin"):
-            return HttpResponse("missing arguments")
+            return HttpResponse("EditUser: missing arguments")
         else:
             user_name =   arguments["user_name"]
             password = arguments["password"]
@@ -324,7 +324,7 @@ class BaseSiteHandler:
 
 
 class AddSiteHandler(BaseSiteHandler):
-    def addSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type):
+    def addSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type, available):
         connection = mongo_client.connection
         site = {"site_id": site_id,
                 "last_update_ts": None,
@@ -332,7 +332,8 @@ class AddSiteHandler(BaseSiteHandler):
                 "api_key": generateApiKey(connection, site_id, site_name),
                 "site_name": site_name,
                 "algorithm_type": algorithm_type,
-                "calc_interval": calc_interval}
+                "calc_interval": calc_interval,
+                "available": available}
         connection["tjb-db"]["sites"].save(site)
 
     def _checkSiteIdAvailable(self, site_id):
@@ -344,14 +345,16 @@ class AddSiteHandler(BaseSiteHandler):
         if not arguments.has_key("site_id") \
             or not arguments.has_key("site_name") \
             or not arguments.has_key("algorithm_type") \
+            or not arguments.has_key("available") \
             or not arguments.has_key("calc_interval"):
-            return HttpResponse("missing arguments")
+            return HttpResponse("AddSite: missing arguments")
         else:
             site_id =   arguments["site_id"]
             site_name = arguments["site_name"]
             calc_interval = arguments["calc_interval"]
             disabledFlowsFormatted = arguments.get("disabledFlows", "")
             algorithm_type = arguments["algorithm_type"]
+            available = arguments.get("available", '')
 
             if not self._checkSiteIdValid(site_id):
                 return HttpResponse("site_id is not valid")
@@ -363,7 +366,7 @@ class AddSiteHandler(BaseSiteHandler):
             calc_interval = int(calc_interval)
 
             disabledFlows = self._parseDisabledFlows(disabledFlowsFormatted)
-            self.addSite(site_id, site_name, calc_interval, disabledFlows, algorithm_type)
+            self.addSite(site_id, site_name, calc_interval, disabledFlows, algorithm_type, available)
 
             return HttpResponseRedirect("/edit_site?site_id=%s" % site_id)
 
@@ -385,13 +388,14 @@ class EditSiteHandler(BaseSiteHandler):
         connection = mongo_client.connection
         return connection["tjb-db"]["sites"].find_one({"site_id": site_id})
 
-    def _updateSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type):
+    def _updateSite(self, site_id, site_name, calc_interval, disabledFlows, algorithm_type, available):
         connection = mongo_client.connection
         site = connection["tjb-db"]["sites"].find_one({"site_id": site_id})
         site["site_name"] = site_name
         site["calc_interval"] = calc_interval
         site["disabledFlows"] = disabledFlows
         site["algorithm_type"] = algorithm_type
+        site["available"] = available
         connection["tjb-db"]["sites"].save(site)
 
     def _handleGET(self, request):
@@ -410,13 +414,14 @@ class EditSiteHandler(BaseSiteHandler):
             or not arguments.has_key("site_name") \
             or not arguments.has_key("algorithm_type") \
             or not arguments.has_key("calc_interval"):
-            return HttpResponse("missing arguments")
+            return HttpResponse("EditSite: missing arguments")
         else:
             site_id =   arguments["site_id"]
             site_name = arguments["site_name"]
             calc_interval = arguments["calc_interval"]
             disabledFlowsFormatted = arguments.get("disabledFlowsFormatted", [""])
             algorithm_type = arguments["algorithm_type"]
+            available = arguments.get("available", '')
 
             if not self._checkSiteIdValid(site_id):
                 return HttpResponse("site_id is not valid")
@@ -427,7 +432,7 @@ class EditSiteHandler(BaseSiteHandler):
 
             self._updateSite(site_id, site_name, calc_interval, 
                     self._parseDisabledFlows(disabledFlowsFormatted),
-                    algorithm_type)
+                    algorithm_type, available)
 
             return HttpResponseRedirect("/edit_site?site_id=%s" % site_id)
 

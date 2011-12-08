@@ -187,7 +187,7 @@ class MongoClient:
 
     def loadSites(self):
         c_sites = self.connection["tjb-db"]["sites"]
-        return [site for site in c_sites.find()]
+        return [site for site in c_sites.find().sort('site_id')]
 
     # FIXME; should also make the api_key field unique.
     def generateApiKey(self, site_id, site_name):
