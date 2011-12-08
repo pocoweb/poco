@@ -704,6 +704,7 @@ def ajax_item(request, api_key, item_id):
             'market_price': item.get('market_price', ''),
             'price': item.get('price', ''),
             'image_link': item['image_link'],
+            'available': item['available'],
             'rec_lists':{
                 "also_viewed": _getTopnByAPI(site, "getAlsoViewed", item_id, 15),
                 "also_bought": _getTopnByAPI(site, "getAlsoBought", item_id, 15),
