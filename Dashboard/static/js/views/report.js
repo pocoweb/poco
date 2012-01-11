@@ -43,7 +43,7 @@ App.Views.Report = Backbone.View.extend({
     current_month.addMonths(-1);
 
     var min_from_day = new Date();
-    min_from_day.addDays(-100);
+    min_from_day.addDays(-180);
     var max_to_day = new Date();
     max_to_day.addDays(-1);
     
