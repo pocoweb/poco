@@ -152,16 +152,6 @@ def index(request):
     if not referer and request.session.has_key("user_name"):
         return redirect('/dashboard')
     else :
-        #if 
-        #        referer = re.sub("https?:\/\/", '', referer).split('/')
-        #        if referer[0] == request.META.get('HTTP_HOST'))
-        #    user_name = request.session["user_name"]
-        #    sites = _getUserSites(user_name)
-        #    return render_to_response("dashboard/index.html", 
-        #            {"page_name": "控制台首页", "sites": sites, "user_name": user_name,
-        #             "user": getUser(user_name)},
-        #            context_instance=RequestContext(request))
-        #else:
         user_name = request.session.get("user_name", None)
         return render_to_response("index.html",
                                  {"page_name":"推荐宝",

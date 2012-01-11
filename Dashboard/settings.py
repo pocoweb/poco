@@ -4,10 +4,18 @@ DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
+    ('Sun Liwen', 'liwen@tuijianbao.net'),
 )
 
 MANAGERS = ADMINS
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
 
 DATABASES = {
     'default': {
@@ -103,9 +111,9 @@ MIDDLEWARE_CLASSES = (
     'Dashboard.middleware.http.Http403Middleware'
 )
 
-import os.path
-SESSION_ENGINE = "django.contrib.sessions.backends.file"
-SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
+#import os.path
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+#SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
 
 
 ROOT_URLCONF = 'Dashboard.urls'
