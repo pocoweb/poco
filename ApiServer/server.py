@@ -1030,6 +1030,7 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         requests = self.extractRequests(args)
         response = {"code": 0, "responses": {}}
         referer = self.request.headers.get('Referer')
+        # async to different result
         for request_info in requests:
             full_name = request_info["full_name"]
             request_args = request_info["args"]

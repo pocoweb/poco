@@ -10,6 +10,12 @@ from common.utils import getSiteDBCollection
 from common.utils import sign
 from common.utils import trunc_list
 
+import logging
+
+logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
+                    level=logging.WARNING,
+                    datefmt="%Y-%m-%d %I:%M:%S")
+
 
 class UpdateSiteError(Exception):
     pass
@@ -238,6 +244,8 @@ class MongoClient:
             if not item_in_db.has_key("created_on"):
                 item_in_db.update({"created_on": datetime.datetime.now()})
             item_in_db.update({"updated_on": datetime.datetime.now()}) # might be useful to have the updated_on
+        
+        if item_in_db.has_key("item_name") and item_in_db["item_name"]:
             del item["item_name"]
 
         item_in_db.update(item)
@@ -290,6 +298,9 @@ class MongoClient:
                 or item_in_db["item_id"] in excluded_recommendation_items \
                 or (deduplicate_item_names_required and item_in_db["item_name"] in excluded_recommendation_item_names):
                     continue
+            #logging.critical("item_name %r " % item_in_db) 
+            # GOTCHA:
+            # In case the item_name is not available, just skip it. The update api should accept new name right?
             recommended_item_names.append(item_in_db["item_name"])
             if deduplicate_item_names_required:
                 excluded_recommendation_item_names |= set([item_in_db["item_name"]])
