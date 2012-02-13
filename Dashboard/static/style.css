@@ -1,3 +1,5 @@
+/* IE fix */
+img, div { behavior: url("../static/iepngfix.htc") }
 
 html.dashboard,body.dashboard{height:100%;width:100%;}
 .whole-container {
@@ -241,6 +243,8 @@ background-color:#EAF2FA;
   width:180px;
   padding: -30px;
   background:url('images/logo-sprite.png') left -70px no-repeat;
+  _background:none;
+  _filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/logo-sprite.png',sizingMethod='crop');
 }
 
 #index-header-logo{
