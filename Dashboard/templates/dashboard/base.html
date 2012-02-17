@@ -19,13 +19,17 @@
     </style>
   <link rel="stylesheet" href="{{STATIC_URL}}print.css" type="text/css" media="print"/> 
 {% endcompress %}
+
+{% compress js %}
   <script src="{{STATIC_URL}}libs/jquery-1.6.1.min.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}libs/underscore-1.1.6.js" type="text/javascript" ></script>
+  <script src="{{STATIC_URL}}libs/highcharts-2.1.6/js/highcharts.src.js" type="text/javascript"></script>
   <script src="{{STATIC_URL}}libs/backbone.js" type="text/javascript" ></script>
-  <script src="{{STATIC_URL}}libs/highcharts-2.1.6/js/highcharts.js" type="text/javascript"></script>
-  <script src="{{STATIC_URL}}libs/bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}libs/datepicker/js/datepicker.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}js/dashboard.js" type="text/javascript" ></script>
+{% endcompress %}
+
+  <script src="{{STATIC_URL}}libs/bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
   <title>{{page_name}} - 推荐宝 | 个性化推荐引擎</title>
   {% block mvc-script %}
   {% endblock %}
@@ -63,6 +67,7 @@
     </p>
   </center>
   </footer>
+{% compress js%}
   <!-- Mixpanel -->
   <script type="text/javascript">
     var mpq=[];
@@ -82,5 +87,6 @@
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
   })();
 </script>
+{% endcompress%}
 </body>
 </html>
