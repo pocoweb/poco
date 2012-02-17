@@ -13,3 +13,6 @@ ApiServer/test_directory/tester
 demo/frontend/UserDb.sqlite3
 */session_store
 *ropeproject*
+*/build/*
+*/static/min/css/*.css
+*/static/min/js/*.js

@@ -1,1 +1,8 @@
 python-memcached>=1.48
+versiontools
+django_compressor
+slimit
+BeautifulSoup<4.0
+libxml2
+html5lib
+

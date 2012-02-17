@@ -5,10 +5,17 @@
 <meta name="description" content="电商个性化推荐系统">
 <meta name="keywords" content="电子商务,逛街,搭配,个性化推荐">
 <title>{{page_name}} - 个性化推荐系统</title>
-<link rel="stylesheet" href="{{STATIC_URL}}blueprint/screen.css" type="text/css" media="screen, projection"> 
-<link rel="stylesheet" href="{{STATIC_URL}}blueprint/print.css" type="text/css" media="print"> 
-<!--[if lt IE 8]><link rel="stylesheet" href="{{STATIC_URL}}blueprint/ie.css" type="text/css" media="screen, projection"><![endif]--> 
-<link rel="stylesheet" href="{{STATIC_URL}}style.css" type="text/css" media="screen, projection"> 
+{% load compress %}
+{% compress css %}
+<link rel="stylesheet" href="/static/blueprint/screen.css" type="text/css"> 
+<link rel="stylesheet" href="/static/style.css" type="text/css"> 
+<link rel="stylesheet" href="/static/blueprint/print.css" type="text/css" media="print"> 
+{% endcompress %}
+<!--[if lt IE 8]>
+{% compress css %}
+<link rel="stylesheet" href="/static/blueprint/ie.css" type="text/css">
+{% endcompress %}
+<![endif]--> 
 {% block link %} {% endblock %}
 {% block head %} {% endblock %}
 </head>
@@ -66,6 +73,8 @@
   </div>
   <!-- Footer End -->
 
+{% load compress %}
+{% compress js %}
 <script type="text/javascript"> 
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-23503737-1']);
@@ -76,6 +85,7 @@
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
   })();
 </script> 
+{% endcompress %}
 
 </body>
 </html>
