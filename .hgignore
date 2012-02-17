@@ -16,3 +16,4 @@ demo/frontend/UserDb.sqlite3
 */build/*
 */static/min/css/*.css
 */static/min/js/*.js
+*/static/temp/*
