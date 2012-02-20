@@ -393,6 +393,16 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
         view_buy_pairs_counted_path = self.getWorkFile("view_buy_pairs_counted")
         upload_viewed_ultimately_buy(connection, SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
 
+
+class UpdateUserOrdersCollectionFlow(BaseFlow):
+    def __init__(self):
+        BaseFlow.__init__(self, "ViewedUltimatelyBuy")
+        self.jobs += []
+
+
+
+
+
 class BeginFlow(BaseFlow):
     def __init__(self):
         BaseFlow.__init__(self, "Root")

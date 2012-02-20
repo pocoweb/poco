@@ -80,6 +80,12 @@ def fix_tjb_db(connection):
     connection["tjb-db"]["admin-users"].ensure_index("user_name", 1, background=True, unique=True)
 
 
+def fix_user_orders(connection, site_id):
+    c_user_orders = getSiteDBCollection(connection, site_id, "user_orders")
+    c_user_orders.drop_indexes()
+    c_user_orders.ensure_index("order_datetime", -1, background=True, unique=False)
+
+
 if __name__ == "__main__":
     for site in connection["tjb-db"]["sites"].find():
         site_id = site["site_id"]
