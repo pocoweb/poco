@@ -11,7 +11,6 @@ class BackFiller:
         self.site_id = site_id
         self.raw_logs = utils.getSiteDBCollection(connection, site_id, "raw_logs")
         self.c_tmp_user_identified_logs_plo = utils.getSiteDBCollection(connection, site_id, "tmp_user_identified_logs_plo")
-        self.c_tmp_user_identified_logs_v = utils.getSiteDBCollection(connection, site_id, "tmp_user_identified_logs_v")
         self.last_ts = last_ts
         self.output_file_path = output_file_path
         self.tjbid2user = {}
@@ -25,8 +24,6 @@ class BackFiller:
             and not new_value.startswith("ANO_"):
             if log_doc["behavior"] == "PLO":
                 self.c_tmp_user_identified_logs_plo.insert({"log_id": log_doc["_id"]})
-            elif log_doc["behavior"] == "V":
-                self.c_tmp_user_identified_logs_v.insert({"log_id": log_doc["_id"]})
         log_doc["filled_user_id"] = new_value
 
     # TODO: maybe use atomic update later?

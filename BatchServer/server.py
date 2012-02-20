@@ -394,13 +394,14 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
         upload_viewed_ultimately_buy(connection, SITE_ID, item_view_times_path, view_buy_pairs_counted_path)
 
 
-class UpdateUserOrdersCollectionFlow(BaseFlow):
+class EDMRelatedPreprocessingFlow(BaseFlow):
     def __init__(self):
         BaseFlow.__init__(self, "ViewedUltimatelyBuy")
         self.jobs += []
 
-
-
+    def do_update_user_orders_collection(self):
+        from edm_calculations import doUpdateUserOrdersCollection
+        doUpdateUserOrdersCollection(connection, SITE_ID)
 
 
 class BeginFlow(BaseFlow):
@@ -436,7 +437,8 @@ buy_together_similarity_flow.dependOn(preprocessing_flow)
 viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
 viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
-
+edm_related_preprocessing_flow = EDMRelatedPreprocessingFlow()
+edm_related_preprocessing_flow.dependOn(preprocessing_flow)
 
 def createCalculationRecord(site_id):
     calculation_id = str(uuid.uuid4())
