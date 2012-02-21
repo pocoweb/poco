@@ -1,6 +1,10 @@
 import datetime
+import time
+import logging
 from common.utils import getSiteDBCollection
+from common.utils import getSiteDB
 from common.utils import getLatestUserOrderDatetime
+from ApiServer.mongo_client import MongoClient
 
 
 def insertUserOrderFromRawLog(connection, site_id, raw_log):
@@ -31,3 +35,35 @@ def doUpdateUserOrdersCollection(connection, site_id):
         insertUserOrderFromRawLog(connection, site_id, raw_log)
         c_tmp_user_identified_logs_plo.remove({"_id": tmp_user_identified_log_plo["_id"]})
 
+
+# NOTE: This function is only for small set of data
+EMAILING_USER_ORDERS_MAX_DAY = 14
+EXPECTED_RECOMMENDATION_ITEMS = 5
+def generateEdmEmailingList(connection, site_id):
+    logger = logging.getLogger("EDMCalculations")
+    c_user_orders = getSiteDBCollection(connection, site_id, "user_orders")
+    latest_order_datetime = getLatestUserOrderDatetime(connection, site_id)
+    if latest_order_datetime is None:
+        query = {}
+    else:
+        query = {"order_datetime": {"$gte": latest_order_datetime \
+                                - datetime.timedelta(days=EMAILING_USER_ORDERS_MAX_DAY)}}
+    db = getSiteDB(connection, site_id)
+    result = db.command({"distinct": "user_orders", "key": "user_id", 
+                "query": query})
+    user_ids = result["values"]
+    
+    mongo_client = MongoClient(connection)
+    c_edm_emailing_list = getSiteDBCollection(connection, site_id, "edm_emailing_list")
+    c_edm_emailing_list.drop()
+    c_edm_emailing_list = getSiteDBCollection(connection, site_id, "edm_emailing_list")
+    count = 0
+    t0 = time.time()
+    for user_id in user_ids:
+        count += 1
+        if count % 100 == 0:
+            logger.info("Count: %s, %s users/sec" % (count, count/(time.time() - t0)))
+        recommendation_result, _ = mongo_client.recommend_for_edm(site_id, user_id, 
+                                        max_amount=EXPECTED_RECOMMENDATION_ITEMS)
+        if len(recommendation_result) == EXPECTED_RECOMMENDATION_ITEMS:
+            c_edm_emailing_list.insert({"user_id": user_id, "recommendation_result": recommendation_result})

@@ -341,9 +341,45 @@ def getItemsAndCount2(connection, site_id, page_num, page_size, search_name):
             "curr_right_reached": page_num >= max_page_num}
 
 
-# NOTE: This function is only for small set of data
-EMAILING_USER_ORDERS_MAX_DAY = 14
-def getEmailingUsers(connection, site_id, page_num, page_size, search_user_id):
+def getEdmEmailingUsers(connection, site_id, page_num, page_size):
+    c_edm_emailing_list = getSiteDBCollection(connection, site_id, "edm_emailing_list")
+    cursor = c_edm_emailing_list.find()
+    record_processor = lambda record: {"user_id": record["user_id"]}
+    return _getModelsByPages(connection, site_id, page_num, page_size, cursor, record_processor)
+
+
+def getRecommendationsForEdmEmailingUser(connection, site_id, user_id):
+    c_edm_emailing_list = getSiteDBCollection(connection, site_id, "edm_emailing_list")
+    result = c_edm_emailing_list.find_one({"user_id": user_id})
+    return result["recommendation_result"]
+
+
+def _getModelsByPages(connection, site_id, page_num, page_size, cursor, record_processor):
+    records_count = cursor.count()
+    cursor.skip((page_num - 1) * page_size).limit(page_size)
+    max_page_num = records_count / page_size
+    if records_count % page_size > 0:
+        max_page_num += 1
+    page_num_left = max(page_num - 4, 1)
+    page_num_right = min(max_page_num, page_num + (9 - (page_num - page_num_left)))
+    models = []
+    for record in cursor:
+        model = record_processor(record)
+        models.append(model)
+    #return models
+    return  {"models": models, 
+            "page": page_num,
+            "page_size": page_size,
+            "total": records_count,
+            "prev_page_num": max(1, page_num - 1),
+            "page_nums": range(page_num_left, page_num_right + 1),
+            "next_page_num": min(max_page_num, page_num + 1),
+            "max_page_num": max_page_num,
+            "curr_left_reached": page_num == 1,
+            "curr_right_reached": page_num >= max_page_num}
+
+
+def getEmailingUsers(connection, site_id, page_num, page_size):
     c_user_orders = getSiteDBCollection(connection, site_id, "user_orders")
     latest_order_datetime = getLatestUserOrderDatetime(connection, site_id)
     if latest_order_datetime is None:
@@ -772,7 +808,7 @@ def edm(request, api_key):
     connection = mongo_client.connection
     c_sites = connection["tjb-db"]["sites"]
     site = c_sites.find_one({"api_key": api_key})
-    data = getEmailingUsers(connection, site['site_id'], int(page_num), int(page_size), None)
+    data = getEdmEmailingUsers(connection, site['site_id'], int(page_num), int(page_size))
     return render_to_response("dashboard/edm.html", {
        "page_name": "直邮列表", "user_name": user_name,
        "data": data,
@@ -790,7 +826,7 @@ def edm_preview(request, api_key, emailing_user_id):
     connection = mongo_client.connection
     c_sites = connection["tjb-db"]["sites"]
     site = c_sites.find_one({"api_key": api_key})
-    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], emailing_user_id, max_amount=5)
+    recommended_items = getRecommendationsForEdmEmailingUser(connection, site["site_id"], emailing_user_id)
     return render_to_response("dashboard/edm_preview.html", {
        "edm_test_email": edm_test_email,
        "api_key": api_key,
@@ -811,14 +847,14 @@ def edm_send(request, api_key, emailing_user_id):
     connection = mongo_client.connection
     c_sites = connection["tjb-db"]["sites"]
     site = c_sites.find_one({"api_key": api_key})
-    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], emailing_user_id, max_amount=5)
+    recommended_items = getRecommendationsForEdmEmailingUser(connection, site["site_id"], emailing_user_id)
     try:
         subject = "本日特别推荐"
         body = render_to_string("dashboard/edm_preview_content.html",
                {"emailing_user_id": emailing_user_id,
                "recommended_items": recommended_items,
                })
-        from_email = "jacob.fan@gmail.com"
+        from_email = settings.edm_sender_email
         to_email = edm_test_email
         email_message = EmailMessage(subject=subject, body=body, from_email=from_email, to=[to_email])
         email_message.content_subtype = "html"

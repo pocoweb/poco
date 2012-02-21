@@ -10,3 +10,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = '<your user>'
 EMAIL_HOST_PASSWORD = '<your password>' # Hint: you may use 2-step authentication without put your main password here.
+
+# EDM sender email
+edm_sender_email = '<the sender appear on edm emails>'

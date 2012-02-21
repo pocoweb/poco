@@ -397,12 +397,15 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
 class EDMRelatedPreprocessingFlow(BaseFlow):
     def __init__(self):
         BaseFlow.__init__(self, "ViewedUltimatelyBuy")
-        self.jobs += [self.do_update_user_orders_collection]
+        self.jobs += [self.do_update_user_orders_collection, self.do_generate_edm_emailing_list]
 
     def do_update_user_orders_collection(self):
         from edm_calculations import doUpdateUserOrdersCollection
         doUpdateUserOrdersCollection(connection, SITE_ID)
 
+    def do_generate_edm_emailing_list(self):
+        from edm_calculations import generateEdmEmailingList
+        generateEdmEmailingList(connection, SITE_ID)
 
 class BeginFlow(BaseFlow):
     def __init__(self):
@@ -439,6 +442,7 @@ viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 edm_related_preprocessing_flow = EDMRelatedPreprocessingFlow()
 edm_related_preprocessing_flow.dependOn(preprocessing_flow)
+
 
 def createCalculationRecord(site_id):
     calculation_id = str(uuid.uuid4())
