@@ -284,9 +284,13 @@ class MongoClient:
 
 
     def convertTopNFormat(self, site_id, req_id, result_filter, topn, amount, include_item_info=True, 
-            url_converter=None, excluded_recommendation_items=set([]),
+            url_converter=None, excluded_recommendation_items=None,
             deduplicate_item_names_required=False,
-            excluded_recommendation_item_names=set([])):
+            excluded_recommendation_item_names=None):
+        if excluded_recommendation_items is None:
+            excluded_recommendation_items = set([])
+        if excluded_recommendation_item_names is None:
+            excluded_recommendation_item_names = set([])
         if url_converter is None:
             url_converter = self.getRedirectUrlFor
         c_items_collection = getSiteDBCollection(self.connection, site_id, "items")
@@ -390,15 +394,14 @@ class MongoClient:
         c_user_orders = getSiteDBCollection(self.connection, site_id, "user_orders")
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
         latest_user_order = [user_order for user_order in c_user_orders.find({"user_id": user_id}).sort("order_datetime", -1).limit(1)][0]
-        print latest_user_order
         raw_log = c_raw_logs.find_one({"_id": latest_user_order["raw_log_id"]})
-        print raw_log
         items_list = [order_item["item_id"] for order_item in raw_log["order_content"]]
         purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
         topn = self.calc_weighted_top_list_method1(site_id, "PLO", items_list, extra_excludes_list=purchasing_history)
-        return self.convertTopNFormat(site_id, req_id=None, result_filter=SimpleRecommendationResultFilter(),
+        result = self.convertTopNFormat(site_id, req_id=None, result_filter=SimpleRecommendationResultFilter(),
                         topn=topn, amount=max_amount, include_item_info=True, deduplicate_item_names_required=True,
                         url_converter=lambda item_link, site_id, item_id, req_id: item_link)
+        return result
 
 
     # Logging Part

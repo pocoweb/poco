@@ -1,0 +1,19 @@
+<div>
+    <b>根据您最近的购买历史为您推荐：</b><br/>
+    <table>
+        <tr>
+        {% for item in recommended_items %}
+            <td style="width: 200px;">
+                <img src="{{item.image_link}}" height="130px" />
+            </td>
+        {% endfor %}
+        </tr>
+        <tr>
+            {% for item in recommended_items %}
+                <td style="width: 200px;">
+                <a href="{{item.item_link}}">{{item.item_name}}</a> {{item.price}}({{item.market_price}})
+                </td>
+            {% endfor %}
+        </tr>
+    </table>
+</div>

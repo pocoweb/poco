@@ -6,6 +6,7 @@ import datetime
 from django.http import HttpResponse
 from django.http import HttpResponseNotFound
 from django.shortcuts import render_to_response
+from django.template.loader import render_to_string
 from django.shortcuts import redirect
 from django.template import RequestContext
 import pymongo
@@ -13,6 +14,9 @@ import random
 from common.utils import getSiteDBCollection
 from common.utils import getSiteDB
 from common.utils import getLatestUserOrderDatetime
+
+import smtplib
+from django.core.mail import EmailMessage
 
 import simplejson as json
 
@@ -148,6 +152,11 @@ def getUser(user_name):
     c_users = connection["tjb-db"]["users"]
     user = c_users.find_one({"user_name": user_name})
     return user
+
+def saveUser(user):
+    connection = mongo_client.connection
+    c_users = connection["tjb-db"]["users"]
+    c_users.save(user)
 
 def index(request):
     referer = request.META.get('HTTP_REFERER') 
@@ -773,19 +782,56 @@ def edm(request, api_key):
 
 
 @login_required
-def edm_preview(request, api_key, user_id):
+def edm_preview(request, api_key, emailing_user_id):
     user_name = request.session.get("user_name", None)
     _checkUserAccessSite(user_name, api_key)
+    user = getUser(user_name)
+    edm_test_email = user.get("edm_test_email", "")
     connection = mongo_client.connection
     c_sites = connection["tjb-db"]["sites"]
     site = c_sites.find_one({"api_key": api_key})
-    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], user_id, max_amount=5)
+    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], emailing_user_id, max_amount=5)
     return render_to_response("dashboard/edm_preview.html", {
-       "user_id": user_id,
+       "edm_test_email": edm_test_email,
+       "api_key": api_key,
+       "emailing_user_id": emailing_user_id,
        "recommended_items": recommended_items,
        }, context_instance=RequestContext(request)
    )
 
+
+@login_required
+def edm_send(request, api_key, emailing_user_id):
+    user_name = request.session.get("user_name", None)
+    edm_test_email = request.POST.get("edm_test_email", "").strip()
+    user = getUser(user_name)
+    user["edm_test_email"] = edm_test_email
+    saveUser(user)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], emailing_user_id, max_amount=5)
+    try:
+        subject = "本日特别推荐"
+        body = render_to_string("dashboard/edm_preview_content.html",
+               {"emailing_user_id": emailing_user_id,
+               "recommended_items": recommended_items,
+               })
+        from_email = "jacob.fan@gmail.com"
+        to_email = edm_test_email
+        email_message = EmailMessage(subject=subject, body=body, from_email=from_email, to=[to_email])
+        email_message.content_subtype = "html"
+        email_message.send(fail_silently=False)
+        result_message = "The email was sent successfully."
+    except smtplib.SMTPException, e:
+        result_message = "An error happened while sending email: %s" % e
+    return render_to_response("dashboard/edm_sent_result.html", {
+       "api_key": api_key,
+       "emailing_user_id": emailing_user_id,
+       "result_message": result_message
+       }, context_instance=RequestContext(request)
+   )
 
 @login_required
 def ajax_recs(request, api_key, item_id, rec_type):

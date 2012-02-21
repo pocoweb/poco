@@ -1,0 +1,53 @@
+{% extends "dashboard/base.html" %}
+{% block mvc-script %}
+
+{% endblock %}
+{% block head %}
+<script type="text/javascript">
+$(document).ready(function(){
+  App.initialize(App.Routers.Items);
+});
+</script>
+<style type="text/css">
+.popover .inner {
+  background-color: rgba(100, 100, 100, 0.8);
+  width: 230px;
+}
+.popover .inner img{
+  width: 200px;
+}
+.popover.left .arrow{
+  border-left: 5px solid rgba(100, 100, 100, 0.8);
+}
+</style>
+{% endblock %}
+{% block site-nav %}
+<ul class="nav">
+  <li><a href="/report/{{api_key}}/#">推荐统计</a></li>
+  <li><a href="/items/{{api_key}}/#">商品管理</a></li>
+  <li class="active"><a href="/edm/{{api_key}}/#">直邮列表</a></li>
+</ul>
+{% endblock %}
+{% block container %}
+<div class="container-fluid">
+
+    <div id="content" class="content">
+      <div>
+        <a href="#">直邮列表</a>
+        <span>&gt;&gt;</span>
+        <span id="items_nav"></span>
+      </div>
+      <hr />
+      <div id="main-content">
+      {% if not data.curr_left_reached %}<a href="?page_num=1">&lt;&lt;</a>&nbsp;<a href="?page_num={{data.prev_page_num}}">&lt;</a>{% endif %}
+        &nbsp;{{data.page}}&nbsp;
+        {% if not data.curr_right_reached %}<a href="?page_num={{data.next_page_num}}">&gt;</a>&nbsp;<a href="?page_num={{data.max_page_num}}">&gt;&gt;</a>{% endif %}
+        <ol>
+            {% for emailing_user in data.models %}
+            <li>{{emailing_user.user_id}} &nbsp; <a target="_blank" href="/edm_preview/{{api_key}}/{{emailing_user.user_id}}">预览直邮内容</a></li>
+            {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -2,3 +2,11 @@ mongodb_host = "cube13"
 api_server_name = "api.tuijianbao.net"
 api_server_port = 80
 DEBUG=False
+
+# Following configure is for GMail SMTP
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = '<your user>'
+EMAIL_HOST_PASSWORD = '<your password>' # Hint: you may use 2-step authentication without put your main password here.

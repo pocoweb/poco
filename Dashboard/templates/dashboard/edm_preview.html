@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>直邮预览 {{emailing_user_id}}</title>
+</head>
+<body>
+    {% include "dashboard/edm_preview_content.html" %}
+    <script>
+            function validateForm()
+            {
+            var edm_test_email = document.forms["sendmail_form"]["edm_test_email"].value;
+            var atpos = edm_test_email.indexOf("@");
+            var dotpos = edm_test_email.lastIndexOf(".");
+            if (atpos < 1 || dotpos < atpos + 2 || dotpos + 2 >= edm_test_email.length)
+              {
+                alert("您提供的邮件地址格式有误，请检查一下。");
+                return false;
+              }
+            
+            }        
+    </script>
+    <br/>
+    <form method="POST" name="sendmail_form" action="/edm_send/{{api_key}}/{{emailing_user_id}}/" onsubmit="return validateForm()">
+        接收人电邮：<input name="edm_test_email" type="text" value="{{edm_test_email}}" >
+        <input name="submit" type="submit" value="发送" >
+        {% csrf_token %}
+    </form>
+</body>
+</html>
