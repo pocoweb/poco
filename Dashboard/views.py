@@ -11,6 +11,8 @@ from django.template import RequestContext
 import pymongo
 import random
 from common.utils import getSiteDBCollection
+from common.utils import getSiteDB
+from common.utils import getLatestUserOrderDatetime
 
 import simplejson as json
 
@@ -322,6 +324,39 @@ def getItemsAndCount2(connection, site_id, page_num, page_size, search_name):
             "page": page_num,
             "page_size": page_size,
             "total": items_count,
+            "prev_page_num": max(1, page_num - 1),
+            "page_nums": range(page_num_left, page_num_right + 1),
+            "next_page_num": min(max_page_num, page_num + 1),
+            "max_page_num": max_page_num,
+            "curr_left_reached": page_num == 1,
+            "curr_right_reached": page_num >= max_page_num}
+
+
+# NOTE: This function is only for small set of data
+EMAILING_USER_ORDERS_MAX_DAY = 14
+def getEmailingUsers(connection, site_id, page_num, page_size, search_user_id):
+    c_user_orders = getSiteDBCollection(connection, site_id, "user_orders")
+    latest_order_datetime = getLatestUserOrderDatetime(connection, site_id)
+    if latest_order_datetime is None:
+        query = {}
+    else:
+        query = {"order_datetime": {"$gte": latest_order_datetime \
+                                - datetime.timedelta(days=EMAILING_USER_ORDERS_MAX_DAY)}}
+    db = getSiteDB(connection, site_id)
+    result = db.command({"distinct": "user_orders", "key": "user_id", 
+                "query": query})
+    user_ids = result["values"]
+    selected_user_ids = user_ids[(page_num - 1) * page_size:page_num * page_size]
+    max_page_num = len(user_ids) / page_size
+    if len(user_ids) % page_size > 0:
+        max_page_num += 1
+    page_num_left = max(page_num - 4, 1)
+    page_num_right = min(max_page_num, page_num + (9 - (page_num - page_num_left)))
+    models = [{"user_id": user_id} for user_id in selected_user_ids]
+    return {"models": models, 
+            "page": page_num,
+            "page_size": page_size,
+            "total": len(user_ids),
             "prev_page_num": max(1, page_num - 1),
             "page_nums": range(page_num_left, page_num_right + 1),
             "next_page_num": min(max_page_num, page_num + 1),
@@ -717,6 +752,40 @@ def ajax_items(request, api_key):
     site = c_sites.find_one({"api_key": api_key})
     data = getItemsAndCount2(connection, site['site_id'], int(page_num), int(page_size), search_name)
     return HttpResponse(json.dumps(data))
+
+
+@login_required
+def edm(request, api_key):
+    user_name = request.session.get("user_name", None)
+    page_num = request.GET.get("page_num", 1)
+    page_size = PAGE_SIZE
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    data = getEmailingUsers(connection, site['site_id'], int(page_num), int(page_size), None)
+    return render_to_response("dashboard/edm.html", {
+       "page_name": "直邮列表", "user_name": user_name,
+       "data": data,
+       "api_key":api_key 
+       }, context_instance=RequestContext(request)
+   )
+
+
+@login_required
+def edm_preview(request, api_key, user_id):
+    user_name = request.session.get("user_name", None)
+    _checkUserAccessSite(user_name, api_key)
+    connection = mongo_client.connection
+    c_sites = connection["tjb-db"]["sites"]
+    site = c_sites.find_one({"api_key": api_key})
+    recommended_items, _ = mongo_client.recommend_for_edm(site["site_id"], user_id, max_amount=5)
+    return render_to_response("dashboard/edm_preview.html", {
+       "user_id": user_id,
+       "recommended_items": recommended_items,
+       }, context_instance=RequestContext(request)
+   )
+
 
 @login_required
 def ajax_recs(request, api_key, item_id, rec_type):

@@ -164,3 +164,13 @@ def trunc_list(list, max_size):
         return list[:max_size]
     else:
         return list
+
+
+def getLatestUserOrderDatetime(connection, site_id):
+    c_user_orders = getSiteDBCollection(connection, site_id, "user_orders")
+    last_user_orders = [user_order for user_order in c_user_orders.find().sort("order_datetime", -1).limit(1)]
+    if len(last_user_orders) == 0:
+        latest_order_datetime = None
+    else:
+        latest_order_datetime = last_user_orders[0]["order_datetime"]
+    return latest_order_datetime

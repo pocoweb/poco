@@ -397,7 +397,7 @@ class ViewedUltimatelyBuyFlow(BaseFlow):
 class EDMRelatedPreprocessingFlow(BaseFlow):
     def __init__(self):
         BaseFlow.__init__(self, "ViewedUltimatelyBuy")
-        self.jobs += []
+        self.jobs += [self.do_update_user_orders_collection]
 
     def do_update_user_orders_collection(self):
         from edm_calculations import doUpdateUserOrdersCollection
