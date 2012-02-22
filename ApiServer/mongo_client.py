@@ -235,19 +235,19 @@ class MongoClient:
         item["available"] = True
         c_items = getSiteDBCollection(self.connection, site_id, "items")
         item_in_db = c_items.find_one({"item_id": item["item_id"]})
-        item_name_in_db = item_in_db.get("item_name", None)
-
-        if item_name_in_db:
-            del item["item_name"] # won't update name twice
 
         if item_in_db is None:
             item_in_db = {"created_on": datetime.datetime.now()}
         else:
-            # won't update item_name once generated, in case we met some bad server like 180.153.0.0/16
-            if not item_in_db.has_key("created_on"):
-                item_in_db.update({"created_on": datetime.datetime.now()})
+
+            item_in_db.setdefault("created_on", datetime.datetime.now())
             item_in_db.update({"updated_on": datetime.datetime.now()}) # might be useful to have the updated_on
-        
+ 
+            # won't update item_name once generated, in case we met some bad server like 180.153.0.0/16
+            item_name_in_db = item_in_db.get("item_name", None)
+            if item_name_in_db:
+                del item["item_name"] # won't update name twice
+       
         item_in_db.update(item)
         c_items.save(item_in_db)
 

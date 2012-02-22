@@ -576,6 +576,8 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
                 del by_item["available"]
                 del by_item["categories"]
                 del by_item["created_on"]
+                if by_item.has_key("updated_on"):
+                    del by_item["updated_on"]
                 if by_item.has_key("removed_on"):
                     del by_item["removed_on"]
                 del recommendation_for_item["item_id"]
