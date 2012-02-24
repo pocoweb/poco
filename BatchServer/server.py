@@ -157,13 +157,13 @@ class PreprocessingFlow(BaseFlow):
         last_ts = None # FIXME: load correct last_ts from somewhere
         bf = backfiller.BackFiller(connection, SITE_ID, last_ts,
                     self.getWorkFile("reversed_backfilled_raw_logs"))
-        last_ts = bf.start() # FIXME: save last_ts somewhere 
+        last_ts = bf.start() # FIXME: save last_ts somewhere
 
     def do_reverse_reversed_backfilled_raw_logs(self):
         input_path  = self.getWorkFile("reversed_backfilled_raw_logs")
         output_path = self.getWorkFile("backfilled_raw_logs")
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
-        
+
 
 
 class HiveBasedStatisticsFlow(BaseFlow):
@@ -453,7 +453,7 @@ edm_related_preprocessing_flow.dependOn(preprocessing_flow)
 
 def createCalculationRecord(site_id):
     calculation_id = str(uuid.uuid4())
-    record = {"calculation_id": calculation_id, "begin_datetime": datetime.datetime.now(), 
+    record = {"calculation_id": calculation_id, "begin_datetime": datetime.datetime.now(),
               "flows": {}}
     calculation_records = getSiteDBCollection(connection, site_id, "calculation_records")
     calculation_records.save(record)
@@ -487,7 +487,7 @@ def writeFlowBegin(site_id, flow_name):
 def writeFlowEnd(site_id, flow_name, is_successful, is_skipped, err_msg = None):
     record = getCalculationRecord(SITE_ID, CALCULATION_ID)
     logging.info("FlowEnd: %s" % (flow_name, ))
-    flow_record = record["flows"][flow_name] 
+    flow_record = record["flows"][flow_name]
     flow_record["end_datetime"] = datetime.datetime.now()
     flow_record["is_successful"] = is_successful
     flow_record["is_skipped"] = is_skipped
@@ -590,6 +590,6 @@ if __name__ == "__main__":
             for site in getManualCalculationSites():
                 workOnSiteWithRetries(site, is_manual_calculation=True)
             workOnSiteWithRetries(site)
-            
+
         sleep_seconds = 1
         time.sleep(sleep_seconds)
