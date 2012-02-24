@@ -8,6 +8,7 @@ import datetime
 import pymongo
 import uuid
 import os
+import subprocess
 import os.path
 import settings
 from common.utils import getSiteDBCollection
@@ -121,8 +122,13 @@ class BaseFlow:
 
     def _exec_shell(self, command):
         getLogger().info("Execute %s" % command)
-        ret_code = os.system(command)
+        #ret_code = os.system(command)
+        #if ret_code != 0:
+        #    raise ShellExecutionError("Shell Execution Failed, ret_code=%s" % ret_code)
+
+        ret_code = subprocess.call(command, shell=True)
         if ret_code != 0:
+            getLogger().error("Failed %s" % sys.stderr)
             raise ShellExecutionError("Shell Execution Failed, ret_code=%s" % ret_code)
 
     def _execJob(self, callable):
@@ -157,6 +163,7 @@ class PreprocessingFlow(BaseFlow):
         input_path  = self.getWorkFile("reversed_backfilled_raw_logs")
         output_path = self.getWorkFile("backfilled_raw_logs")
         self._exec_shell("%s <%s >%s" % (settings.tac_command, input_path, output_path))
+        
 
 
 class HiveBasedStatisticsFlow(BaseFlow):
