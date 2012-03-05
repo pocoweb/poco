@@ -85,6 +85,9 @@ class ArgumentProcessor:
     # TODO, avoid hacky code
     # if user_id and 0 or null
     def _convertArg(self, argument_name, args):
+        '''
+        Sometimes, site code will misuse 0 and null, to be consistent forcely convert to null
+        '''
         arg = args[argument_name]
         if argument_name == "user_id":
             return arg == "0" and "null" or arg 

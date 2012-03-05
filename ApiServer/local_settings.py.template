@@ -1,5 +1,5 @@
 server_name = "localhost"
 mongodb_host = "localhost"
 api_server_prefix = "http://localhost"
-local_raw_log_file = "/cube/app/api.tuijianbao.net/logs/raw_logs/raw_log.log"
+local_raw_log_file = "/cube/app/api.tuijianbao.net/log/raw_logs/raw_log.log"
 recommendation_deduplicate_item_names_required_set = ()

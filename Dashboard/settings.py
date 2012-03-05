@@ -1,6 +1,6 @@
 # Django settings for Dashboard project.
 
-DEBUG = False 
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -176,5 +176,3 @@ try:
     from local_settings import *
 except ImportError:
     from Dashboard.local_settings import *
-
-
