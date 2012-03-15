@@ -13,10 +13,11 @@ collection = connection["benchmarkdb1"]["coll"]
 
 
 t1 = time.time()
-for number in range(50000):
+count = 50000
+for number in range(count):
     collection.insert({"number": number, "name": "NAME:%s" % number})
 t2 = time.time()
-print t2 - t1
+print "Insert %d %s" % (count, t2 - t1)
 
 
 t1 = time.time()
@@ -25,4 +26,4 @@ for row in collection.find().sort("$natural", -1):
     count += 1
     if count > 5000: break
 t2 = time.time()
-print t2 - t1
+print "find 5000 docs %s" % (t2 - t1)

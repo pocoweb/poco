@@ -341,6 +341,9 @@ def calc_place_order_with_rec_info(site_id, connection, client):
 
 @log_function
 def calc_click_rec_buy(site_id, connection, client):
+    '''
+        ClickRec N Buy
+    '''
     client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.py"))
     client.execute("DROP TABLE rec_buy")
     client.execute("CREATE TABLE rec_buy ( "
@@ -460,7 +463,6 @@ def load_items(connection, site_id, work_dir, client):
 
 def getMapperFilePath(file_name):
     return "add FILE %s" % os.path.join(os.path.dirname(os.path.abspath(__file__)), "mappers", file_name)
-
 '''
 # TODO: also: items which accessed 0 times
 # TODO: how to handle yesterday
@@ -517,8 +519,8 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
 
 
 def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, 
-                        do_calculations=do_calculations):
-
+    do_calculations=do_calculations):
+   
     transport = TSocket.TSocket('localhost', 10000)
     transport = TTransport.TBufferedTransport(transport)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
