@@ -1,16 +1,21 @@
 {% extends "dashboard/base.html" %}
 {% block mvc-script %}
+{% load compress %}
+{% compress js %}
 <script src="{{STATIC_URL}}js/models/report.js" type="text/javascript" ></script>
 <script src="{{STATIC_URL}}js/views/report.js" type="text/javascript" ></script>
 <script src="{{STATIC_URL}}js/controllers/report.js" type="text/javascript" ></script>
+{% endcompress %}
 {% endblock %}
 {% block head %}
+{% compress js %}
 <script type="text/javascript">
 $(document).ready(function(){
   var highchartsOptions = Highcharts.setOptions(Highcharts.theme);
   App.initialize(App.Routers.Report);
 });
 </script>
+{% endcompress %}
 {% endblock %}
 {% block site-nav %}
 <ul class="nav">
