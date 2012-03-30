@@ -1,5 +1,6 @@
+gargoyle
 tornado
 simplejson
 pymongo
 gunicorn
-django
+django==1.4
