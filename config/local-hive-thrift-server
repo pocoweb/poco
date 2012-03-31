@@ -1,0 +1,56 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          local-hive-thrift-server
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Hive Thrift Server
+# Description:       Hive Thrift Server
+### END INIT INFO
+
+NAME=local-hive-thrift-server
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+export SERVICE_HOME=/cube/service/hive
+export JAVA_HOME=/usr/lib/jvm/java-6-sun/jre
+export HADOOP_HOME=$SERVICE_HOME/server/hadoop-0.20.2
+export HIVE_HOME=$SERVICE_HOME/server/hive-0.7.1-bin
+DAEMON=$HIVE_HOME/bin/hive
+export LOG_FILE=$SERVICE_HOME/logs/the_hive_log.log
+
+# Gracefully exit if hive does not exists.
+test -x $DAEMON || exit 0
+
+d_start() {
+	start-stop-daemon --start --chdir $SERVICE_HOME/server --user hive --chuid hive --background -v --make-pidfile --pidfile $PIDFILE --exec $DAEMON -- --service hiveserver 2>&1 >> $LOG_FILE 
+}
+
+d_stop() {
+	start-stop-daemon --stop --retry=TERM/10/KILL/5 --pidfile $PIDFILE
+}
+
+case "$1" in
+	start)
+		echo -n "Start $NAME"
+		d_start
+		echo "."
+		;;
+	stop)
+		echo -n "Stop $NAME"
+		d_stop
+		echo "."
+		;;
+	restart)
+		echo -n "Restarting $NAME"
+		d_stop
+		sleep 1
+		d_start
+		echo "."
+		;;
+	*)
+		echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
+		exit 1
+		;;
+esac
+
+exit 0
