@@ -102,8 +102,8 @@ MIDDLEWARE_CLASSES = (
 
 
 import os.path
-SESSION_ENGINE = "django.contrib.sessions.backends.file"
-SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+#SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
 
 
 ROOT_URLCONF = 'Adminboard.urls'
@@ -127,6 +127,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+    'gunicorn'
 )
 
 # A sample logging configuration. The only tangible logging
