@@ -77,7 +77,7 @@ class MongoClient:
             c_rec_black_lists.update({"item_id": item_id1}, {"$pull":  {"black_list": item_id2}})
 
 
-    def get_black_list(self, site_id, item_id):
+    def _get_black_list(self, site_id, item_id):
         c_rec_black_lists = getSiteDBCollection(self.connection, site_id, "rec_black_lists")
         row = c_rec_black_lists.find_one({"item_id": item_id})
         if row is None:
@@ -87,7 +87,8 @@ class MongoClient:
 
 
     def apply_black_list2topn(self, site_id, item_id, topn):
-        black_list_set = set(self.get_black_list(site_id, item_id))
+        ''' Remove items in black list '''
+        black_list_set = set(self._get_black_list(site_id, item_id))
         return [topn_item for topn_item in topn if topn_item[0] not in black_list_set]
 
 
@@ -147,8 +148,7 @@ class MongoClient:
 
 
     def getSimilaritiesForItem(self, site_id, similarity_type, item_id):
-        item_similarities = getSiteDBCollection(self.connection, site_id, 
-                "item_similarities_%s" % similarity_type)
+        item_similarities = getSiteDBCollection(self.connection, site_id, "item_similarities_%s" % similarity_type)
         result = item_similarities.find_one({"item_id": item_id})
         if result is not None:
             topn = result["mostSimilarItems"]
