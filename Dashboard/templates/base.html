@@ -7,15 +7,15 @@
 <title>{{page_name}} - 个性化推荐系统</title>
 {% load compress %}
 {% compress css %}
-<link rel="stylesheet" href="/static/blueprint/screen.css" type="text/css"> 
-<link rel="stylesheet" href="/static/style.css" type="text/css"> 
-<link rel="stylesheet" href="/static/blueprint/print.css" type="text/css" media="print"> 
+<link rel="stylesheet" href="/static/blueprint/screen.css" type="text/css">
+<link rel="stylesheet" href="/static/style.css" type="text/css">
+<link rel="stylesheet" href="/static/blueprint/print.css" type="text/css" media="print">
 {% endcompress %}
 <!--[if lt IE 9]>
 {% compress css %}
 <link rel="stylesheet" href="/static/blueprint/ie.css" type="text/css">
 {% endcompress %}
-<![endif]--> 
+<![endif]-->
 {% block link %} {% endblock %}
 {% block head %} {% endblock %}
 </head>
@@ -38,7 +38,7 @@
       {% if user_name != None %}
       <div class="last push-1 primary-nav" style="padding-left:28em">
         <ul class="menu">
-          <li><a href="/apply">申请推荐宝</a></li>
+          <!-- <li><a href="/apply">申请推荐宝</a></li> -->
           <li>欢迎, {{user_name}}
           <a href="/dashboard">控制台</a>
           <a href="/logout">退出</a></li>
@@ -47,7 +47,7 @@
       {% else %}
       <div class="last push-1 primary-nav" style="padding-left:35em">
         <ul class="menu">
-          <li><a href="/apply">申请推荐宝</a></li>
+          <!-- <li><a href="/apply">申请推荐宝</a></li> -->
           <li><a href="/login">登录</a></li>
           {% endif %}
         </ul>
@@ -55,25 +55,25 @@
     </div>
   </div>
   <!-- Header End -->
-  
+
   <!-- Content Start -->
   {% block content-area %}{% endblock content-area %}
   <!-- Content End -->
-  
+
   <!-- Footer Start -->
   <hr class="space" />
   <div id="footer" class="container">
     <div class="prepend-top span-24 last">
       <center>
-        <span class="quiet">Copyright &copy; 2012 推荐宝 &trade;</span>  
-        <span class="quiet"> - 北京原点互动科技有限公司</span>  
-        <span class="quiet"> - 京ICP备11047379号-1 </span>  
+        <span class="quiet">Copyright &copy; 2012 推荐宝 &trade;</span>
+        <span class="quiet"> - 北京原点互动科技有限公司</span>
+        <span class="quiet"> - 京ICP备11047379号-1 </span>
       </center>
     </div>
   </div>
   <!-- Footer End -->
 
-<script type="text/javascript"> 
+<script type="text/javascript">
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-23503737-1']);
   _gaq.push(['_trackPageview']);
@@ -82,7 +82,7 @@
     ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
   })();
-</script> 
+</script>
 
 </body>
 </html>
