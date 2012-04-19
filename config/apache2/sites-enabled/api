@@ -1,0 +1,30 @@
+<VirtualHost *:80>
+	ServerName api.leyou.com.cn
+	ServerAlias api api.test
+	DocumentRoot /cube/app/api/public_html
+	ProxyRequests Off
+	<Proxy balancer://api>
+		BalancerMember http://127.0.0.1:3001
+		BalancerMember http://127.0.0.1:3002
+		BalancerMember http://127.0.0.1:3003
+		BalancerMember http://127.0.0.1:3004
+	</Proxy>
+
+	ProxyPass / balancer://api/
+	
+	<Directory /cube/app/api/public_html/>
+		Options Indexes FollowSymLinks MultiViews
+		AllowOverride None
+		Order allow,deny
+		allow from all
+	</Directory>
+
+	ErrorLog /cube/app/api/log/error.log
+
+	# Possible values include: debug, info, notice, warn, error, crit,
+	# alert, emerg.
+	LogLevel warn
+
+	CustomLog /cube/app/api/log/access.log combined
+
+</VirtualHost>

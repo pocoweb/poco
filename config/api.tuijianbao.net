@@ -1,0 +1,51 @@
+upstream api_server_frontends {
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+    server 127.0.0.1:3003;
+    server 127.0.0.1:3004;
+}
+
+
+server {
+    listen 80;
+    server_name api.tuijianbao.net
+
+    #access_log /cube/app/api.tuijianbao.net/logs/nginx/access.log;
+
+    # Only retry if there was a communication error, not a timeout
+    # on the Tornado server (to avoid propagating "queries of death"
+    # to all frontends)
+    proxy_next_upstream error;
+
+    # Allow file uploads
+    client_max_body_size 50M;
+
+    location ^~ /js/ {
+        root /cube/app/api.tuijianbao.net/public_html/js;
+        if ($query_string) {
+            expires max;
+        }
+    }
+
+    location ^~ /static/ {
+        root /cube/app/api.tuijianbao.net/public_html;
+        if ($query_string) {
+            expires max;
+        }
+    }
+    location = /favicon.ico {
+        rewrite (.*) /static/favicon.ico;
+    }
+    location = /robots.txt {
+        rewrite (.*) /static/robots.txt;
+    }
+
+    location / {
+        proxy_pass_header Server;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Scheme $scheme;
+        proxy_pass http://api_server_frontends;
+    }
+}
