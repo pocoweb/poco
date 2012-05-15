@@ -11,7 +11,6 @@ import re
 import datetime
 import os
 import os.path
-import signal
 import uuid
 import settings
 import getopt
@@ -43,8 +42,9 @@ mongo_client.reloadApiKey2SiteID()
 # http://stackoverflow.com/questions/5784400/un-jquery-param-in-server-side-python-gae
 # http://www.tsangpo.net/2010/04/24/unserialize-param-in-python.html
 
-# TODO: referer; 
+# TODO: referer;
 # TODO: when to reload site ids.
+
 
 class LogWriter:
     def __init__(self):
@@ -78,10 +78,11 @@ def extractArguments(request):
         result[key] = request.arguments[key][0]
     return result
 
+
 class ArgumentProcessor:
     def __init__(self, definitions):
         self.definitions = definitions
-    
+
     # TODO, avoid hacky code
     # if user_id and 0 or null
     def _convertArg(self, argument_name, args):
@@ -90,14 +91,14 @@ class ArgumentProcessor:
         '''
         arg = args[argument_name]
         if argument_name == "user_id":
-            return arg == "0" and "null" or arg 
+            return arg == "0" and "null" or arg
         return arg
 
     def processArgs(self, args):
         err_msg = None
         result = {}
         for argument_name, is_required in self.definitions:
-            if not args.has_key(argument_name):
+            if argument_name not in args:
                 if is_required:
                     err_msg = "%s is required." % argument_name
                 else:
@@ -106,6 +107,7 @@ class ArgumentProcessor:
                 result[argument_name] = self._convertArg(argument_name, args)
 
         return err_msg, result
+
 
 class ArgumentError(Exception):
     pass
@@ -119,7 +121,7 @@ class APIHandler(tornado.web.RequestHandler):
         callback = args.get("callback", None)
 
         api_key2site_id = mongo_client.getApiKey2SiteID()
-        if not api_key2site_id.has_key(api_key):
+        if api_key not in api_key2site_id:
             response = {'code': 2, 'err_msg': 'no such api_key'}
         else:
             site_id = api_key2site_id[api_key]
@@ -134,7 +136,7 @@ class APIHandler(tornado.web.RequestHandler):
             response_json = json.dumps(response)
         except:
             logging.critical("Failed to encode response as json. response: %r" % response, exc_info=True)
-            response_json = {"code": 99} 
+            response_json = {"code": 99}
         if callback != None:
             response_text = "%s(%s)" % (callback, response_json)
         else:
@@ -145,24 +147,20 @@ class APIHandler(tornado.web.RequestHandler):
         pass
 
 
-class TjbIdEnabledHandlerMixin:
+class PtmIdEnabledHandlerMixin:
     def prepare(self):
         tornado.web.RequestHandler.prepare(self)
-        old_tjbid = self.get_cookie("tuijianbaoid") # try to convert old naming 
         self.ptm_id = self.get_cookie("__ptmid")
         if not self.ptm_id:
-            if old_tjbid:
-                self.ptm_id = old_tjbid
-                self.clear_cookie("tuijianbaoid") # try to convert old naming
-            else:
-                self.ptm_id = str(uuid.uuid4())
+            self.ptm_id = str(uuid.uuid4())
             self.set_cookie("__ptmid", self.ptm_id, expires_days=109500)
-            
 
-class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
+
+class SingleRequestHandler(PtmIdEnabledHandlerMixin, APIHandler):
     processor_class = None
+
     def process(self, site_id, args):
-        not_log_action = args.has_key("not_log_action")
+        not_log_action = "not_log_action" in args
         processor = self.processor_class(not_log_action)
         err_msg, args = processor.processArgs(args)
         if err_msg:
@@ -172,7 +170,6 @@ class SingleRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             referer = self.request.headers.get('Referer')
             args["referer"] = referer
             return processor.process(site_id, args)
-
 
 
 class ActionProcessor:
@@ -185,12 +182,11 @@ class ActionProcessor:
         if not self.not_log_action:
             assert self.action_name != None
             if tjb_id_required:
-                assert args.has_key("ptm_id")
+                assert "ptm_id" in args
                 action_content["tjbid"] = args["ptm_id"]
             action_content["referer"] = args.get("referer", None)
             action_content["behavior"] = self.action_name
-            logWriter.writeEntry(site_id,
-                action_content)
+            logWriter.writeEntry(site_id, action_content)
 
     def processArgs(self, args):
         return self.ap.processArgs(args)
@@ -213,12 +209,11 @@ class ActionProcessor:
             logWriter.writeLineToLocalLog(site_id, "END_REQUEST")
 
 
-import re
 class ViewItemProcessor(ActionProcessor):
     action_name = "V"
     ap = ArgumentProcessor(
          (("item_id", True),
-         ("user_id", True) # if no user_id, pass in "null"
+         ("user_id", True)  # if no user_id, pass in "null"
         )
     )
 
@@ -255,11 +250,13 @@ class UnlikeProcessor(ActionProcessor):
          ("user_id", False),
         )
     )
+
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"]})
         return {"code": 0}
+
 
 class UnlikeHandler(SingleRequestHandler):
     processor_class = UnlikeProcessor
@@ -273,11 +270,13 @@ class AddFavoriteProcessor(ActionProcessor):
          ("user_id", False),
         )
     )
+
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"]})
         return {"code": 0}
+
 
 class AddFavoriteHandler(SingleRequestHandler):
     processor_class = AddFavoriteProcessor
@@ -290,9 +289,10 @@ class RemoveFavoriteProcessor(ActionProcessor):
          ("user_id", True),
         )
     )
+
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -309,9 +309,10 @@ class RateItemProcessor(ActionProcessor):
          ("user_id", True),
         )
     )
+
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"],
                          "score": args["score"]})
         return {"code": 0}
@@ -332,11 +333,13 @@ class AddOrderItemProcessor(ActionProcessor):
          ("item_id", True),
         )
     )
+
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"]})
         return {"code": 0}
+
 
 class AddOrderItemHandler(SingleRequestHandler):
     processor_class = AddOrderItemProcessor
@@ -353,7 +356,7 @@ class RemoveOrderItemProcessor(ActionProcessor):
 
     def _process(self, site_id, args):
         self.logAction(site_id, args,
-                        {"user_id": args["user_id"], 
+                        {"user_id": args["user_id"],
                          "item_id": args["item_id"]})
         return {"code": 0}
 
@@ -368,7 +371,7 @@ class PlaceOrderProcessor(ActionProcessor):
         (
          ("user_id", True),
          # order_content Format: item_id,price,amount|item_id,price,amount
-         ("order_content", True), 
+         ("order_content", True),
          ("order_id", False)
         )
     )
@@ -385,12 +388,13 @@ class PlaceOrderProcessor(ActionProcessor):
     def _process(self, site_id, args):
         uniq_order_id = str(uuid.uuid4())
         self.logAction(site_id, args,
-                       {"user_id":  args["user_id"], 
+                       {"user_id":  args["user_id"],
                         "order_id": args["order_id"],
                         "uniq_order_id": uniq_order_id,
                         "order_content": self._convertOrderContent(args["order_content"])})
         mongo_client.updateUserPurchasingHistory(site_id=site_id, user_id=args["user_id"])
         return {"code": 0}
+
 
 class PlaceOrderHandler(SingleRequestHandler):
     processor_class = PlaceOrderProcessor
@@ -405,7 +409,6 @@ class UpdateCategoryProcessor(ActionProcessor):
          ("parent_categories", False)
         )
     )
-
 
     def _process(self, site_id, args):
         err_msg, args = self.ap.processArgs(args)
@@ -425,7 +428,6 @@ class UpdateCategoryHandler(APIHandler):
 
     def process(self, site_id, args):
         return self.processor.process(site_id, args)
-
 
 
 class UpdateItemProcessor(ActionProcessor):
@@ -463,7 +465,6 @@ class UpdateItemProcessor(ActionProcessor):
             return {"code": 0}
 
 
-
 # FIXME: update/remove item should be called in a secure way.
 class UpdateItemHandler(APIHandler):
     processor = UpdateItemProcessor()
@@ -487,13 +488,11 @@ class RemoveItemProcessor(ActionProcessor):
             return {"code": 0}
 
 
-
 class RemoveItemHandler(APIHandler):
     processor = RemoveItemProcessor()
 
     def process(self, site_id, args):
         return self.processor.process(site_id, args)
-
 
 
 class BaseRecommendationProcessor(ActionProcessor):
@@ -514,6 +513,9 @@ class BaseRecommendationProcessor(ActionProcessor):
     def getRecommendationResultFilter(self, site_id, args):
         raise NotImplemented
 
+    def getRecommendationResultSorter(self, site_id, args):
+        raise NotImplemented
+
     def getExcludedRecommendationItems(self):
         return getattr(self, "excluded_recommendation_items", set([]))
 
@@ -526,24 +528,22 @@ class BaseRecommendationProcessor(ActionProcessor):
         else:
             return set([])
 
+
 class BaseByEachItemProcessor(BaseRecommendationProcessor):
     # args should have "user_id", "ptm_id"
     def getRecommendationLog(self, args, req_id, recommended_items):
         return {"req_id": req_id,
-                "user_id": args["user_id"], 
-                "tjbid": args["ptm_id"], 
+                "user_id": args["user_id"],
+                "tjbid": args["ptm_id"],
                 "is_empty_result": len(recommended_items) == 0,
                 "amount_for_each_item": self.getAmountForEachItem(args)
                 }
 
-
     def getRecommendationsForEachItem(site_id, args):
         raise NotImplemented
 
-
     def getRecommendationResultFilter(self, site_id, args):
         raise NotImplemented
-
 
     def getRecRowMaxAmount(self, args):
         try:
@@ -552,14 +552,12 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
             raise ArgumentError("rec_row_max_amount should be an integer.")
         return rec_row_max_amount
 
-
     def getAmountForEachItem(self, args):
         try:
             amount_for_each_item = int(args["amount_for_each_item"])
         except ValueError:
             raise ArgumentError("amount_for_each_item should be an integer.")
         return amount_for_each_item
-
 
     def _process(self, site_id, args):
         self.recommended_items = None
@@ -579,9 +577,9 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
                 del by_item["available"]
                 del by_item["categories"]
                 del by_item["created_on"]
-                if by_item.has_key("updated_on"):
+                if "updated_on" in by_item:
                     del by_item["updated_on"]
-                if by_item.has_key("removed_on"):
+                if "removed_on" in by_item:
                     del by_item["removed_on"]
                 del recommendation_for_item["item_id"]
                 recommendation_for_item["by_item"] = by_item
@@ -592,7 +590,7 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
             excluded_recommendation_items = self.getExcludedRecommendationItems() | set(recommended_items)
             excluded_recommendation_item_names = self.getExcludedRecommendationItemNames(site_id) | recommended_item_names
             topn, rin = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
-                        amount_for_each_item, include_item_info, 
+                        amount_for_each_item, include_item_info,
                         url_converter=self.getRedirectUrlFor,
                         deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
                         excluded_recommendation_item_names=excluded_recommendation_item_names,
@@ -611,13 +609,12 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
         return {"code": 0, "result": recommendations_for_each_item, "req_id": req_id}
 
 
-
 class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
     # args should have "user_id", "ptm_id"
     def getRecommendationLog(self, args, req_id, recommended_items):
         return {"req_id": req_id,
-                "user_id": args["user_id"], 
-                "tjbid": args["ptm_id"], 
+                "user_id": args["user_id"],
+                "tjbid": args["ptm_id"],
                 "recommended_items": recommended_items,
                 "is_empty_result": len(recommended_items) == 0,
                 "amount": args["amount"]}
@@ -653,15 +650,13 @@ class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
         return {"code": 0, "topn": topn, "req_id": req_id}
 
 
-
-
 class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
     similarity_type = None
 
     ap = ArgumentProcessor(
          (("user_id", True),
          ("item_id", True),
-         ("include_item_info", False), # no, not include; yes, include
+         ("include_item_info", False),  # no, not include; yes, include
          ("amount", True),
         )
     )
@@ -679,7 +674,7 @@ class GetByEachPurchasedItemProcessor(BaseByEachItemProcessor):
     action_name = "RecEPI"
     ap = ArgumentProcessor(
     (("user_id", True),
-     ("include_item_info", False), # no, not include; yes, include
+     ("include_item_info", False),  # no, not include; yes, include
      ("rec_row_max_amount", True),
      ("amount_for_each_item", True),
     ))
@@ -702,7 +697,7 @@ class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
     (
      ("user_id", True),
      ("browsing_history", False),
-     ("include_item_info", False), # no, not include; yes, include
+     ("include_item_info", False),  # no, not include; yes, include
      ("rec_row_max_amount", True),
      ("amount_for_each_item", True),
     ))
@@ -730,7 +725,6 @@ class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
 
 class GetByEachBrowsedItemHandler(SingleRequestHandler):
     processor_class = GetByEachBrowsedItemProcessor
-
 
 
 class GetAlsoViewedProcessor(BaseSimilarityProcessor):
@@ -774,7 +768,7 @@ class GetUltimatelyBoughtProcessor(BaseSimpleResultRecommendationProcessor):
     ap = ArgumentProcessor(
          (("user_id", True),
          ("item_id", True),
-         ("include_item_info", False), # no, not include; yes, include
+         ("include_item_info", False),  # no, not include; yes, include
          ("amount", True),
         )
     )
@@ -805,7 +799,7 @@ class GetByBrowsingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     (
      ("user_id", True),
      ("browsing_history", False),
-     ("include_item_info", False), # no, not include; yes, include
+     ("include_item_info", False),  # no, not include; yes, include
      ("amount", True),
     ))
 
@@ -841,7 +835,7 @@ class GetByShoppingCartProcessor(BaseSimpleResultRecommendationProcessor):
     (
      ("user_id", True),
      ("shopping_cart", False),
-     ("include_item_info", False), # no, not include; yes, include
+     ("include_item_info", False),  # no, not include; yes, include
      ("amount", True),
     ))
 
@@ -871,7 +865,7 @@ class GetByPurchasingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecPH"
     ap = ArgumentProcessor(
     (("user_id", True),
-     ("include_item_info", False), # no, not include; yes, include
+     ("include_item_info", False),  # no, not include; yes, include
      ("amount", True),
     ))
 
@@ -895,21 +889,21 @@ class MainHandler(tornado.web.RequestHandler):
         self.write('{"version": "Tuijianbao v1.0"}')
 
 
-class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.RequestHandler):
+class RecommendedItemRedirectHandler(PtmIdEnabledHandlerMixin, tornado.web.RequestHandler):
     def get(self):
         url = self.request.arguments.get("url", [None])[0]
         api_key = self.request.arguments.get("api_key", [None])[0]
         req_id = self.request.arguments.get("req_id", [None])[0]
         item_id = self.request.arguments.get("item_id", [None])[0]
-        
+
         api_key2site_id = mongo_client.getApiKey2SiteID()
-        if url is None or not api_key2site_id.has_key(api_key):
+        if url is None or api_key not in api_key2site_id:
             # FIXME
             self.write("wrong url")
             return
         else:
             site_id = api_key2site_id[api_key]
-            log_content = {"behavior": "ClickRec", "url": url, 
+            log_content = {"behavior": "ClickRec", "url": url,
                            "req_id": req_id, "item_id": item_id, "site_id": site_id,
                            "tjbid": self.ptm_id}
             logWriter.writeEntry(site_id, log_content)
@@ -918,6 +912,8 @@ class RecommendedItemRedirectHandler(TjbIdEnabledHandlerMixin, tornado.web.Reque
 
 
 ACTION_NAME2PROCESSOR_CLASS = {}
+
+
 def fillActionName2ProcessorClass():
     _g = globals()
     global ACTION_NAME2PROCESSOR_CLASS
@@ -932,7 +928,6 @@ fillActionName2ProcessorClass()
 
 def getAbbrName2RelatedInfo(abbr_map):
     result = {}
-    _g = globals()
     for request_type in abbr_map.keys():
         for attr_abbr in abbr_map[request_type].keys():
             processor_class = ACTION_NAME2PROCESSOR_CLASS[abbr_map[request_type]["action_name"]]
@@ -954,7 +949,7 @@ ACTION_NAME2FULL_NAME = packed_request.ACTION_NAME2FULL_NAME
 # 1. use the masks
 # 2. shared params
 # 3. overriding
-class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
+class PackedRequestHandler(PtmIdEnabledHandlerMixin, APIHandler):
     @staticmethod
     def extractRequests(args):
         global ABBR_NAME2RELATED_INFO
@@ -963,7 +958,7 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
         shared_params = {}
         remain_args = {}
 
-        if not args.has_key("-"):
+        if "-" not in args:
             raise ArgumentError("missing '-' argument")
 
         try:
@@ -992,13 +987,14 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
             if _processor is None:
                 raise ArgumentError("invalid param:%s" % key)
             else:
-                if not processor_class2request_info.has_key(_processor):
+                if _processor not in processor_class2request_info:
                     raise ArgumentError("argument %s not covered by mask_set." % key)
                 processor_class2request_info[_processor]["args"][attr_name] = args[key]
 
         result = []
+
         def moveRequestInfo2Result(processor_class):
-            if processor_class2request_info.has_key(processor_class):
+            if processor_class in processor_class2request_info:
                 result.append(processor_class2request_info[processor_class])
                 del processor_class2request_info[processor_class]
         moveRequestInfo2Result(GetBoughtTogetherProcessor)
@@ -1027,7 +1023,6 @@ class PackedRequestHandler(TjbIdEnabledHandlerMixin, APIHandler):
                 if processor.recommended_item_names is not None:
                     self.excluded_recommendation_item_names |= processor.recommended_item_names
             return result
-
 
     def process(self, site_id, args):
         self.excluded_recommendation_items = set([])

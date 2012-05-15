@@ -44,7 +44,7 @@ class SameGroupRecommendationResultFilter:
         else:
             self.allowed_categories = set([])
             self.allowed_category_groups = set([])
-        
+
     def is_allowed(self, item_dict):
         if not item_dict["available"]:
             return False
@@ -77,7 +77,7 @@ class MongoClient:
             c_rec_black_lists.update({"item_id": item_id1}, {"$pull":  {"black_list": item_id2}})
 
 
-    def _get_black_list(self, site_id, item_id):
+    def get_black_list(self, site_id, item_id):
         c_rec_black_lists = getSiteDBCollection(self.connection, site_id, "rec_black_lists")
         row = c_rec_black_lists.find_one({"item_id": item_id})
         if row is None:
@@ -88,7 +88,7 @@ class MongoClient:
 
     def apply_black_list2topn(self, site_id, item_id, topn):
         ''' Remove items in black list '''
-        black_list_set = set(self._get_black_list(site_id, item_id))
+        black_list_set = set(self.get_black_list(site_id, item_id))
         return [topn_item for topn_item in topn if topn_item[0] not in black_list_set]
 
 
@@ -103,7 +103,7 @@ class MongoClient:
     MAX_PURCHASING_HISTORY_AMOUNT = 100
     # ASSUME use will not purchase so quickly that the order of two purchasing will be reversed.
     # ASSUMING purchasing speed is far slower than page view.
-    # there is a small chance that the "purchasing_history" will not 
+    # there is a small chance that the "purchasing_history" will not
     # 100% correctly reflect the raw_log
     def updateUserPurchasingHistory(self, site_id, user_id):
         ph_in_db = self.getPurchasingHistory(site_id, user_id)
@@ -131,7 +131,7 @@ class MongoClient:
 
     def recommend_based_on_purchasing_history(self, site_id, user_id):
         purchasing_history = self.getPurchasingHistory(site_id, user_id)["purchasing_history"]
-        topn = self.calc_weighted_top_list_method1(site_id, "PLO", purchasing_history) 
+        topn = self.calc_weighted_top_list_method1(site_id, "PLO", purchasing_history)
         return topn
 
 
@@ -163,7 +163,7 @@ class MongoClient:
         result = []
         for row in c_item_similarities.find({"item_id": {"$in": item_ids}}):
             most_similar_items = row["mostSimilarItems"]
-            row["mostSimilarItems"] = self.apply_black_list2topn(site_id, row["item_id"], 
+            row["mostSimilarItems"] = self.apply_black_list2topn(site_id, row["item_id"],
                                         row["mostSimilarItems"])
             result.append(row)
         return result
@@ -242,12 +242,12 @@ class MongoClient:
 
             item_in_db.setdefault("created_on", datetime.datetime.now())
             item_in_db.update({"updated_on": datetime.datetime.now()}) # might be useful to have the updated_on
- 
+
             # won't update item_name once generated, in case we met some bad server like 180.153.0.0/16
             item_name_in_db = item_in_db.get("item_name", None)
             if item_name_in_db:
                 del item["item_name"] # won't update name twice
-       
+
         item_in_db.update(item)
         c_items.save(item_in_db)
 
@@ -283,7 +283,7 @@ class MongoClient:
         return self.SITE_ID2CATEGORY_GROUPS[site_id][0]
 
 
-    def convertTopNFormat(self, site_id, req_id, result_filter, topn, amount, include_item_info=True, 
+    def convertTopNFormat(self, site_id, req_id, result_filter, topn, amount, include_item_info=True,
             url_converter=None, excluded_recommendation_items=None,
             deduplicate_item_names_required=False,
             excluded_recommendation_item_names=None):
@@ -302,7 +302,7 @@ class MongoClient:
                 or item_in_db["item_id"] in excluded_recommendation_items \
                 or (deduplicate_item_names_required and item_in_db["item_name"] in excluded_recommendation_item_names):
                     continue
-            #logging.critical("item_name %r " % item_in_db) 
+            #logging.critical("item_name %r " % item_in_db)
             # GOTCHA:
             # In case the item_name is not available, just skip it. The update api should accept new name right?
             recommended_item_names.append(item_in_db["item_name"])
@@ -319,7 +319,7 @@ class MongoClient:
                 if item_in_db.has_key("removed_on"):
                     del item_in_db["removed_on"]
                 item_in_db["score"] = topn_row[1]
-                item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id, 
+                item_in_db["item_link"] = url_converter(item_in_db["item_link"], site_id,
                                                 item_in_db["item_id"], req_id)
                 result.append(item_in_db)
             else:
@@ -329,7 +329,7 @@ class MongoClient:
         return result, set(recommended_item_names)
 
 
-    def calc_weighted_top_list_method1(self, site_id, similarity_type, 
+    def calc_weighted_top_list_method1(self, site_id, similarity_type,
             items_list, extra_excludes_list=[]):
         if len(items_list) > 15:
             recent_history = items_list[:15]
@@ -386,7 +386,7 @@ class MongoClient:
         topn2 = self.calc_weighted_top_list_method1(site_id, "PLO", shopping_cart,
                     extra_excludes_list=purchasing_history)
         topn1_item_set = set([topn1_item[0] for topn1_item in topn1])
-        
+
         return topn1 + [topn2_item for topn2_item in topn2 if topn2_item[0] not in topn1_item_set]
 
 
@@ -408,4 +408,3 @@ class MongoClient:
     def writeLogToMongo(self, site_id, content):
         c_raw_logs = getSiteDBCollection(self.connection, site_id, "raw_logs")
         c_raw_logs.insert(content)
-
