@@ -752,12 +752,12 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
                 assert_returns_tuijianbaoid=False)
 
         # Test the case: include_item_info=no
-        result = api_access("/getAlsoViewed", 
+        result = api_access("/getAlsoViewed",
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
                  "include_item_info": "no"})
         self.assertSomeKeys(result,
             {"code": 0,
-             "topn": [{'item_id': '22', 'score': 0.9899}, 
+             "topn": [{'item_id': '22', 'score': 0.9899},
                  {'item_id': '29', 'score': 0.8500}]})
         req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
@@ -768,7 +768,7 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
              "amount": "4"})
 
         # Test the case: include_item_info=yes
-        result = api_access("/getAlsoViewed", 
+        result = api_access("/getAlsoViewed",
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
                  "include_item_info": "yes"})
 
@@ -776,11 +776,11 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
 
         self.assertSomeKeys(result,
             {"code": 0,
-             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22', 
-                       'score': 0.9899, 
-                       'item_link': 'http://example.com/item?id=22'}, 
-                       {'item_name': 'Soo...', 'item_id': '29', 
-                       'score': 0.84999999999999998, 
+             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22',
+                       'score': 0.9899,
+                       'item_link': 'http://example.com/item?id=22'},
+                       {'item_name': 'Soo...', 'item_id': '29',
+                       'score': 0.84999999999999998,
                        'item_link': 'http://example.com/item?id=29'}]
              })
         req_id = result["req_id"]
@@ -791,21 +791,19 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
              "item_id": "11",
              "amount": "4"})
 
-
-
     def test_duplicated_names_with_the_option_off(self):
         api_access("/test_only/change_settings", {"key": "recommendation_deduplicate_item_names_required_set", "value": "set([])"},
                 assert_returns_tuijianbaoid=False)
-        
+
         # Test the case: include_item_info=no
-        result = api_access("/getAlsoViewed", 
+        result = api_access("/getAlsoViewed",
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
                  "include_item_info": "no"})
         self.assertSomeKeys(result,
             {"code": 0,
              "topn": [
-                 {'item_id': '22', 'score': 0.9899}, 
-                 {'item_id': '23', 'score': 0.9735}, 
+                 {'item_id': '22', 'score': 0.9899},
+                 {'item_id': '23', 'score': 0.9735},
                  {'item_id': '29', 'score': 0.8500}]})
         req_id = result["req_id"]
         self.assertSomeKeys(self.readLastLine(),
@@ -816,7 +814,7 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
              "amount": "4"})
 
         # Test the case: include_item_info=yes
-        result = api_access("/getAlsoViewed", 
+        result = api_access("/getAlsoViewed",
                 {"api_key": API_KEY, "user_id": "ha", "item_id": "11", "amount": "4",
                  "include_item_info": "yes"})
 
@@ -824,14 +822,14 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
 
         self.assertSomeKeys(result,
             {"code": 0,
-             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22', 
-                       'score': 0.9899, 
-                       'item_link': 'http://example.com/item?id=22'}, 
-                       {'item_name': 'The Rule of 22s', 'item_id': '23', 
-                       'score': 0.97350000000000003, 
+             "topn": [{'item_name': 'The Rule of 22s', 'item_id': '22',
+                       'score': 0.9899,
+                       'item_link': 'http://example.com/item?id=22'},
+                       {'item_name': 'The Rule of 22s', 'item_id': '23',
+                       'score': 0.97350000000000003,
                        'item_link': 'http://example.com/item?id=23'},
-                       {'item_name': 'Soo...', 'item_id': '29', 
-                       'score': 0.84999999999999998, 
+                       {'item_name': 'Soo...', 'item_id': '29',
+                       'score': 0.84999999999999998,
                        'item_link': 'http://example.com/item?id=29'}]
              })
         req_id = result["req_id"]
@@ -844,7 +842,7 @@ class GetByAlsoViewedTest(BaseRecommendationTest):
 
     def test_SomeItemUnavailable(self):
         self.removeItem("2")
-        result = api_access("/getAlsoViewed", 
+        result = api_access("/getAlsoViewed",
                             {"api_key": API_KEY, "user_id": "ha", "item_id": "1", "amount": "4",
                     "include_item_info": "no"})
         self.assertSomeKeys(result,
@@ -1035,21 +1033,21 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["result"],
                         [{'by_item': {'item_id': '11'}, 
-                          'topn': [{'item_id': '22', 'score': 0.92989999999999995}, 
-                                   {'item_id': '29', 'score': 0.87}]}, 
-                          {'by_item': {'item_id': '15'}, 
-                          'topn': [{'item_id': '17', 'score': 0.98550000000000004}, 
+                          'topn': [{'item_id': '22', 'score': 0.92989999999999995},
+                                   {'item_id': '29', 'score': 0.87}]},
+                          {'by_item': {'item_id': '15'},
+                          'topn': [{'item_id': '17', 'score': 0.98550000000000004},
                                    {'item_id': '21', 'score': 0.93000000000000005}]}])
 
 
     def test_duplicated_names_with_the_option_off(self):
-        api_access("/test_only/change_settings", 
-                   {"key": "recommendation_deduplicate_item_names_required_set", 
+        api_access("/test_only/change_settings",
+                   {"key": "recommendation_deduplicate_item_names_required_set",
                     "value": "set([])"},
                 assert_returns_tuijianbaoid=False)
 
         self.assertPurchasingHistoryCount(0)
-        result = api_access("/getByEachPurchasedItem", 
+        result = api_access("/getByEachPurchasedItem",
                 {"api_key": API_KEY, "user_id": "habit",
                  "rec_row_max_amount": "3",
                  "amount_for_each_item": "2",
@@ -1058,32 +1056,31 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.assertEquals(result["result"], [])
 
         # Place an order
-        result, response_tuijianbaoid = api_access("/placeOrder", 
+        result, response_tuijianbaoid = api_access("/placeOrder",
                 {"api_key": API_KEY, "user_id": "habit",
                  "order_content": "11,2.5,1|15,1.3,2"},
                  return_tuijianbaoid=True)
 
-        result = api_access("/getByEachPurchasedItem", 
+        result = api_access("/getByEachPurchasedItem",
                 {"api_key": API_KEY, "user_id": "habit",
                  "rec_row_max_amount": "2",
                  "amount_for_each_item": "3",
                  "include_item_info": "no"})
         self.assertEquals(result["code"], 0)
         self.assertEquals(result["result"],
-                        [{'by_item': {'item_id': '11'}, 
-                          'topn': [{'item_id': '22', 'score': 0.92989999999999995}, 
-                                   {'item_id': '23', 'score': 0.95350000000000001}, 
-                                   {'item_id': '29', 'score': 0.87}]}, 
-                         {'by_item': {'item_id': '15'}, 
-                          'topn': [{'item_id': '24', 'score': 0.9929}, 
-                                   {'item_id': '17', 'score': 0.98550000000000004}, 
+                        [{'by_item': {'item_id': '11'},
+                          'topn': [{'item_id': '22', 'score': 0.92989999999999995},
+                                   {'item_id': '23', 'score': 0.95350000000000001},
+                                   {'item_id': '29', 'score': 0.87}]},
+                         {'by_item': {'item_id': '15'},
+                          'topn': [{'item_id': '24', 'score': 0.9929},
+                                   {'item_id': '17', 'score': 0.98550000000000004},
                                    {'item_id': '21', 'score': 0.93000000000000005}]}])
-
 
     def testWithPackedRequestAndIncludeItemInfoOff(self):
         self.assertCurrentLinesCount(0)
 
-        result, response_tuijianbaoid = api_access("/placeOrder", 
+        result, response_tuijianbaoid = api_access("/placeOrder",
                 {"api_key": API_KEY, "user_id": "ha",
                  "order_content": "1,2.5,1|2,1.3,2|8,3.3,1"},
                  return_tuijianbaoid=True)
@@ -1096,8 +1093,8 @@ class GetByEachPurchasedItemTest(BaseRecommendationTest):
         self.assertEquals(len(result["responses"].keys()), 1)
         self.assertEquals(result["responses"]["getByEachPurchasedItem"]["result"],
               [{'by_item': {"item_id": "1"}, 
-                                'topn': [{'item_id': '11', 'score': 0.99980000000000002}, 
-                                         {'item_id': '3', 'score': 0.99880000000000002}]}, 
+                                'topn': [{'item_id': '11', 'score': 0.99980000000000002},
+                                         {'item_id': '3', 'score': 0.99880000000000002}]},
                {'by_item': {"item_id": "8"}, 
                      'topn': [{'item_id': '30', 'score': 0.99209999999999998}]}])
 
@@ -1795,7 +1792,7 @@ class PackedRequestTest(BaseTestCase, ItemRelatedTestMixin):
         result = api_access("/point", url_args, tuijianbaoid="blahblah")
         self.assertEquals(result,
                     {"code": 0,
-                     "responses": 
+                     "responses":
                         {"viewItem": {"code": 0},
                          "removeOrderItem": {"code": 0}}
                     })

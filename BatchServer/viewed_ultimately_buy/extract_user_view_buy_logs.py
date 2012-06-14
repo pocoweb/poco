@@ -1,6 +1,7 @@
 import simplejson as json
 
 
+
 def extract_user_view_buy_logs(input_path, output_path):
     f_output = open(output_path, "w")
     for line in open(input_path, "r"):

@@ -220,7 +220,7 @@ class ViewItemProcessor(ActionProcessor):
     def _validateInput(self, site_id, args):
         if re.match("[0-9a-zA-Z_-]+$", args["item_id"]) is None \
             or re.match("[0-9a-zA-Z_-]+$", args["user_id"]) is None:
-            logWriter.writeEntry(site_id, 
+            logWriter.writeEntry(site_id,
                 {"behavior": "ERROR", 
                  "content": {"behavior": "V",
                   "user_id": args["user_id"],
@@ -433,14 +433,17 @@ class UpdateCategoryHandler(APIHandler):
 class UpdateItemProcessor(ActionProcessor):
     action_name = "UItem"
     ap = ArgumentProcessor(
-         (("item_id", True),
-         ("item_link", True),
-         ("item_name", True),
-         ("description", False),
-         ("image_link", False),
-         ("price", False),
-         ("market_price", False),
-         ("categories", False)
+         (
+            ("item_id", True),
+            ("item_link", True),
+            ("item_name", True),
+
+            ("description", False),
+            ("image_link", False),
+            ("price", False),
+            ("market_price", False),
+            ("categories", False),
+            ("item_group", False)
         )
     )
 
@@ -461,6 +464,8 @@ class UpdateItemProcessor(ActionProcessor):
                 args["categories"] = []
             else:
                 args["categories"] = smart_split(args["categories"], ",")
+            if args["item_group"] is None:
+                del args["item_group"]
             mongo_client.updateItem(site_id, args)
             return {"code": 0}
 
@@ -503,10 +508,14 @@ class BaseRecommendationProcessor(ActionProcessor):
     def _extractRecommendedItems(self, topn):
         return [topn_row["item_id"] for topn_row in topn]
 
-    def getRedirectUrlFor(self, url, site_id, item_id, req_id):
+    def getRedirectUrlFor(self, url, site_id, item_id, req_id, ref):
+        if ref:
+            url = url + "?" + ref  # better way to append a parameter
         api_key = mongo_client.getSiteID2ApiKey()[site_id]
-        param_str = urllib.urlencode({"url": url, "api_key": api_key, "item_id": item_id,
-                          "req_id": req_id})
+        param_str = urllib.urlencode({"url": url,
+                                  "api_key": api_key,
+                                  "item_id": item_id,
+                                   "req_id": req_id})
         full_url = settings.api_server_prefix + "/1.0/redirect?" + param_str
         return full_url
 
@@ -564,6 +573,7 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
         self.recommended_item_names = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
         req_id = self.generateReqId()
+        ref = self._getRef(args)
         result_filter = self.getRecommendationResultFilter(site_id, args)
 
         amount_for_each_item = self.getAmountForEachItem(args)
@@ -589,12 +599,13 @@ class BaseByEachItemProcessor(BaseRecommendationProcessor):
             topn = recommendation_for_item["topn"]
             excluded_recommendation_items = self.getExcludedRecommendationItems() | set(recommended_items)
             excluded_recommendation_item_names = self.getExcludedRecommendationItemNames(site_id) | recommended_item_names
-            topn, rin = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
-                        amount_for_each_item, include_item_info,
-                        url_converter=self.getRedirectUrlFor,
-                        deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
-                        excluded_recommendation_item_names=excluded_recommendation_item_names,
-                        excluded_recommendation_items=excluded_recommendation_items)
+            topn, rin = mongo_client.convertTopNFormat(site_id, req_id, ref, result_filter, topn,
+                            amount_for_each_item, include_item_info,
+                            url_converter=self.getRedirectUrlFor,
+                            deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
+                            excluded_recommendation_item_names=excluded_recommendation_item_names,
+                            excluded_recommendation_items=excluded_recommendation_items
+                        )
             if len(topn) > 0:
                 recommendation_for_item["topn"] = topn
                 recommended_items += self._extractRecommendedItems(topn)
@@ -625,23 +636,35 @@ class BaseSimpleResultRecommendationProcessor(BaseRecommendationProcessor):
     def getTopN(self, site_id, args):
         raise NotImplemented
 
+    def _getRef(self, args):
+        if "ref" in args and args["ref"]:
+            return "ref=" + str.strip(args["ref"])
+        else:
+            return None
+
     def _process(self, site_id, args):
         self.recommended_items = None
         self.recommended_item_names = None
         include_item_info = args["include_item_info"] == "yes" or args["include_item_info"] is None
+
         try:
             amount = int(args["amount"])
         except ValueError:
             raise ArgumentError("amount should be an integer.")
         req_id = self.generateReqId()
-        topn = self.getTopN(site_id, args)
+        # append ref parameters
+        ref = self._getRef(args)
+        topn = self.getTopN(site_id, args)  # return TopN list
+
+        # apply filter
         result_filter = self.getRecommendationResultFilter(site_id, args)
         excluded_recommendation_item_names = self.getExcludedRecommendationItemNames(site_id)
-        topn, recommended_item_names = mongo_client.convertTopNFormat(site_id, req_id, result_filter, topn,
+        topn, recommended_item_names = mongo_client.convertTopNFormat(site_id, req_id, ref, result_filter, topn,
                     amount, include_item_info, url_converter=self.getRedirectUrlFor,
                     excluded_recommendation_items=self.getExcludedRecommendationItems(),
                     deduplicate_item_names_required=self.isDeduplicateItemNamesRequired(site_id),
                     excluded_recommendation_item_names=excluded_recommendation_item_names)
+
         self.postprocessTopN(topn)
         recommended_items = self._extractRecommendedItems(topn)
         self.logAction(site_id, args, self.getRecommendationLog(args, req_id, recommended_items))
@@ -654,10 +677,12 @@ class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
     similarity_type = None
 
     ap = ArgumentProcessor(
-         (("user_id", True),
-         ("item_id", True),
-         ("include_item_info", False),  # no, not include; yes, include
-         ("amount", True),
+         (
+            ("user_id", True),
+            ("item_id", True),
+            ("include_item_info", False),  # no, not include; yes, include
+            ("amount", True),
+            ("ref", False),  # appendix to item_link
         )
     )
 
@@ -673,11 +698,14 @@ class BaseSimilarityProcessor(BaseSimpleResultRecommendationProcessor):
 class GetByEachPurchasedItemProcessor(BaseByEachItemProcessor):
     action_name = "RecEPI"
     ap = ArgumentProcessor(
-    (("user_id", True),
-     ("include_item_info", False),  # no, not include; yes, include
-     ("rec_row_max_amount", True),
-     ("amount_for_each_item", True),
-    ))
+        (
+            ("user_id", True),
+            ("ref", False),
+            ("include_item_info", False),  # no, not include; yes, include
+            ("rec_row_max_amount", True),
+            ("amount_for_each_item", True),
+        )
+    )
 
     def getRecommendationResultFilter(self, site_id, args):
         return SimpleRecommendationResultFilter()
@@ -694,13 +722,15 @@ class GetByEachPurchasedItemHandler(SingleRequestHandler):
 class GetByEachBrowsedItemProcessor(BaseByEachItemProcessor):
     action_name = "RecEBI"
     ap = ArgumentProcessor(
-    (
-     ("user_id", True),
-     ("browsing_history", False),
-     ("include_item_info", False),  # no, not include; yes, include
-     ("rec_row_max_amount", True),
-     ("amount_for_each_item", True),
-    ))
+            (
+                ("user_id", True),
+                ("ref", False),
+                ("browsing_history", False),
+                ("include_item_info", False),  # no, not include; yes, include
+                ("rec_row_max_amount", True),
+                ("amount_for_each_item", True),
+            )
+        )
 
     def getRecommendationResultFilter(self, site_id, args):
         return SimpleRecommendationResultFilter()
@@ -764,12 +794,18 @@ class GetBoughtTogetherHandler(SingleRequestHandler):
 
 
 class GetUltimatelyBoughtProcessor(BaseSimpleResultRecommendationProcessor):
+    '''
+        TODO:
+            * support filter by SKUG - sku group 
+    '''
     action_name = "RecVUB"
     ap = ArgumentProcessor(
-         (("user_id", True),
-         ("item_id", True),
-         ("include_item_info", False),  # no, not include; yes, include
-         ("amount", True),
+        (
+            ("user_id", True),
+            ("ref", False),
+            ("item_id", True),
+            ("include_item_info", False),  # no, not include; yes, include
+            ("amount", True)
         )
     )
 
@@ -796,12 +832,14 @@ class GetUltimatelyBoughtHandler(SingleRequestHandler):
 class GetByBrowsingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecBOBH"
     ap = ArgumentProcessor(
-    (
-     ("user_id", True),
-     ("browsing_history", False),
-     ("include_item_info", False),  # no, not include; yes, include
-     ("amount", True),
-    ))
+            (
+                ("user_id", True),
+                ("ref", False),
+                ("browsing_history", False),
+                ("include_item_info", False),  # no, not include; yes, include
+                ("amount", True),
+            )
+        )
 
     def getRecommendationResultFilter(self, site_id, args):
         return SimpleRecommendationResultFilter()
@@ -832,19 +870,24 @@ class GetByBrowsingHistoryHandler(SingleRequestHandler):
 class GetByShoppingCartProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecSC"
     ap = ArgumentProcessor(
-    (
-     ("user_id", True),
-     ("shopping_cart", False),
-     ("include_item_info", False),  # no, not include; yes, include
-     ("amount", True),
-    ))
+            (
+                ("user_id", True),
+                ("ref", False),
+                ("shopping_cart", False),
+                ("include_item_info", False),  # no, not include; yes, include
+                ("amount", True),
+            )
+        )
 
     def getRecommendationResultFilter(self, site_id, args):
         return SimpleRecommendationResultFilter()
 
     def getRecommendationLog(self, args, req_id, recommended_items):
         log = BaseSimpleResultRecommendationProcessor.getRecommendationLog(self, args, req_id, recommended_items)
-        log["shopping_cart"] = args["shopping_cart"].split(",")
+        if args["shopping_cart"] == None:
+            log["shopping_cart"] = []
+        else:
+            log["shopping_cart"] = args["shopping_cart"].split(",")
         return log
 
     def getTopN(self, site_id, args):
@@ -864,10 +907,13 @@ class GetByShoppingCartHandler(SingleRequestHandler):
 class GetByPurchasingHistoryProcessor(BaseSimpleResultRecommendationProcessor):
     action_name = "RecPH"
     ap = ArgumentProcessor(
-    (("user_id", True),
-     ("include_item_info", False),  # no, not include; yes, include
-     ("amount", True),
-    ))
+            (
+                ("user_id", True),
+                ("ref", False),
+                ("include_item_info", False),  # no, not include; yes, include
+                ("amount", True),
+            )
+        )
 
     def getRecommendationResultFilter(self, site_id, args):
         return SimpleRecommendationResultFilter()
@@ -997,6 +1043,7 @@ class PackedRequestHandler(PtmIdEnabledHandlerMixin, APIHandler):
             if processor_class in processor_class2request_info:
                 result.append(processor_class2request_info[processor_class])
                 del processor_class2request_info[processor_class]
+
         moveRequestInfo2Result(GetBoughtTogetherProcessor)
         moveRequestInfo2Result(GetAlsoBoughtProcessor)
         moveRequestInfo2Result(GetUltimatelyBoughtProcessor)

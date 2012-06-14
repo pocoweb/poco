@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import urllib
 
 
@@ -46,14 +48,17 @@ _abbr_map = {"vi_": {"action_name": 'V',
               "upi": {"action_name": 'UItem',
                       "full_name": "updateItem",
                       "index": 8,
-                     "i": "item_id",
-                     "l": "item_link",
-                     "n": "item_name",
-                     "d": "description",
-                     "m": "image_link",
-                     "p": "price",
-                     "r": "market_price",
-                     "c": "categories"
+                      "i": "item_id",
+                      "l": "item_link",
+                      "n": "item_name",
+
+                      "d": "description",
+                      "m": "image_link",
+                      "p": "price",
+
+                      "r": "market_price",
+                      "c": "categories",
+                      "g": "item_group"
                     },
                "rmi": {"action_name": 'RItem',
                       "full_name": "removeItem",
@@ -64,6 +69,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "full_name": 'getAlsoViewed',
                        "index": 10,
                        "u": "user_id",
+                       "r": "ref",
                        "i": "item_id",
                        "c": "include_item_info",
                        "a": "amount"
@@ -72,6 +78,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                        "full_name": "getAlsoBought",
                        "index": 11,
                        "u": "user_id",
+                       "r": "ref",
                        "i": "item_id",
                        "c": "include_item_info",
                        "a": "amount"
@@ -80,6 +87,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "full_name": "getBoughtTogether",
                         "index": 12,
                        "u": "user_id",
+                       "r": "ref",
                        "i": "item_id",
                        "c": "include_item_info",
                        "a": "amount"
@@ -88,6 +96,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "full_name": "getUltimatelyBought",
                         "index": 13,
                        "u": "user_id",
+                       "r": "ref",
                        "i": "item_id",
                        "c": "include_item_info",
                        "a": "amount"
@@ -96,6 +105,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "full_name": "getByBrowsingHistory",
                         "index": 14,
                       "u": "user_id",
+                      "r": "ref",
                       "h": "browsing_history",
                       "c": "include_item_info",
                       "a": "amount"
@@ -104,12 +114,14 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "full_name": "getByPurchasingHistory",
                         "index": 15,
                         "u": "user_id",
+                        "r": "ref",
                         "c": "include_item_info",
                         "a": "amount"},
                 "rcc": {"action_name": "RecSC",
                         "full_name": "getByShoppingCart",
                         "index": 16,
                         "u": "user_id",
+                        "r": "ref",
                         "s": "shopping_cart",
                         "c": "include_item_info",
                         "a": "amount"},
@@ -119,20 +131,23 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "i": "category_id",
                         "l": "category_link",
                         "n": "category_name",
-                        "p": "parent_categories"},
+                        "p": "parent_categories"
+                },
                 "reb": {"action_name": "RecEBI",
                         "full_name": "getByEachBrowsedItem",
                         "index": 18,
                         "u": "user_id",
+                        "r": "ref",
                         "h": "browsing_history",
                         "c": "include_item_info",
-                        "r": "rec_row_max_amount",
+                        "m": "rec_row_max_amount",
                         "a": "amount_for_each_item"
                 },
                 "rep": {"action_name": "RecEPI",
                         "full_name": "getByEachPurchasedItem",
                         "index": 19,
                         "u": "user_id",
+                        "r": "ref",
                         "c": "include_item_info",
                         "t": "rec_row_max_amount",
                         "a": "amount_for_each_item"
@@ -144,6 +159,7 @@ _abbr_map = {"vi_": {"action_name": 'V',
                         "i": "item_id"
                 },
              }
+
 
 def generateALL_ATTR_NAMES_js():
     global _abbr_map
@@ -164,8 +180,8 @@ def generateALL_ATTR_NAMES_js():
 
 
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
-    print 'WARNING: this result does not contain the hacky "updateItem:cateories"'
-    result = "var FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
+    result = "// Generated using ApiServer.packed_request.generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js\n"
+    result += "var FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
     kv_pairs = []
     for request_type in _abbr_map.keys():
@@ -173,19 +189,26 @@ def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
             if len(attr_abbr) < 2:
                 kv_pairs.append('    "' + _abbr_map[request_type]["full_name"] + ":" + _abbr_map[request_type][attr_abbr] + '" : "' + request_type + attr_abbr + '"')
     result += ",\n".join(kv_pairs)
-    result += "}\n"
+    result += "\n}\n"
     return result
 
 def generateFULL_NAME2MASK_js():
-    result = "var FULL_NAME2MASK = {\n"
+    result = "// Generated using ApiServer.packed_request.generateFULL_NAME2MASK_js\n"
+    result += "var FULL_NAME2MASK = {\n"
     global _abbr_map
     kv_pairs = []
     for request_type in _abbr_map.keys():
         index = _abbr_map[request_type]["index"]
         kv_pairs.append('    "' + _abbr_map[request_type]["full_name"] + '" : ' + str(2 ** (index - 1)))
     result += ",\n".join(kv_pairs)
-    result += "}\n"
+    result += "\n}\n"
     return result
+
+def gen_api_js():
+    with open("/tmp/api.js", "w") as _js:
+        _js.write(generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js())
+        _js.write("\n")
+        _js.write(generateFULL_NAME2MASK_js())
 
 
 def createActionName2Mask():
@@ -286,12 +309,16 @@ def parseMask(mask_str):
 
 
 if __name__ == "__main__":
-    pr = PackedRequest()
+    # generate js /tmp/api.js
+    gen_api_js()
+
+    # test
+    #pr = PackedRequest()
     #pr.addSharedParams("user_id", "U335")
     #pr.addSharedParams("item_id", "I318")
     #pr.addSharedParams("include_item_info", "yes")
-    pr.addRequest("UItem", {"item_id": 35, "item_link": "http://example.com/item?id=35", "item_name": "Something"})
+    #pr.addRequest("UItem", {"item_id": 35, "item_link": "http://example.com/item?id=35", "item_name": "Something"})
     #pr.addRequest("RI", {"score": 5})
     #pr.addRequest("RecBTG", {"amount": 8})
     #pr.addRequest("RecBOBH", {"amount": 5, "browsing_history": "I122,I133,I155"})
-    print pr.getFullUrl("demo1", "http://localhost:5588")
+    #print pr.getFullUrl("demo1", "http://localhost:5588")
