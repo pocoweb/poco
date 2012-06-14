@@ -2,6 +2,7 @@ mongodb_host = "localhost"
 api_server_name = "api.tuijianbao.net"
 api_server_port = 80
 DEBUG=False
+COMPRESS_ENABLED=not DEBUG
 
 # Following configure is for GMail SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

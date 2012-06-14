@@ -1,6 +1,5 @@
 # coding=utf-8
 import sys
-#sys.path.insert(0, "/Users/sun/tmp/kuaishubao_calc/hive-0.7.1-bin/lib/py")
 import os.path
 import simplejson as json
 import datetime
@@ -209,7 +208,7 @@ def load_backfilled_raw_logs(work_dir, client):
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
                      "STORED AS TEXTFILE")
-    client.execute("add FILE %s" % getMapperFilePath("as_behavior_datestr_item_id.py"))
+    client.execute("add FILE %s" % getMapperFilePath("as_behavior_datestr_item_id.pyc"))
     client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE backfilled_raw_logs" % input_file_path)
 
 
@@ -344,7 +343,7 @@ def calc_click_rec_buy(site_id, connection, client):
     '''
         ClickRec N Buy
     '''
-    client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.py"))
+    client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.pyc"))
     client.execute("DROP TABLE rec_buy")
     client.execute("CREATE TABLE rec_buy ( "
                    "         created_on DOUBLE, "
@@ -354,7 +353,7 @@ def calc_click_rec_buy(site_id, connection, client):
                    " ) ")
     client.execute("INSERT OVERWRITE TABLE rec_buy "
                    "SELECT TRANSFORM (filled_user_id, created_on, uniq_order_id, behavior, item_id, price, amount) "
-                   "       USING 'python find_rec_buy.py' "
+                   "       USING 'python find_rec_buy.pyc' "
                    "       AS (created_on, uniq_order_id, user_id, item_id) "
                    "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount "
                    "FROM backfilled_raw_logs brl "
@@ -476,7 +475,7 @@ def calc_daily_item_pv_coverage(client):
     client.execute("INSERT OVERWRITE TABLE daily_item_pv_coverage_no_zero "
                     "SELECT a.behavior, a.datestr, a.item_id, count(*) AS count FROM "
                        "(SELECT TRANSFORM (created_on, filled_user_id, behavior, tjbid, item_id) "
-                           "USING 'python as_behavior_datestr_item_id.py' "
+                           "USING 'python as_behavior_datestr_item_id.pyc' "
                            "AS (behavior, datestr, item_id) "
                            "FROM backfilled_raw_logs) a "
                     "GROUP BY a.behavior, a.datestr, a.item_id "

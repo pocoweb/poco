@@ -1,8 +1,10 @@
 def getSiteDBName(site_id):
     return "tjbsite_%s" % site_id
 
+
 def getSiteDBCollection(connection, site_id, collection_name):
     return connection[getSiteDBName(site_id)][collection_name]
+
 
 def getSiteDB(connection, site_id):
     return connection[getSiteDBName(site_id)]
@@ -37,7 +39,7 @@ def updateCategoryGroups(connection, site_id, category_groups_src):
                         categories = categories_str.split(",")
                     for category in categories:
                         category_groups[category] = category_group
-        c_sites.update({"site_id": site["site_id"]}, 
+        c_sites.update({"site_id": site["site_id"]},
                 {"$set": {"category_groups": category_groups,
                           "category_groups_src": category_groups_src}})
         return True, ""
@@ -50,7 +52,7 @@ class UploadItemSimilarities:
         self.connection = connection
         self.last_item1 = None
         self.last_rows = []
-        self.item_similarities = getSiteDBCollection(self.connection, site_id, 
+        self.item_similarities = getSiteDBCollection(self.connection, site_id,
                         "item_similarities_%s" % type)
 
 #    def updateSimOneRow(self):
@@ -68,14 +70,12 @@ class UploadItemSimilarities:
         self.last_item1 = self.item_id1
         self.last_rows = []
 
-
     def __call__(self, item_similarities_file_path):
         for line in open(item_similarities_file_path, "r"):
             self.item_id1, item_id2, similarity = line.split(",")
             similarity = float(similarity)
             if self.last_item1 is None:
                 self.last_item1 = self.item_id1
-                last_rows = []
             elif self.last_item1 != self.item_id1:
                 self.updateSimOneRow()
             self.last_rows.append((item_id2, similarity))
@@ -112,17 +112,19 @@ import urllib
 import httplib
 import re
 import simplejson as json
+
+
 class APIAccess:
     def __init__(self, server_name, server_port):
         self.server_name = server_name
         self.server_port = server_port
 
-    def __call__(self, path, params, ptm_id=None, as_json=True, return_tuijianbaoid=False, 
+    def __call__(self, path, params, ptm_id=None, as_json=True, return_tuijianbaoid=False,
             assert_returns_tuijianbaoid=True, version="1.0", extra_headers={}):
         params_str = urllib.urlencode(params)
         headers = {}
         headers.update(extra_headers)
-        if ptm_id <> None:
+        if ptm_id != None:
             headers["Cookie"] = "__ptmid=%s" % ptm_id
         conn = httplib.HTTPConnection("%s:%s" % (self.server_name, self.server_port))
         conn.request("GET", "/%s" % version + path + "?" + params_str, headers=headers)

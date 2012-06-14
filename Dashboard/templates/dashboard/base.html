@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
   <!-- Framework CSS --> 
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
 {% load compress %}
 {% compress css %}
   <link rel="stylesheet" href="{{STATIC_URL}}style.css" type="text/css" media="print,screen,projection"> 
@@ -20,6 +23,12 @@
   <link rel="stylesheet" href="{{STATIC_URL}}print.css" type="text/css" media="print"/> 
 {% endcompress %}
 
+  <!--[if IE 6]>
+{% compress css %}
+    <link href="{{STATIC_URL}}libs/bootstrap-ie6/ie6.min.css" rel="stylesheet">
+{% endcompress %}
+  <![endif]-->
+
 {% compress js %}
   <script src="{{STATIC_URL}}libs/jquery-1.6.1.min.js" type="text/javascript" ></script>
   <script src="{{STATIC_URL}}libs/underscore-1.1.6.js" type="text/javascript" ></script>
@@ -30,6 +39,7 @@
 {% endcompress %}
 
   <script src="{{STATIC_URL}}libs/bootstrap/js/bootstrap-dropdown.js" type="text/javascript" ></script>
+
   <title>{{page_name}} - 推荐宝 | 个性化推荐引擎</title>
   {% block mvc-script %}
   {% endblock %}
@@ -67,7 +77,12 @@
     </p>
   </center>
   </footer>
+<script type="text/javascript"> $(function(){if($.browser.msie&&parseInt($.browser.version,10)===6){$('.row div[class^="span"]:last-child').addClass("last-child");$('[class="span"]').addClass("margin-left-20");$(':button[class="btn"], :reset[class="btn"], :submit[class="btn"], input[type="button"]').addClass("button-reset");$(":checkbox").addClass("input-checkbox");$('[class^="icon-"], [class=" icon-"]').addClass("icon-sprite");$(".pagination li:first-child a").addClass("pagination-first-child")}}) </script>
+
+
+
 {% compress js%}
+
   <!-- Mixpanel -->
   <script type="text/javascript">
     var mpq=[];

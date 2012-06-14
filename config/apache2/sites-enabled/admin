@@ -1,0 +1,27 @@
+<VirtualHost *:80>
+	ServerName admin.leyou.com.cn
+	ServerAlias admin admin.test
+
+        DocumentRoot /cube/app/admin/public_html
+        <Directory /cube/app/admin/public_html/>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride None
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        ProxyRequests Off
+        ProxyPass /static/ !
+        ProxyPass / http://127.0.0.1:5000/
+        ProxyPassReverse / http://127.0.0.1:5000/
+	ProxyPreserveHost On
+
+	ErrorLog /cube/app/admin/log/error.log
+
+	# Possible values include: debug, info, notice, warn, error, crit,
+	# alert, emerg.
+	LogLevel warn
+
+	CustomLog /cube/app/admin/log/access.log combined
+
+</VirtualHost>

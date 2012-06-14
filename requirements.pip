@@ -1,0 +1,11 @@
+BeautifulSoup==3.2.1
+django==1.4
+django_compressor==1.1.2
+gunicorn==0.14.2
+html5lib==0.95
+pymongo==2.1.1
+python-memcached==1.48
+simplejson==2.5.0
+slimit==0.6.1
+tornado==2.2
+versiontools==1.9.1

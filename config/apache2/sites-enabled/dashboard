@@ -1,0 +1,27 @@
+<VirtualHost *:80>
+	ServerName dashboard.leyou.com.cn
+	ServerAlias dashboard dashboard.test
+
+	DocumentRoot /cube/app/dashboard/public_html
+	<Directory /cube/app/dashboard/public_html/>
+		Options Indexes FollowSymLinks MultiViews
+		AllowOverride None
+		Order allow,deny
+		allow from all
+	</Directory>
+
+	ProxyRequests Off
+	ProxyPass /static/ !
+	ProxyPass / http://127.0.0.1:4000/
+	ProxyPassReverse / http://127.0.0.1:4000/
+	ProxyPreserveHost On
+	
+	ErrorLog /cube/app/dashboard/log/error.log
+
+	# Possible values include: debug, info, notice, warn, error, crit,
+	# alert, emerg.
+	LogLevel warn
+
+	CustomLog /cube/app/dashboard/log/access.log combined
+
+</VirtualHost>

@@ -54,6 +54,7 @@ def fillSiteCheckingDaemonInfo(connection, sci):
 def getSiteInfos():
     connection = mongo_client.connection
     sites = mongo_client.loadSites()
+    now = datetime.datetime.now()
     result = []
     for site in sites:
         sci = {"site_id": site["site_id"], "site_name": site["site_name"], 
@@ -65,7 +66,6 @@ def getSiteInfos():
         if records == []:
             sci["status"] = "NEVER_CALC"
         else:
-            now = datetime.datetime.now()
             record = records[0]
             sci["last_calculation_id"] = record["calculation_id"]
             if record.has_key("end_datetime"):

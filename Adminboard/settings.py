@@ -9,6 +9,13 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
@@ -65,7 +72,7 @@ STATIC_URL = '/static/'
 # URL prefix for admin static files -- CSS, JavaScript and images.
 # Make sure to use a trailing slash.
 # Examples: "http://foo.com/static/admin/", "/static/admin/".
-ADMIN_MEDIA_PREFIX = '/static/admin/'
+#ADMIN_MEDIA_PREFIX = '/static/admin/'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -102,8 +109,8 @@ MIDDLEWARE_CLASSES = (
 
 
 import os.path
-SESSION_ENGINE = "django.contrib.sessions.backends.file"
-SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+#SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
 
 
 ROOT_URLCONF = 'Adminboard.urls'
@@ -127,6 +134,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
+    'gunicorn'
 )
 
 # A sample logging configuration. The only tangible logging
