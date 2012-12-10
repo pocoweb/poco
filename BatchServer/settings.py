@@ -1,6 +1,7 @@
 work_dir = None
 tac_command = "tac"
-mongodb_host = None
+mongodb_host = "localhost"
+replica_set = None
 log_dir = None
 
 from local_settings import *
