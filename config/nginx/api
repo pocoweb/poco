@@ -7,29 +7,33 @@ upstream api.upstream {
 }
 
 server {
-    server_name api api.test;
+    server_name api api.leyou.com.cn api.test;
 
-    #log_format api_gzip '$remote_addr - $remote_user [$time_local]  '
-    #            '"$request" $status $bytes_sent '
-    #            '"$http_referer" "$http_user_agent" "$gzip_ratio"';
-
-    access_log /cube/app/api/log/access.log gzip buffer=128k;
+    access_log /cube/app/api/log/access.log main buffer=128k;
     error_log /cube/app/api/log/error.log;
     root /cube/app/api/public_html;
 
     client_max_body_size 20M;
 
     location / {
+
         index  index.html index.htm index.php;
         # anti ddos
         if ( $http_user_agent = "-") {
             return 404;
         }
 
-        if (!-f $request_filename) {
-            proxy_pass http://api.upstream;
-            break;
+        if ( $http_user_agent ~* (bot|spider)) {
+            return 403;
         }
+
+        add_header Content-Type "application/x-javascript; charset=UTF-8";
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Scheme $scheme;
+        proxy_set_header Refer $http_referer;
+        proxy_pass http://api.upstream;
 
     }
 
