@@ -510,7 +510,7 @@ class BaseRecommendationProcessor(ActionProcessor):
 
     def getRedirectUrlFor(self, url, site_id, item_id, req_id, ref):
         if ref:
-            url = url + "?" + ref  # better way to append a parameter
+            url = url + "?" + ref  # TODO, any better way to append a parameter
         api_key = mongo_client.getSiteID2ApiKey()[site_id]
         param_str = urllib.urlencode({"url": url,
                                   "api_key": api_key,
