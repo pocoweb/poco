@@ -74,7 +74,13 @@ def getBaseWorkDir(site_id, calculation_id):
     return calculation_work_dir_path
 
 
-connection = pymongo.Connection(settings.mongodb_host)
+def getConnection():
+    if(settings.replica_set):
+        return pymongo.MongoReplicaSetClient(settings.mongodb_host, replicaSet=settings.replica_set)
+    else:
+        return pymongo.Connection(settings.mongodb_host)
+
+connection = getConnection()
 
 
 class ShellExecutionError(Exception):
