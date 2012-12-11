@@ -2,7 +2,7 @@ import hashlib
 import random
 import time
 import datetime
-
+from pymongo.read_preferences import ReadPreference
 from common.utils import getSiteDBCollection
 from common.utils import sign
 
@@ -88,7 +88,7 @@ class MongoClient:
 
     def getPurchasingHistory(self, site_id, user_id):
         c_purchasing_history = getSiteDBCollection(self.connection, site_id, "purchasing_history")
-        ph_in_db = c_purchasing_history.find_one({"user_id": user_id})
+        ph_in_db = c_purchasing_history.find_one({"user_id": user_id}, read_preference=ReadPreference.SECONDARY_PREFERRED)
         if ph_in_db is None:
             ph_in_db = {"user_id": user_id, "purchasing_history": []}
         return ph_in_db
@@ -129,7 +129,7 @@ class MongoClient:
 
     def getSimilaritiesForViewedUltimatelyBuy(self, site_id, item_id):
         viewed_ultimately_buys = getSiteDBCollection(self.connection, site_id, "viewed_ultimately_buys")
-        result = viewed_ultimately_buys.find_one({"item_id": item_id})
+        result = viewed_ultimately_buys.find_one({"item_id": item_id}, read_preference=ReadPreference.SECONDARY_PREFERRED)
         if result is not None:
             vubs = result["viewedUltimatelyBuys"]
         else:
@@ -140,7 +140,7 @@ class MongoClient:
 
     def getSimilaritiesForItem(self, site_id, similarity_type, item_id):
         item_similarities = getSiteDBCollection(self.connection, site_id, "item_similarities_%s" % similarity_type)
-        result = item_similarities.find_one({"item_id": item_id})
+        result = item_similarities.find_one({"item_id": item_id}, read_preference=ReadPreference.SECONDARY_PREFERRED)
         if result is not None:
             topn = result["mostSimilarItems"]
         else:
@@ -183,7 +183,8 @@ class MongoClient:
         c_sites = self.connection["tjb-db"]["sites"]
         return [site for site in c_sites.find().sort('site_id')]
 
-    # FIXME; should also make the api_key field unique.
+    # FIXME: should also make the api_key field unique.
+    # FIXME: should fetch site info from cache
     def generateApiKey(self, site_id, site_name):
         c_sites = self.connection["tjb-db"]["sites"]
         api_key = hashlib.md5("%s:%s:%s" % (site_id, site_name, random.random())).hexdigest()[3:11]
@@ -246,7 +247,7 @@ class MongoClient:
 
     def getItem(self, site_id, item_id):
         c_items = getSiteDBCollection(self.connection, site_id, "items")
-        return c_items.find_one({"item_id": item_id})
+        return c_items.find_one({"item_id": item_id}, read_preference=ReadPreference.SECONDARY_PREFERRED)
 
     def reloadCategoryGroups(self, site_id):
         now = time.time()
