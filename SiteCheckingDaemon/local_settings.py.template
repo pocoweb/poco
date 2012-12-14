@@ -1,4 +1,0 @@
-mongodb_host = "cube13"
-log_file_path = "/cube/service/site_checking/log/site_checking.log"
-site_ids = ["kuaishubao", "shede_com", "buy_yesky_com"]
-#site_ids = ["shede_com", "buy_yesky_com"]
