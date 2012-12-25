@@ -453,8 +453,8 @@ buy_together_similarity_flow.dependOn(preprocessing_flow)
 viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
 viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
-edm_related_preprocessing_flow = EDMRelatedPreprocessingFlow()
-edm_related_preprocessing_flow.dependOn(preprocessing_flow)
+#edm_related_preprocessing_flow = EDMRelatedPreprocessingFlow()
+#edm_related_preprocessing_flow.dependOn(preprocessing_flow)
 
 
 def createCalculationRecord(site_id):
