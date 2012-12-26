@@ -537,11 +537,14 @@ def loadSites(connection):
 
 def workOnSite(site, is_manual_calculation=False):
     calculation_result = None
+
+    # Pop a job
     manual_calculation_list = connection["tjb-db"]["manual_calculation_list"]
     record_in_db = manual_calculation_list.find_one({"site_id": site["site_id"]})
     if record_in_db is not None:
         manual_calculation_list.remove(record_in_db)
 
+    # Proceed the job
     now = time.time()
     is_time_interval_okay_for_auto = (site.get("last_update_ts", None) is None \
                  or now - site.get("last_update_ts") > site["calc_interval"])

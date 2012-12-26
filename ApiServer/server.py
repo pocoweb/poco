@@ -9,7 +9,6 @@ import simplejson as json
 import copy
 import re
 import datetime
-import os
 import os.path
 import uuid
 import settings
@@ -32,7 +31,7 @@ logging.basicConfig(format="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
 
 def getConnection():
     if(settings.replica_set):
-        return pymongo.MongoReplicaSetClient(settings.mongodb_host, replicaSet=settings.replica_set)	    
+        return pymongo.MongoReplicaSetClient(settings.mongodb_host, replicaSet=settings.replica_set)
     else:
         return pymongo.Connection(settings.mongodb_host)
 
@@ -225,7 +224,7 @@ class ViewItemProcessor(ActionProcessor):
         if re.match("[0-9a-zA-Z_-]+$", args["item_id"]) is None \
             or re.match("[0-9a-zA-Z_-]+$", args["user_id"]) is None:
             logWriter.writeEntry(site_id,
-                {"behavior": "ERROR", 
+                {"behavior": "ERROR",
                  "content": {"behavior": "V",
                   "user_id": args["user_id"],
                   "tjbid": args["ptm_id"],
