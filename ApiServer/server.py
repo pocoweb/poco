@@ -57,9 +57,10 @@ class LogWriter:
         self.local_file.close()
 
     def writeLineToLocalLog(self, site_id, line):
-        full_line = "%s:%s\n" % (site_id, line)
-        self.local_file.write(full_line)
-        self.local_file.flush()
+        #full_line = "%s:%s\n" % (site_id, line)
+        #self.local_file.write(full_line)
+        #self.local_file.flush()
+        pass
 
     def writeToLocalLog(self, site_id, content):
         local_content = copy.copy(content)
