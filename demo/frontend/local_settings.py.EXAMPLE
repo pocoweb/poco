@@ -1,3 +1,0 @@
-USER_DB_PATH = "/cube/old_demo/frontend/UserDb.sqlite3"
-API_URL_PREFIX = "http://cube1:5588"
-

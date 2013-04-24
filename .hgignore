@@ -17,3 +17,7 @@ demo/frontend/UserDb.sqlite3
 */static/min/css/*.css
 */static/min/js/*.js
 */static/temp/*
+
+
+*.sublime-project
+*.sublime-workspace

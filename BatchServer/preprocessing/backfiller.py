@@ -57,7 +57,8 @@ class BackFiller:
         is_old_region = False
         t0 = time.time()
         count = 0
-        cursor = self.raw_logs.find(timeout=False).sort("created_on", -1)
+	# TODO: avoid load data repeatly, how about archive it somewhere
+        cursor = self.raw_logs.find(timeout=False).sort("created_on", -1).limit(5000000)
         try:
             for log_doc in cursor:
                 count += 1

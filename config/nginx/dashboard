@@ -4,17 +4,8 @@ upstream dashboard.upstream {
 }
 
 server {
-<<<<<<< local
-    server_name dashboard dashboard.test;
-=======
     server_name dashboard dashboard.leyou.com.cn dashboard.test;
->>>>>>> other
-
-<<<<<<< local
-    access_log /cube/app/dashboard/log/access.log gzip buffer=128k;
-=======
     access_log /cube/app/dashboard/log/access.log main buffer=128k;
->>>>>>> other
     error_log /cube/app/dashboard/log/error.log;
     root /cube/app/dashboard/public_html;
 
