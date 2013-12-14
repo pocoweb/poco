@@ -1,4 +1,4 @@
-# Django settings for Dashboard project.
+# Django settings for dashboard project.
 
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
@@ -109,13 +109,13 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'Dashboard.middleware.http.Http403Middleware'
+    'dashboard.middleware.http.Http403Middleware'
 )
 
 #import os.path
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
-ROOT_URLCONF = 'Dashboard.urls'
+ROOT_URLCONF = 'dashboard.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -175,4 +175,4 @@ COMPRESS_OUTPUT_DIR = 'min'
 try:
     from local_settings import *
 except ImportError:
-    from Dashboard.local_settings import *
+    from dashboard.local_settings import *

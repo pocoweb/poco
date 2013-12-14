@@ -20,13 +20,13 @@ from django.core.mail import EmailMessage
 
 import simplejson as json
 
-from ApiServer.mongo_client import MongoClient
+from api.mongo_client import MongoClient
 
 import settings
 
 import re
 
-from Dashboard.middleware.http import Http403
+from dashboard.middleware.http import Http403
 
 def getConnection():
     return pymongo.Connection(settings.mongodb_host)
