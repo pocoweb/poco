@@ -1,4 +1,4 @@
-# Django settings for Adminboard project.
+# Django settings for adminboard project.
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -113,7 +113,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 #SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
 
 
-ROOT_URLCONF = 'Adminboard.urls'
+ROOT_URLCONF = 'adminboard.urls'
 
 import os.path
 TEMPLATE_DIRS = (

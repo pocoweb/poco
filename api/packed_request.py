@@ -180,7 +180,7 @@ def generateALL_ATTR_NAMES_js():
 
 
 def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
-    result = "// Generated using ApiServer.packed_request.generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js\n"
+    result = "// Generated using poco.api.packed_request.generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js\n"
     result += "var FULL_NAME_ATTR_NAME2FULL_ABBR_NAME = {\n"
     global _abbr_map
     kv_pairs = []
@@ -193,7 +193,7 @@ def generateFULL_NAME_ATTR_NAME2FULL_ABBR_NAME_js():
     return result
 
 def generateFULL_NAME2MASK_js():
-    result = "// Generated using ApiServer.packed_request.generateFULL_NAME2MASK_js\n"
+    result = "// Generated using poco.api.packed_request.generateFULL_NAME2MASK_js\n"
     result += "var FULL_NAME2MASK = {\n"
     global _abbr_map
     kv_pairs = []
