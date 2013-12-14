@@ -4,7 +4,7 @@ import logging
 from common.utils import getSiteDBCollection
 from common.utils import getSiteDB
 from common.utils import getLatestUserOrderDatetime
-from ApiServer.mongo_client import MongoClient
+from api.mongo_client import MongoClient
 
 
 def insertUserOrderFromRawLog(connection, site_id, raw_log):
