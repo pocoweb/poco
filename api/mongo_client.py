@@ -100,7 +100,7 @@ class MongoClient:
     # there is a small chance that the "purchasing_history" will not
     # 100% correctly reflect the raw_log
     def updateUserPurchasingHistory(self, site_id, user_id):
-        # TODO: time consuming, defer to offline computing 
+        # TODO: time consuming, defer to offline computing
         logging.critical("TODO: move offline updateUserPurchasingHistory - user_id: %s" % user_id)
         pass
         ph_in_db = self.getPurchasingHistory(site_id, user_id)
