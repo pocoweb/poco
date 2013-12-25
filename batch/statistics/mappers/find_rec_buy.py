@@ -24,7 +24,7 @@ last_user_id = None
 last_click_recs = {}
 already_viewed = {}
 for line in sys.stdin:
-    user_id, created_on, uniq_order_id, behavior, item_id, price, amount = line.strip().split("\t")
+    user_id, created_on, uniq_order_id, behavior, item_id, price, amount, req_id = line.strip().split("\t")
     created_on = float(created_on)
     if price != "NULL" and amount != "NULL":
         price = float(price.strip())
@@ -43,13 +43,13 @@ for line in sys.stdin:
     if behavior == "V":
         already_viewed[item_id] = created_on
     elif behavior == "ClickRec":
-        if not already_viewed.has_key(item_id):
-            last_click_recs[item_id] = (created_on, True)
+        if item_id in already_viewed:
+            last_click_recs[item_id] = (created_on, True, req_id)
         else:
-            last_click_recs[item_id] = (created_on, False)
+            last_click_recs[item_id] = (created_on, False, req_id)
     elif behavior == "PLO":
-        if last_click_recs.has_key(item_id):
-            click_ts, is_rec_first = last_click_recs[item_id]
+        if item_id in last_click_recs:
+            click_ts, is_rec_first, rec_req_id = last_click_recs[item_id]
             influence_type = None
             if (created_on - click_ts) < MAX_DIRECT_TIME:
                 influence_type = "DIRECT"
@@ -60,5 +60,4 @@ for line in sys.stdin:
                     influence_type += "_REC_FIRST"
                 else:
                     influence_type += "_REC_LATER"
-                print "\t".join([repr(created_on), uniq_order_id, user_id, item_id])
-
+                print "\t".join([repr(created_on), uniq_order_id, user_id, item_id, rec_req_id])

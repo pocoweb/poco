@@ -349,16 +349,17 @@ def calc_click_rec_buy(site_id, connection, client):
                    "         created_on DOUBLE, "
                    "         uniq_order_id STRING, "
                    "         user_id    STRING, "
-                   "         item_id    STRING  "
+                   "         item_id    STRING,  "
+                   "         rec_req_id    STRING  "
                    " ) ")
     client.execute("INSERT OVERWRITE TABLE rec_buy "
-                   "SELECT TRANSFORM (filled_user_id, created_on, uniq_order_id, behavior, item_id, price, amount) "
+                   "SELECT TRANSFORM (filled_user_id, created_on, uniq_order_id, behavior, item_id, price, amount, req_id) "
                    "       USING 'python find_rec_buy.py' "
-                   "       AS (created_on, uniq_order_id, user_id, item_id) "
-                   "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount "
-                   "FROM backfilled_raw_logs brl "
-                   'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
-                   'ORDER BY filled_user_id, created_on) a ')
+                   "       AS (created_on, uniq_order_id, user_id, item_id, rec_req_id) "
+                   "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount, brl.req_id"
+                   "  FROM backfilled_raw_logs brl "
+                   '  WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
+                   '  ORDER BY filled_user_id, created_on) a ')
 
 
 @log_function
@@ -502,19 +503,19 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
     #load_items(connection, site_id, work_dir, client)
     #calc_daily_item_pv_coverage(client)
 
-    calc_pvs(site_id, connection, client)
-    calc_uv_v(site_id, connection, client)
+    # calc_pvs(site_id, connection, client)
+    # calc_uv_v(site_id, connection, client)
 
-    calc_unique_sku(site_id, connection, client)
-    calc_avg_item_amount(site_id, connection, client)
+    # calc_unique_sku(site_id, connection, client)
+    # calc_avg_item_amount(site_id, connection, client)
 
     calc_click_rec_buy(site_id, connection, client)
     calc_place_order_with_rec_info(site_id, connection, client)
 
-    calc_kedanjia_with_rec(site_id, connection, client)
-    calc_kedanjia_without_rec(site_id, connection, client)
+    # calc_kedanjia_with_rec(site_id, connection, client)
+    # calc_kedanjia_without_rec(site_id, connection, client)
 
-    calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client)
+    # calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client)
 
 
 def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, 
