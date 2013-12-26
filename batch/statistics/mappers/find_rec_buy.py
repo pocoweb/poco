@@ -49,11 +49,11 @@ for line in sys.stdin:
             last_click_recs[item_id] = (created_on, False, req_id)
     elif behavior == "PLO":
         if item_id in last_click_recs:
-            click_ts, is_rec_first, src_req_id = last_click_recs[item_id]
+            click_at, is_rec_first, src_req_id = last_click_recs[item_id]
             influence_type = None
-            if (created_on - click_ts) < MAX_DIRECT_TIME:
+            if (created_on - click_at) < MAX_DIRECT_TIME:
                 influence_type = "DIRECT"
-            elif (created_on - click_ts) < MAX_INDIRECT_TIME:
+            elif (created_on - click_at) < MAX_INDIRECT_TIME:
                 influence_type = "INDIRECT"
             if influence_type is not None:
                 if is_rec_first:

@@ -341,6 +341,13 @@ def calc_order_items_with_rec_info(site_id, connection, client):
     #                "   ) a"
     #                )
 
+
+    """
+      TODO:
+
+        There are duplicated orders in raw_logs, there are order_id with different uniq_order_id.
+        The duplication will be kept in this hive table. But will be de-duplicated in the table for csv dump.
+    """
     client.execute("DROP TABLE   order_items_with_rec_info")
     client.execute("CREATE TABLE order_items_with_rec_info ( "
                      "date_str STRING, "
@@ -379,6 +386,23 @@ def calc_order_items_with_rec_info(site_id, connection, client):
                    "    LEFT OUTER JOIN recommendation_logs rl "
                    "      ON rl.req_id = rb.src_req_id"
                   )
+
+    client.execute("SELECT oi.date_str FROM order_items_with_rec_info oi SORT BY oi.date_str DESC limit 1")
+
+    row = client.fetchOne()
+    if (row == None or row == ''):
+        pass
+    else:
+        data = result_as_dict(smart_split(row, "\t"), ["date_str"])
+        date_str = data["date_str"]
+        assert len(date_str) == 10
+        month = date_str[0:7]
+        month_ = (month.replace('-', ''))
+        client.execute("drop table csv_%s" % (month_))
+        client.execute("create table csv_%s row format delimited fields terminated by ','"
+          " lines terminated by '\n' as "
+          "select distinct user_id, order_id, item_id, price, amount, src_item_id, src_behavior "
+          "from order_items_with_rec_info where is_rec_item = true and date_str like '%%%s%%'" % (month_, month))
 
 
 @log_function
