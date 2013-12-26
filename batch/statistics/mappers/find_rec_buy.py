@@ -26,7 +26,7 @@ already_viewed = {}
 for line in sys.stdin:
     user_id, created_on, uniq_order_id, behavior, item_id, price, amount, req_id = line.strip().split("\t")
     created_on = float(created_on)
-    if price != "NULL" and amount != "NULL":
+    if price != "0" and amount != "0":
         price = float(price.strip())
         amount = int(amount)
     else:
@@ -49,7 +49,7 @@ for line in sys.stdin:
             last_click_recs[item_id] = (created_on, False, req_id)
     elif behavior == "PLO":
         if item_id in last_click_recs:
-            click_ts, is_rec_first, rec_req_id = last_click_recs[item_id]
+            click_ts, is_rec_first, src_req_id = last_click_recs[item_id]
             influence_type = None
             if (created_on - click_ts) < MAX_DIRECT_TIME:
                 influence_type = "DIRECT"
@@ -60,4 +60,4 @@ for line in sys.stdin:
                     influence_type += "_REC_FIRST"
                 else:
                     influence_type += "_REC_LATER"
-                print "\t".join([repr(created_on), uniq_order_id, user_id, item_id, rec_req_id])
+                print "\t".join([repr(created_on), uniq_order_id, user_id, item_id, src_req_id])
