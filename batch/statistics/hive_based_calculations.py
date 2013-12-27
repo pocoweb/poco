@@ -401,7 +401,7 @@ def calc_order_items_with_rec_info(site_id, connection, client):
         client.execute("drop table csv_%s" % (month_))
         client.execute("create table csv_%s row format delimited fields terminated by ','"
           " lines terminated by '\n' as "
-          "select distinct user_id, order_id, item_id, price, amount, src_item_id, src_behavior "
+          "select distinct user_id, order_id, item_id, price, amount, src_item_id, src_behavior, date_str, hour "
           "from order_items_with_rec_info where is_rec_item = true and date_str like '%%%s%%'" % (month_, month))
 
 
