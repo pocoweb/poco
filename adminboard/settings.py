@@ -1,10 +1,10 @@
-# Django settings for Dashboard project.
+# Django settings for adminboard project.
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-    ('Sun Liwen', 'liwen@tuijianbao.net'),
+    # ('Your Name', 'your_email@example.com'),
 )
 
 MANAGERS = ADMINS
@@ -15,7 +15,6 @@ CACHES = {
         'LOCATION': '127.0.0.1:11211',
     }
 }
-
 
 DATABASES = {
     'default': {
@@ -45,11 +44,11 @@ SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
-USE_I18N = False
+USE_I18N = True
 
 # If you set this to False, Django will not format dates, numbers and
 # calendars according to the current locale
-USE_L10N = False
+USE_L10N = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
@@ -64,8 +63,7 @@ MEDIA_URL = ''
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-import os
-STATIC_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+STATIC_ROOT = ''
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
@@ -77,12 +75,11 @@ STATIC_URL = '/static/'
 #ADMIN_MEDIA_PREFIX = '/static/admin/'
 
 # Additional locations of static files
-#STATICFILES_DIRS = (
-#    # Put strings here, like "/home/html/static" or "C:/www/django/static".
-#    # Always use forward slashes, even on Windows.
-#    # Don't forget to use absolute paths, not relative paths.
-#    STATIC_ROOT,
-#)
+STATICFILES_DIRS = (
+    # Put strings here, like "/home/html/static" or "C:/www/django/static".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
 
 # List of finder classes that know how to find static files in
 # various locations.
@@ -90,11 +87,10 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
-    'compressor.finders.CompressorFinder',
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = '140c-_ypn8))y=nsb03gxa89=1_vt^rzu2u0ql1-*q8v*=yi6g'
+SECRET_KEY = '4m2n$--q-l+5&=q%)$9ja$tixq*t0x7b6x)fkhmzry(v0xi6v^'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -109,14 +105,17 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'Dashboard.middleware.http.Http403Middleware'
 )
 
-#import os.path
+
+import os.path
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+#SESSION_FILE_PATH = os.path.dirname(__file__) + '/session_store'
 
-ROOT_URLCONF = 'Dashboard.urls'
 
+ROOT_URLCONF = 'adminboard.urls'
+
+import os.path
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
@@ -135,8 +134,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'gunicorn',
-    'compressor',
+    'gunicorn'
 )
 
 # A sample logging configuration. The only tangible logging
@@ -163,15 +161,8 @@ LOGGING = {
 }
 
 
-mongodb_host = "127.0.0.1"
+mongodb_host = None
 
-# django_compressor
-COMPRESS_ENABLED = not DEBUG
-COMPRESS_ROOT = STATIC_ROOT
-COMPRESS_OUTPUT_DIR = 'min'
-
-
-#==Keep the following part in the EOF==
 try:
     from local_settings import *
 except ImportError:

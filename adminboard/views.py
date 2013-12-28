@@ -15,7 +15,7 @@ import simplejson as json
 from common.utils import getSiteDBCollection
 from common.utils import convertTimedeltaAsDaysHoursMinutesSeconds
 
-from ApiServer.mongo_client import MongoClient
+from api.mongo_client import MongoClient
 
 from site_utils import generateApiKey
 import settings
