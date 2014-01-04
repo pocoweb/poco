@@ -1,5 +1,7 @@
 import sys
 import time
+from datetime import datetime
+from datetime import timedelta
 import logging
 from common import utils
 import simplejson as json
@@ -75,11 +77,20 @@ class BackFiller:
         count = 0
         # TODO: avoid load data repeatly, how about archive it somewhere
         # ASSUMING to calculate on [2013-10-01, 2013-10-08]
-        # begin = ISODate("2013-10-01T00:00:00.0Z")
-        # end = ISODate("2013-10-09T00:00:00.0Z")
-        # db.raw_logs.find({created_on: {$gte: begin, $lt: end}}).count() // 644607
-        cursor = self.raw_logs.find(timeout=False).sort(
-            "created_on", -1).limit(10000000)
+        # In mongo shell
+        # begin = ISODate("2012-09-20T00:00:00.0Z")
+        # end = ISODate("2012-11-01T00:00:00.0Z")
+        # db.raw_logs.find({created_on: {$gte: begin, $lt: end}}).count()  # 644607
+
+        # In python with pymongo
+        # begin = datetime.strptime('2013-10-22T00:00:00.0Z', '%Y-%m-%dT%H:%M:%S.0Z')
+        # end = datetime.strptime('2013-12-01T00:00:00.0Z', '%Y-%m-%dT%H:%M:%S.0Z')
+        # cursor = self.raw_logs.find({'created_on': {'$gte': begin, '$lt': end}}, timeout=False).sort("created_on", -1).limit(10000000)
+
+        end = datetime.utcnow()
+        begin = end - timedelta(days=30)  # should be configurable
+        cursor = self.raw_logs.find({'created_on': {'$gte': begin, '$lt': end}}, timeout=False).sort("created_on", -1)
+
         try:
             for log_doc in cursor:
                 count += 1

@@ -3,7 +3,7 @@ import datetime
 
 
 MAX_DIRECT_TIME = 24 * 7 * 3600
-MAX_INDIRECT_TIME = 24 * 30 * 3600
+#MAX_INDIRECT_TIME = 24 * 30 * 3600
 
 
 def getCalendarInfo(timestamp):
@@ -53,11 +53,11 @@ for line in sys.stdin:
             influence_type = None
             if (created_on - click_at) < MAX_DIRECT_TIME:
                 influence_type = "DIRECT"
-            elif (created_on - click_at) < MAX_INDIRECT_TIME:
-                influence_type = "INDIRECT"
+            # elif (created_on - click_at) < MAX_INDIRECT_TIME:
+            #     influence_type = "INDIRECT"
             if influence_type is not None:
-                if is_rec_first:
-                    influence_type += "_REC_FIRST"
-                else:
-                    influence_type += "_REC_LATER"
+                # if is_rec_first:
+                #     influence_type += "_REC_FIRST"
+                # else:
+                #     influence_type += "_REC_LATER"
                 print "\t".join([repr(created_on), uniq_order_id, user_id, item_id, src_req_id])
