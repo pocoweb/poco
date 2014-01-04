@@ -15,6 +15,7 @@ from thrift.protocol import TBinaryProtocol
 from common.utils import getSiteDBCollection
 from common.utils import smart_split
 
+
 def getLogger():
     return logging.getLogger("HiveBased")
 
@@ -62,6 +63,7 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
         if row["behavior"].startswith("Rec"):
             calendar_info = getCalendarInfo(row["created_on"])
             date_str = calendar_info["date_str"]
+            hour = calendar_info["hour"]
             if row["is_empty_result"]:
                 is_empty_result = "TRUE"
             else:
@@ -69,7 +71,7 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
 
             # Some rec type won't have item_id, so give it a NULL
             item_id = row.get('item_id', 'NULL')
-            output = [date_str, repr(row["created_on"]), row["behavior"], row["req_id"], item_id, is_empty_result]
+            output = [date_str, repr(hour), repr(row["created_on"]), row["behavior"], row["req_id"], item_id, is_empty_result]
             output_a_row(out_f, output)
     out_f.close()
 
@@ -80,6 +82,7 @@ def load_recommendation_logs(work_dir, client):
     client.execute("DROP TABLE recommendation_logs")
     client.execute("CREATE TABLE recommendation_logs ( "
                      "date_str STRING, "
+                     "hour INT, "
                      "created_on DOUBLE, "
                      "behavior STRING, "
                      "req_id STRING, "
@@ -350,6 +353,7 @@ def calc_order_items_with_rec_info(site_id, connection, client):
     """
     client.execute("DROP TABLE   order_items_with_rec_info")
     client.execute("CREATE TABLE order_items_with_rec_info ( "
+                     "created_on DOUBLE, "
                      "date_str STRING, "
                      "hour INT, "
                      "uniq_order_id STRING, "
@@ -361,6 +365,9 @@ def calc_order_items_with_rec_info(site_id, connection, client):
                      "amount INT, "
                      "src_item_id STRING, "
                      "src_behavior STRING, "
+                     "src_created_on STRING, "
+                     "src_date_str STRING, "
+                     "src_hour INT, "
                      "is_rec_item BOOLEAN "
                      ")"
                      "ROW FORMAT DELIMITED "
@@ -368,14 +375,17 @@ def calc_order_items_with_rec_info(site_id, connection, client):
                      "STORED AS TEXTFILE")
 
     client.execute("INSERT OVERWRITE TABLE order_items_with_rec_info "
-                   "  SELECT oi.date_str, oi.hour, "
+                   "  SELECT oi.created_on, oi.date_str, oi.hour, "
                    "         oi.uniq_order_id, oi.order_id, oi.user_id, oi.tjbid, "
                    "         oi.item_id, oi.price, oi.amount, "
                    "         rl.item_id AS src_item_id, "
                    "         rl.behavior AS src_behavior, "
-                   "         rl.behavior IS NOT NULL"
+                   "         rl.created_on AS src_created_on, "
+                   "         rl.date_str AS src_date_str, "
+                   "         rl.hour AS src_hour, "
+                   "         rl.behavior IS NOT NULL "
                    "  FROM "
-                   "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id, brl.order_id, brl.filled_user_id as user_id, "
+                   "   (SELECT DISTINCT brl.created_on, brl.date_str, brl.hour, brl.uniq_order_id, brl.order_id, brl.filled_user_id as user_id, "
                    "    brl.tjbid, brl.item_id, brl.price, brl.amount "
                    "    FROM rec_buy rb1 "
                    "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id AND rb1.item_id = brl.item_id) "
@@ -393,15 +403,17 @@ def calc_order_items_with_rec_info(site_id, connection, client):
     if (row == None or row == ''):
         pass
     else:
+
         data = result_as_dict(smart_split(row, "\t"), ["date_str"])
         date_str = data["date_str"]
         assert len(date_str) == 10
         month = date_str[0:7]
         month_ = (month.replace('-', ''))
+
         client.execute("drop table csv_%s" % (month_))
         client.execute("create table csv_%s row format delimited fields terminated by ','"
           " lines terminated by '\n' as "
-          "select distinct user_id, order_id, item_id, price, amount, src_item_id, src_behavior, date_str, hour "
+          "select distinct user_id, order_id, item_id, price, amount, date_str, hour, src_item_id, src_behavior, src_date_str, src_hour "
           "from order_items_with_rec_info where is_rec_item = true and date_str like '%%%s%%'" % (month_, month))
 
 

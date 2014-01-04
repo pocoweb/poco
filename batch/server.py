@@ -479,17 +479,17 @@ preprocessing_flow.dependOn(begin_flow)
 hive_based_statistics_flow = HiveBasedStatisticsFlow()
 hive_based_statistics_flow.dependOn(preprocessing_flow)
 
-# v_similarity_calc_flow = VSimiliarityCalcFlow()
-# v_similarity_calc_flow.dependOn(preprocessing_flow)
+v_similarity_calc_flow = VSimiliarityCalcFlow()
+v_similarity_calc_flow.dependOn(preprocessing_flow)
 
-# plo_similarity_calc_flow = PLOSimilarityCalcFlow()
-# plo_similarity_calc_flow.dependOn(preprocessing_flow)
+plo_similarity_calc_flow = PLOSimilarityCalcFlow()
+plo_similarity_calc_flow.dependOn(preprocessing_flow)
 
-# buy_together_similarity_flow = BuyTogetherSimilarityFlow()
-# buy_together_similarity_flow.dependOn(preprocessing_flow)
+buy_together_similarity_flow = BuyTogetherSimilarityFlow()
+buy_together_similarity_flow.dependOn(preprocessing_flow)
 
-# viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
-# viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
+viewed_ultimately_buy_flow = ViewedUltimatelyBuyFlow()
+viewed_ultimately_buy_flow.dependOn(preprocessing_flow)
 
 #edm_related_preprocessing_flow = EDMRelatedPreprocessingFlow()
 # edm_related_preprocessing_flow.dependOn(preprocessing_flow)
