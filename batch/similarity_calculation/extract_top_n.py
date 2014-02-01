@@ -8,7 +8,7 @@ def sign(float):
 
 
 def output(f, rows, n_limit):
-    rows.sort(lambda a,b: sign(b[2] - a[2]))
+    rows.sort(lambda a, b: sign(b[2] - a[2]))
     if len(rows) > n_limit:
         rows = rows[:n_limit]
     for row in rows:

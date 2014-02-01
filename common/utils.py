@@ -1,3 +1,6 @@
+import datetime
+
+
 def getSiteDBName(site_id):
     return "tjbsite_%s" % site_id
 
@@ -176,3 +179,10 @@ def getLatestUserOrderDatetime(connection, site_id):
     else:
         latest_order_datetime = last_user_orders[0]["order_datetime"]
     return latest_order_datetime
+
+
+def dt(dt_str):
+    dt, _, us = dt_str.partition(".")
+    dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S")
+    us = int(us.rstrip("Z"), 10)
+    return dt + datetime.timedelta(microseconds=us)

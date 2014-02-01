@@ -952,9 +952,14 @@ class RecommendedItemRedirectHandler(PtmIdEnabledHandlerMixin, tornado.web.Reque
             return
         else:
             site_id = api_key2site_id[api_key]
-            log_content = {"behavior": "ClickRec", "url": url,
-                           "req_id": req_id, "item_id": item_id, "site_id": site_id,
-                           "tjbid": self.ptm_id}
+            log_content = {
+                "behavior": "ClickRec",
+                "url": url,
+                "req_id": req_id,
+                "item_id": item_id,
+                "site_id": site_id,
+                "tjbid": self.ptm_id
+                }
             logWriter.writeEntry(site_id, log_content)
             self.redirect(url)
             return

@@ -15,6 +15,7 @@ from thrift.protocol import TBinaryProtocol
 from common.utils import getSiteDBCollection
 from common.utils import smart_split
 
+
 def getLogger():
     return logging.getLogger("HiveBased")
 
@@ -62,12 +63,15 @@ def convert_recommendation_logs(work_dir, backfilled_raw_logs_path):
         if row["behavior"].startswith("Rec"):
             calendar_info = getCalendarInfo(row["created_on"])
             date_str = calendar_info["date_str"]
+            hour = calendar_info["hour"]
             if row["is_empty_result"]:
                 is_empty_result = "TRUE"
             else:
                 is_empty_result = "FALSE"
 
-            output = [date_str, repr(row["created_on"]), row["behavior"], row["req_id"], is_empty_result]
+            # Some rec type won't have item_id, so give it a NULL
+            item_id = row.get('item_id', 'NULL')
+            output = [date_str, repr(hour), repr(row["created_on"]), row["behavior"], row["req_id"], item_id, is_empty_result]
             output_a_row(out_f, output)
     out_f.close()
 
@@ -78,9 +82,11 @@ def load_recommendation_logs(work_dir, client):
     client.execute("DROP TABLE recommendation_logs")
     client.execute("CREATE TABLE recommendation_logs ( "
                      "date_str STRING, "
+                     "hour INT, "
                      "created_on DOUBLE, "
                      "behavior STRING, "
                      "req_id STRING, "
+                     "item_id STRING, "
                      "is_empty_result BOOLEAN "
                      ")"
                      "ROW FORMAT DELIMITED "
@@ -148,9 +154,9 @@ def calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client
                    )
     data_map = {}
     for row in yieldClientResults(client):
-        row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_request_count", as_int), 
+        row_dict = result_as_dict(row, ["date_str", "behavior", ("recommendation_request_count", as_int),
                                                                 ("recommendation_show_count", as_int),
-                                                                ("click_rec_count", as_int), 
+                                                                ("click_rec_count", as_int),
                                                                 ("click_rec_show_ratio", as_float)])
         data = data_map.setdefault(row_dict["date_str"], {"date_str": row_dict["date_str"]})
         behavior_lower = row_dict["behavior"].lower()
@@ -171,8 +177,9 @@ def convert_backfilled_raw_logs(work_dir, backfilled_raw_logs_path):
         calendar_info = getCalendarInfo(row["created_on"])
         date_str = calendar_info["date_str"]
         hour = calendar_info["hour"]
-        uniq_order_id = row.get("uniq_order_id", "NONE")
-        output = [date_str, repr(hour), repr(row["created_on"]), uniq_order_id,
+        uniq_order_id = row.get("uniq_order_id", "0")
+        order_id = row.get("order_id", "0")
+        output = [date_str, repr(hour), repr(row["created_on"]), uniq_order_id, order_id,
                   row["filled_user_id"], row["behavior"], row["tjbid"]]
         if row["behavior"] == "V":
             output += [row["item_id"], "0", "0", "0"]
@@ -197,6 +204,7 @@ def load_backfilled_raw_logs(work_dir, client):
                      "hour INT, "
                      "created_on DOUBLE, "
                      "uniq_order_id STRING, "
+                     "order_id STRING, "
                      "filled_user_id STRING, "
                      "behavior STRING, "
                      "tjbid STRING, "
@@ -208,7 +216,7 @@ def load_backfilled_raw_logs(work_dir, client):
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
                      "STORED AS TEXTFILE")
-    client.execute("add FILE %s" % getMapperFilePath("as_behavior_datestr_item_id.py"))
+    client.execute("ADD FILE %s" % getMapperFilePath("as_behavior_datestr_item_id.py"))
     client.execute("LOAD DATA LOCAL INPATH '%s' OVERWRITE INTO TABLE backfilled_raw_logs" % input_file_path)
 
 
@@ -237,6 +245,7 @@ def as_int(string):
         return None
     else:
         return int(string)
+
 
 def as_float(string):
     if string == "NULL":
@@ -280,14 +289,14 @@ def calc_ClickRec_by_type(site_id, connection, client):
 def calc_kedanjia_without_rec(site_id, connection, client):
     client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
                    "FROM (SELECT date_str, uniq_order_id,  SUM(price * amount) AS total_money "
-                   '      FROM place_order_with_rec_info pow '
+                   '      FROM order_items_with_rec_info oi '
                    '      WHERE NOT is_rec_item '
                    '      GROUP BY date_str, uniq_order_id '
                    '     ) a '
                    "GROUP BY a.date_str ")
 
     for row in yieldClientResults(client):
-        data = result_as_dict(row, ["date_str", ("order_count_no_rec", as_int), ("avg_order_total_no_rec", as_float), 
+        data = result_as_dict(row, ["date_str", ("order_count_no_rec", as_int), ("avg_order_total_no_rec", as_float),
                                                 ("total_sales_no_rec", as_float)])
         upload_statistics(site_id, connection, client, data)
 
@@ -296,7 +305,7 @@ def calc_kedanjia_without_rec(site_id, connection, client):
 def calc_kedanjia_with_rec(site_id, connection, client):
     client.execute("SELECT a.date_str, COUNT(*), AVG(a.total_money), SUM(a.total_money) "
                    "FROM (SELECT date_str, uniq_order_id,  SUM(price * amount) AS total_money "
-                   '      FROM place_order_with_rec_info pow '
+                   '      FROM order_items_with_rec_info oi '
                    '      GROUP BY date_str, uniq_order_id '
                    '     ) a '
                    "GROUP BY a.date_str ")
@@ -306,36 +315,106 @@ def calc_kedanjia_with_rec(site_id, connection, client):
 
 
 @log_function
-def calc_place_order_with_rec_info(site_id, connection, client):
-    client.execute("DROP TABLE   place_order_with_rec_info")
-    client.execute("CREATE TABLE place_order_with_rec_info ( "
+def calc_order_items_with_rec_info(site_id, connection, client):
+    # client.execute("DROP TABLE   order_items")
+    # client.execute("CREATE TABLE order_items ( "
+    #                  "date_str STRING, "
+    #                  "hour INT, "
+    #                  "uniq_order_id STRING, "
+    #                  "order_id STRING, "
+    #                  "user_id STRING, "
+    #                  "tjbid STRING, "
+    #                  "item_id STRING,"
+    #                  "price FLOAT, "
+    #                  "amount INT"
+    #                  ")"
+    #                  "ROW FORMAT DELIMITED "
+    #                  "FIELDS TERMINATED BY ',' "
+    #                  "STORED AS TEXTFILE")
+
+    # client.execute("INSERT OVERWRITE TABLE order_items "
+    #                "  SELECT a.date_str, a.hour, a.uniq_order_id, a.order_id, a.filled_user_id as user_id, "
+    #                "         a.tjbid, a.item_id, a.price, a.amount "
+    #                "  FROM "
+    #                "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id, brl.order_id, brl.filled_user_id, "
+    #                "    brl.tjbid, brl.item_id, brl.price, brl.amount "
+    #                "    FROM rec_buy rb1 "
+    #                "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id AND rb1.item_id = brl.item_id) "
+    #                "    WHERE brl.behavior = 'PLO' "
+    #                "   ) a"
+    #                )
+
+
+    """
+      TODO:
+
+        There are duplicated orders in raw_logs, there are order_id with different uniq_order_id.
+        The duplication will be kept in this hive table. But will be de-duplicated in the table for csv dump.
+    """
+    client.execute("DROP TABLE   order_items_with_rec_info")
+    client.execute("CREATE TABLE order_items_with_rec_info ( "
+                     "created_on DOUBLE, "
                      "date_str STRING, "
                      "hour INT, "
                      "uniq_order_id STRING, "
-                     "filled_user_id STRING, "
+                     "order_id STRING, "
+                     "user_id STRING, "
                      "tjbid STRING, "
                      "item_id STRING,"
                      "price FLOAT, "
                      "amount INT, "
-                     "has_rec_item BOOLEAN, "
+                     "src_item_id STRING, "
+                     "src_behavior STRING, "
+                     "src_created_on STRING, "
+                     "src_date_str STRING, "
+                     "src_hour INT, "
                      "is_rec_item BOOLEAN "
                      ")"
                      "ROW FORMAT DELIMITED "
                      "FIELDS TERMINATED BY ',' "
                      "STORED AS TEXTFILE")
-    # TODO: remove has_rec_item
-    client.execute("INSERT OVERWRITE TABLE place_order_with_rec_info "
-                   "  SELECT a.date_str, a.hour, a.uniq_order_id, a.filled_user_id, "
-                   "         a.tjbid, a.item_id, a.price, a.amount, a.rb1_uoid IS NOT NULL, "
-                   "                         (a.rb1_uoid IS NOT NULL AND a.rb1_item_id == a.item_id)  "
+
+    client.execute("INSERT OVERWRITE TABLE order_items_with_rec_info "
+                   "  SELECT oi.created_on, oi.date_str, oi.hour, "
+                   "         oi.uniq_order_id, oi.order_id, oi.user_id, oi.tjbid, "
+                   "         oi.item_id, oi.price, oi.amount, "
+                   "         rl.item_id AS src_item_id, "
+                   "         rl.behavior AS src_behavior, "
+                   "         rl.created_on AS src_created_on, "
+                   "         rl.date_str AS src_date_str, "
+                   "         rl.hour AS src_hour, "
+                   "         rl.behavior IS NOT NULL "
                    "  FROM "
-                   "   (SELECT DISTINCT brl.date_str, brl.hour, brl.uniq_order_id as uniq_order_id, brl.filled_user_id, "
-                   "    brl.tjbid, brl.item_id, brl.price, brl.amount, rb1.uniq_order_id AS rb1_uoid, rb1.item_id AS rb1_item_id "
+                   "   (SELECT DISTINCT brl.created_on, brl.date_str, brl.hour, brl.uniq_order_id, brl.order_id, brl.filled_user_id as user_id, "
+                   "    brl.tjbid, brl.item_id, brl.price, brl.amount "
                    "    FROM rec_buy rb1 "
                    "    RIGHT OUTER JOIN backfilled_raw_logs brl ON (rb1.uniq_order_id = brl.uniq_order_id AND rb1.item_id = brl.item_id) "
-                   '    WHERE brl.behavior = "PLO" '
-                   "   ) a"
-                   )
+                   "    WHERE brl.behavior = 'PLO' "
+                   "   ) oi"
+                   "    LEFT OUTER JOIN rec_buy rb "
+                   "      ON rb.uniq_order_id = oi.uniq_order_id and rb.item_id = oi.item_id "
+                   "    LEFT OUTER JOIN recommendation_logs rl "
+                   "      ON rl.req_id = rb.src_req_id"
+                  )
+
+    client.execute("SELECT oi.date_str FROM order_items_with_rec_info oi SORT BY oi.date_str DESC limit 1")
+
+    row = client.fetchOne()
+    if (row == None or row == ''):
+        pass
+    else:
+
+        data = result_as_dict(smart_split(row, "\t"), ["date_str"])
+        date_str = data["date_str"]
+        assert len(date_str) == 10
+        month = date_str[0:7]
+        month_ = (month.replace('-', ''))
+
+        client.execute("drop table csv_%s" % (month_))
+        client.execute("create table csv_%s row format delimited fields terminated by ','"
+          " lines terminated by '\n' as "
+          "select distinct user_id, order_id, item_id, price, amount, date_str, hour, src_item_id, src_behavior, src_date_str, src_hour "
+          "from order_items_with_rec_info where is_rec_item = true and date_str like '%%%s%%'" % (month_, month))
 
 
 @log_function
@@ -343,22 +422,23 @@ def calc_click_rec_buy(site_id, connection, client):
     '''
         ClickRec N Buy
     '''
-    client.execute("add FILE %s" % getMapperFilePath("find_rec_buy.py"))
+    client.execute("ADD FILE %s" % getMapperFilePath("find_rec_buy.py"))
     client.execute("DROP TABLE rec_buy")
     client.execute("CREATE TABLE rec_buy ( "
                    "         created_on DOUBLE, "
                    "         uniq_order_id STRING, "
                    "         user_id    STRING, "
-                   "         item_id    STRING  "
+                   "         item_id    STRING,  "
+                   "         src_req_id    STRING  "
                    " ) ")
     client.execute("INSERT OVERWRITE TABLE rec_buy "
-                   "SELECT TRANSFORM (filled_user_id, created_on, uniq_order_id, behavior, item_id, price, amount) "
+                   "SELECT TRANSFORM (filled_user_id, created_on, uniq_order_id, behavior, item_id, price, amount, req_id) "
                    "       USING 'python find_rec_buy.py' "
-                   "       AS (created_on, uniq_order_id, user_id, item_id) "
-                   "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount "
-                   "FROM backfilled_raw_logs brl "
-                   'WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
-                   'ORDER BY filled_user_id, created_on) a ')
+                   "       AS (created_on, uniq_order_id, user_id, item_id, src_req_id) "
+                   "FROM (SELECT brl.filled_user_id, brl.created_on, brl.uniq_order_id, brl.behavior, brl.item_id, brl.price, brl.amount, brl.req_id"
+                   "  FROM backfilled_raw_logs brl "
+                   '  WHERE brl.behavior = "ClickRec" OR brl.behavior = "PLO" OR brl.behavior="V" '
+                   '  ORDER BY filled_user_id, created_on) a ')
 
 
 @log_function
@@ -381,12 +461,14 @@ def _calc_pv_rec(client):
                    "GROUP BY date_str ")
     return [row for row in yieldClientResults(client)]
 
+
 def _calc_pv_v_pv_clickrec(client):
     client.execute("SELECT date_str, behavior, COUNT(*) "
                    "FROM backfilled_raw_logs brl "
                    "WHERE behavior='V' OR behavior='ClickRec'"
                    "GROUP BY date_str, behavior ")
     return [row for row in yieldClientResults(client)]
+
 
 def _calc_pv_plo(client):
     client.execute("SELECT date_str, behavior, COUNT(DISTINCT uniq_order_id) "
@@ -395,14 +477,15 @@ def _calc_pv_plo(client):
                    "GROUP BY date_str, behavior ")
     return [row for row in yieldClientResults(client)]
 
+
 @log_function
 def calc_pvs(site_id, connection, client):
     stat_row_by_date = {}
     rows = _calc_pv_v_pv_clickrec(client) + _calc_pv_rec(client) + _calc_pv_plo(client)
     for row in rows:
         data = result_as_dict(row, ["date_str", "behavior", ("pv", int)])
-        stat_row = stat_row_by_date.setdefault(data["date_str"], 
-                            {"date_str": data["date_str"], "PV_V": 0, "PV_Rec": 0, 
+        stat_row = stat_row_by_date.setdefault(data["date_str"],
+                            {"date_str": data["date_str"], "PV_V": 0, "PV_Rec": 0,
                              "PV_PLO": 0, "ClickRec": 0})
         if data["behavior"] == "V":
             stat_row["PV_V"] = data["pv"]
@@ -461,7 +544,7 @@ def load_items(connection, site_id, work_dir, client):
 
 
 def getMapperFilePath(file_name):
-    return "add FILE %s" % os.path.join(os.path.dirname(os.path.abspath(__file__)), "mappers", file_name)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "mappers", file_name)
 '''
 # TODO: also: items which accessed 0 times
 # TODO: how to handle yesterday
@@ -509,7 +592,7 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
     calc_avg_item_amount(site_id, connection, client)
 
     calc_click_rec_buy(site_id, connection, client)
-    calc_place_order_with_rec_info(site_id, connection, client)
+    calc_order_items_with_rec_info(site_id, connection, client)
 
     calc_kedanjia_with_rec(site_id, connection, client)
     calc_kedanjia_without_rec(site_id, connection, client)
@@ -517,7 +600,7 @@ def do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, cli
     calc_recommendations_by_type_n_click_rec_by_type(site_id, connection, client)
 
 
-def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, 
+def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_path,
     do_calculations=do_calculations):
 
     transport = TSocket.TSocket('localhost', 10000)
@@ -528,5 +611,3 @@ def hive_based_calculations(connection, site_id, work_dir, backfilled_raw_logs_p
     transport.open()
     do_calculations(connection, site_id, work_dir, backfilled_raw_logs_path, client)
     transport.close()
-
-
