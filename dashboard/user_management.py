@@ -19,7 +19,8 @@ def createHashedPassword(password):
     return hashed_password, salt
 
 
-connection = pymongo.Connection(settings.mongodb_host)
+#connection = pymongo.Connection(settings.mongodb_host)
+connection = pymongo.MongoReplicaSetClient(settings.mongodb_host, replicaSet=settings.replica_set)
 users = connection["tjb-db"]["users"]
 
 random.seed(open("/dev/random", "rb").read(10))

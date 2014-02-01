@@ -22,7 +22,10 @@ import settings
 
 
 def getConnection():
-    return pymongo.Connection(settings.mongodb_host)
+    if settings.replica_set:
+        return pymongo.MongoReplicaSetClient(settings.mongodb_host, replicaSet=settings.replica_set)
+    else:
+        return pymongo.Connection(settings.mongodb_host)
 
 mongo_client = MongoClient(getConnection())
 
