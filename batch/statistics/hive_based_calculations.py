@@ -41,7 +41,7 @@ def output_a_row(out_f, output):
         if isinstance(item, unicode):
             output1.append(item.encode("utf-8"))
         else:
-            output1.append(item)
+            output1.append(str(item))
     out_f.write("%s\n" % DELIMITER.join(output1))
     out_f.flush()
 

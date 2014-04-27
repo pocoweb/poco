@@ -7,5 +7,5 @@ pymongo==2.6.3
 python-memcached==1.48
 simplejson==2.5.0
 slimit==0.6.1
-tornado==2.2
+tornado==2.3
 versiontools==1.9.1
